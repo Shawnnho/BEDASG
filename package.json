@@ -1,0 +1,32 @@
+{
+  "name": "bedasg",
+  "version": "1.0.0",
+  "description": "This is for BED Assignment 2026",
+  "main": "app.js",
+  "scripts": {
+    "devStart": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shawnnho/BEDASG.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Shawnnho/BEDASG/issues"
+  },
+  "homepage": "https://github.com/Shawnnho/BEDASG#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "joi": "^18.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^12.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
