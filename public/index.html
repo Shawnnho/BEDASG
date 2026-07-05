@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hawker Point — Discover</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/footer.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+          <a class="pill" href="signin.html">Log In</a>
+          <a
+            class="pill active"
+            href="signup.html"
+            style="background: #df8f3b; color: white"
+            >Sign up for free today</a
+          >
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+        <a
+          class="mLink active"
+          href="signup.html"
+          style="background: #df8f3b; color: white"
+          >Sign up for free today</a
+        >
+        <a class="mLink" href="signin.html">Sign in</a>
+      </nav>
+    </header>
+
+    <main class="page home discoverPage">
+      <section class="searchWrap">
+        <div class="discoverHead">
+          <h2 class="discoverTitle">Discover</h2>
+          <p class="discoverSub">Find stalls & dishes fast.</p>
+        </div>
+
+        <div class="searchBar">
+          <span class="searchIcon" aria-hidden="true">
+            <img src="images/search.png" alt="Search icon" />
+          </span>
+          <input
+            id="discoverSearch"
+            type="search"
+            placeholder="Search stalls or dishes…"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="chipRow" id="chipRow" aria-label="Categories">
+          <button class="chipBtn active" data-cat="all" type="button">
+            All
+          </button>
+          <button class="chipBtn" data-cat="chinese" type="button">
+            Chinese
+          </button>
+          <button class="chipBtn" data-cat="malay" type="button">Malay</button>
+          <button class="chipBtn" data-cat="indian" type="button">
+            Indian
+          </button>
+          <button class="chipBtn" data-cat="western" type="button">
+            Western
+          </button>
+          <button class="chipBtn" data-cat="beverages" type="button">
+            Beverages
+          </button>
+          <button class="chipBtn" data-cat="popular" type="button">
+            Popular
+          </button>
+          <button class="chipBtn" data-cat="top" type="button">
+            Top Rated
+          </button>
+          <button class="chipBtn" data-cat="fast" type="button">⏱️ Fast</button>
+        </div>
+      </section>
+
+      <section class="listHeader">
+        <h2>Popular Today</h2>
+        <p>Curated picks</p>
+      </section>
+
+      <section class="featuredWrap" aria-label="Popular today">
+        <div class="featuredTrack" id="featuredTrack"></div>
+      </section>
+
+      <section class="listHeader" id="promotions">
+        <h2>Promotions</h2>
+        <p>Limited-time deals you don't want to miss</p>
+      </section>
+
+      <section class="featuredWrap promoWrap" aria-label="Promotions">
+        <div class="featuredTrack promoTrack" id="promoTrack"></div>
+      </section>
+
+      <section class="listHeader" id="allStalls">
+        <h2>All Stalls</h2>
+        <p>Browse everything</p>
+      </section>
+
+      <section class="emptyState" id="discoverEmpty" hidden>
+        <h3 class="emptyTitle">No stalls match your filters</h3>
+        <div class="bottomReset">
+          <button class="resetBtn" id="discoverReset" type="button">
+            Reset Filters
+          </button>
+        </div>
+      </section>
+
+      <section class="list" id="discoverList"></section>
+    </main>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credit.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/cart-badge.js"></script>
+    <div id="dToast" class="dToast" role="status" aria-live="polite"></div>
+    <script type="module" src="js/index.js"></script>
+    <script type="module" src="js/menu.js"></script>
+  </body>
+</html>
