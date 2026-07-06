@@ -5,7 +5,8 @@ const sql = require("mssql");
 const dbConfig = require("./dbConfig");
 
 // Route imports
-const stallRoutes = require("./routes/stallRoutes"); // <-- ADDED
+const stallRoutes = require("./routes/stallRoutes");
+const centreRoutes = require("./routes/centreRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,7 +18,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // API routes
-app.use("/api/stalls", stallRoutes); // <-- ADDED
+app.use("/api/stalls", stallRoutes);
+app.use("/api/centres", centreRoutes);
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
