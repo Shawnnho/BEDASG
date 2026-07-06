@@ -8,6 +8,7 @@ const dbConfig = require("./dbConfig");
 const stallRoutes = require("./routes/stallRoutes");
 const centreRoutes = require("./routes/centreRoutes");
 const faqRoutes = require("./routes/faqRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/stalls", stallRoutes);
 app.use("/api/centres", centreRoutes);
 app.use("/api/faqs", require("./routes/faqRoutes"));
+app.use("/api/contact", contactRoutes);
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
