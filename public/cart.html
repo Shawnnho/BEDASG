@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Cart</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill" href="home.html">Home</a>
+          <a class="pill" href="promotions.html">Promotions</a>
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html">Hygiene</a>
+
+          <a class="pill active cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">
+            Account <span class="notif" id="notifCount" hidden></span>
+          </a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html">Hygiene</a>
+
+        <a class="mLink active" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="page cartPage">
+      <div class="listHeader">
+        <h2>Your Cart</h2>
+        <p class="cartSub" id="cartSub">0 items</p>
+      </div>
+
+      <div class="cartLayout">
+        <div class="cartLeft">
+          <section class="list" id="cartList"></section>
+
+          <section class="fulfillBox" id="fulfillBox">
+            <div class="payTitle">Pickup / Delivery</div>
+
+            <label class="payOption">
+              <input type="radio" name="fulfillment" value="pickup" checked />
+              <span>Pickup</span>
+            </label>
+
+            <label class="payOption">
+              <input type="radio" name="fulfillment" value="delivery" />
+              <span>Delivery</span>
+            </label>
+
+            <div id="deliveryFields" class="deliveryFields" hidden>
+              <div class="deliveryGrid">
+                <div class="field field--full">
+                  <label>
+                    Address*
+                    <span class="req" id="reqAddress" hidden>Required</span>
+                  </label>
+                  <input
+                    id="delAddress"
+                    type="text"
+                    placeholder="Street / Building"
+                  />
+                </div>
+
+                <div class="field">
+                  <label>
+                    Postal Code*
+                    <span class="req" id="reqPostal" hidden>Required</span>
+                  </label>
+                  <input id="delPostal" type="text" placeholder="e.g. 560123" />
+                </div>
+
+                <div class="field">
+                  <label>
+                    Unit*
+                    <span class="req" id="reqUnit" hidden>Required</span>
+                  </label>
+                  <input id="delUnit" type="text" placeholder="e.g. 10-123" />
+                </div>
+
+                <div class="field field--full saveAddrRow">
+                  <label class="saveAddrLabel">
+                    <input id="saveAddrChk" type="checkbox" />
+                    <span>Save address for future deliveries</span>
+                  </label>
+                  <div id="saveAddrHint" class="saveAddrStatus" hidden></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="payBox" id="payBox">
+            <div class="payTitle">Payment Methods</div>
+
+            <label class="payOption">
+              <input type="radio" name="payMethod" value="cash" />
+              <span>Cash</span>
+            </label>
+
+            <label class="payOption">
+              <input type="radio" name="payMethod" value="paynow_nets" />
+              <span>Paynow / NETS QR</span>
+            </label>
+
+            <label class="payOption">
+              <input type="radio" name="payMethod" value="card" />
+              <span>Credit / Debit Card</span>
+            </label>
+          </section>
+        </div>
+
+        <aside class="cartRight">
+          <div class="orderPanel" id="orderPanel">
+            <section
+              id="promoBox"
+              class="promoRedeemWrap promoRedeemWrap--cart"
+            >
+              <div class="promoRedeemCard promoRedeemCard--cart">
+                <div class="promoRedeemLeft">
+                  <h3>Have a promo code?</h3>
+                  <p>Enter it here — we’ll apply it to your cart.</p>
+                </div>
+
+                <div class="promoRedeemRight">
+                  <input
+                    id="redeemInput"
+                    class="promoRedeemInput"
+                    placeholder="ENTER PROMO CODE"
+                    autocomplete="off"
+                  />
+                  <button
+                    id="redeemBtn"
+                    class="viewBtn promoRedeemBtn"
+                    type="button"
+                  >
+                    Redeem <span class="arrow">›</span>
+                  </button>
+                </div>
+
+                <p id="redeemMsg" class="promoRedeemMsg" aria-live="polite"></p>
+              </div>
+            </section>
+
+            <section class="cartSummary" id="cartSummary">
+              <div class="cartSumRow">
+                <span>Subtotal</span>
+                <span>$<span id="sumSubtotal">0.00</span></span>
+              </div>
+
+              <div class="cartSumRow">
+                <span>Promo (<span id="promoCodeLabel">None</span>)</span>
+                <span>$<span id="sumPromo">0.00</span></span>
+              </div>
+
+              <div class="cartSumRow" id="smallOrderRow">
+                <span>Small order fee</span>
+                <span>$<span id="sumSmallFee">0.00</span></span>
+              </div>
+
+              <div id="smallOrderMsg" class="feeMsg" hidden></div>
+
+              <div class="cartDivider" id="smallOrderDivider" hidden></div>
+
+              <div class="cartSumRow noBorder">
+                <span>Delivery</span>
+                <span>$<span id="sumDelivery">0.00</span></span>
+              </div>
+
+              <div class="cartDivider"></div>
+
+              <div class="cartSumRow cartSumTotal">
+                <span>Total</span>
+                <span>$<span id="sumTotal">0.00</span></span>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </div>
+
+      <div class="cartAction">
+        <button
+          id="checkoutBtn"
+          class="payProceedBtn isLocked"
+          type="button"
+          disabled
+        >
+          Proceed To Payment
+        </button>
+      </div>
+
+      <section class="cartEmpty niceEmpty" id="cartEmpty" hidden>
+        <div class="cartEmptyIcon">
+          <img
+            src="images/shoppingcart.png"
+            alt="Empty cart"
+            class="cartEmptyImg"
+          />
+        </div>
+        <div class="cartEmptyTitle">Your cart is empty</div>
+        <div class="cartEmptyDesc">Add some items from a stall menu.</div>
+        <a class="resetBtn" href="home.html">Browse stalls</a>
+      </section>
+    </main>
+
+    <script type="module" src="js/menu.js"></script>
+    <script type="module" src="js/cart.js"></script>
+  </body>
+</html>
