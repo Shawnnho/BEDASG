@@ -39,3 +39,5 @@ Thumbs.db
 # Optional: dependency lock mismatch caches
 .npm/
 .eslintcache
+
+request.js
