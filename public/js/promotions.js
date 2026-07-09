@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
   // ---- MOCK USER CLAIMS (Locally stored for UI) ----
   let claimedCodes = new Set(JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"));
   let claimedDailyIds = new Set(JSON.parse(localStorage.getItem("hp_claimedDailyIds") || "[]"));

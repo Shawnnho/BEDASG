@@ -113,7 +113,7 @@ function renderFeatured(data) {
           <div class="featuredBadge">${s.grade === "A" ? "Top Pick" : "Popular"}</div>
           <div class="featuredName">${esc(s.name)}</div>
           <div class="featuredMeta">
-    ${esc(s.cuisine)} \u00b7 Grade ${esc(s.grade)} \u00b7 Prep ${timeLabel(s)}
+    ${esc(s.cuisine)} \u00b7 Grade ${esc(s.grade)} \u00b7 Prep Time ${timeLabel(s)}
           </div>
         </div>
       </a>`;
@@ -147,7 +147,7 @@ function renderList(data) {
           <p class="desc">${esc(s.desc)}</p>
 
           <div class="cardBottom">
-           <span class="prep dPrep ${prepClass(s)}">Prep ${timeLabel(s)}</span>
+           <span class="prep dPrep ${prepClass(s)}">Prep Time ${timeLabel(s)}</span>
 
            <button
             class="dFav ${favOn ? "on" : ""}"
