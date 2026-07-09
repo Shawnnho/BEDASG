@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Home</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <!-- Desktop nav (same as your current) -->
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill active" href="home.html">Home</a>
+          <a class="pill" href="promotions.html" id="navPromotions"
+            >Promotions</a
+          >
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">
+            Account
+            <span class="notif" id="notifCount" hidden></span>
+          </a>
+        </nav>
+
+        <!-- Hamburger button (mobile only via CSS) -->
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink active" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html" id="mNavPromotions"
+          >Promotions</a
+        >
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html" id="mNavHygiene">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="page home">
+      <!-- SEARCH -->
+      <section class="searchWrap">
+        <div class="searchBar">
+          <span class="searchIcon" aria-hidden="true">
+            <img src="images/search.png" alt="Search icon" />
+          </span>
+          <input
+            id="q"
+            type="text"
+            placeholder="What are you craving?"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filters">
+          <select id="cuisine">
+            <option value="">Cuisine</option>
+          </select>
+
+          <select id="grade">
+            <option value="">Hygiene Grade</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+
+          <select id="sort">
+            <option value="popular">Sort: Popular</option>
+            <option value="prepAsc">Prep: Fastest</option>
+            <option value="prepDesc">Prep: Slowest</option>
+            <option value="nameAsc">Name: A–Z</option>
+          </select>
+
+          <input id="location" type="text" placeholder="Location" />
+        </div>
+      </section>
+
+      <!-- LIST HEADER -->
+      <section class="listHeader">
+        <h2>Popular Stalls</h2>
+        <p id="subline">Showing 0 stalls. Sorted by Most Popular</p>
+      </section>
+
+      <!-- STALL LIST -->
+      <section id="list" class="list" aria-label="Stall list"></section>
+    </main>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/cart-badge.js"></script>
+    <script type="module" src="js/menu.js"></script>
+    <script type="module" src="js/home.js"></script>
+  </body>
+</html>
