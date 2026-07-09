@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const sql = require("mssql");
 const dbConfig = require("./dbConfig");
+const cookieParser = require("cookie-parser");
 
 // Route imports
 const stallRoutes = require("./routes/stallRoutes");
@@ -10,12 +11,17 @@ const centreRoutes = require("./routes/centreRoutes");
 const faqRoutes = require("./routes/faqRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const promotionRoutes = require("./routes/promotionRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware to parse JSON request bodies (needed later for POST/PUT)
 app.use(express.json());
+
+// Without this, every req.cookies?.accessToken read is silently undefined, and login/refreshwould appear to just not work at all.
+
+app.use(cookieParser());
 
 // Serve the front-end (put your html/css/js in the /public folder)
 app.use(express.static(path.join(__dirname, "public")));
@@ -26,6 +32,7 @@ app.use("/api/centres", centreRoutes);
 app.use("/api/faqs", require("./routes/faqRoutes"));
 app.use("/api/contact", contactRoutes);
 app.use("/api/promotions", promotionRoutes);
+app.use("/api/auth", authRoutes);
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
