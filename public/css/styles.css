@@ -36,13 +36,14 @@ body {
   place-items: center;
   padding: 28px 16px;
   background: #f5efe7;
+  overflow: hidden;
 }
 
 /* Your local background image */
 .bg {
   position: absolute;
   inset: 0;
-  background: url("images/background.png");
+  background: url("../images/background.png");
   background-size: cover;
   background-position: center;
   filter: saturate(1.05);
