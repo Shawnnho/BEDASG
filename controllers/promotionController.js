@@ -1,12 +1,14 @@
-const Promotion = require('../models/promotionModel');
+const promoModel = require('../models/promotionModel');
 
-const getAllPromotions = async (req, res) => {
+const getPromotions = async (req, res) => {
     try {
-        const promotions = await Promotion.getAllPromotions();
-        res.status(200).json(promotions);
+        const promos = await promoModel.getAllPromotions();
+        res.status(200).json(promos);
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving promotions', error: error.message });
+        res.status(500).json({ error: "Failed to fetch promotions" });
     }
 };
 
-module.exports = { getAllPromotions };
+module.exports = { 
+    getPromotions 
+};

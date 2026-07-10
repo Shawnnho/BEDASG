@@ -1,5 +1,4 @@
-ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
-  // ---- MOCK USER CLAIMS (Locally stored for UI) ----
+document.addEventListener("DOMContentLoaded", () => {
   let claimedCodes = new Set(JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"));
   let claimedDailyIds = new Set(JSON.parse(localStorage.getItem("hp_claimedDailyIds") || "[]"));
 
@@ -14,7 +13,6 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
   const DAY = 24 * 60 * 60 * 1000;
   let promos = [];
 
-  // ---- DOM ----
   const promoList = document.getElementById("promoList");
   const promoSearch = document.getElementById("promoSearch");
   const typeFilter = document.getElementById("typeFilter");
@@ -26,34 +24,30 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
   const redeemMsg = document.getElementById("redeemMsg");
   const toast = document.getElementById("promoToast");
 
-  // ---- LOAD FROM SQL DATABASE ----
   async function loadPromos() {
     try {
       const response = await fetch('/api/promotions');
       const data = await response.json();
       
-      // Map SQL columns exactly to what your Firebase code expected
       promos = data.map(item => ({
-        id: item.PromoCode,
-        title: item.PromoTitle,
-        desc: item.Desc,
-        code: item.PromoCode,
-        img: item.ImageUrl,
-        popular: item.IsPopular == 1 || item.IsPopular === true, // Handles SQL Bit or Int
-        redemptionsLeft: item.RedemptionsLeft,
-        type: item.PromoType ? item.PromoType.toLowerCase() : 'cash',
-        expiresAt: new Date(item.ExpiresAt).getTime(),
-        claimOnce: item.ClaimOnce == 1 || item.ClaimOnce === true
+        id: item.PromoCode || item.promoCode || item.Id || item.id || "",
+        title: item.PromoTitle || item.promoTitle || item.title || "Special Promotion",
+        desc: item.Desc || item.desc || item.description || "No description available.",
+        code: item.PromoCode || item.promoCode || "NOCODE",
+        img: item.ImageUrl || item.imageUrl || item.img || "images/promo_placeholder.png",
+        popular: item.IsPopular == 1 || item.isPopular == 1 || item.IsPopular === true || item.isPopular === true,
+        redemptionsLeft: item.RedemptionsLeft ?? item.redemptionsLeft,
+        type: (item.PromoType || item.promoType || 'cash').toLowerCase(),
+        expiresAt: new Date(item.ExpiresAt || item.expiresAt || '2099-12-31').getTime(),
+        claimOnce: item.ClaimOnce == 1 || item.claimOnce == 1 || item.ClaimOnce === true || item.claimOnce === true
       }));
       
       render();
     } catch (err) {
-      console.error("Failed to load promos:", err);
       promoList.innerHTML = `<div class="emptyState"><h2 class="emptyTitle">Error loading promotions</h2></div>`;
     }
   }
 
-  // ---- EXPIRY HELPERS ----
   function isExpired(p) {
     return Date.now() > p.expiresAt;
   }
@@ -76,7 +70,6 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     showToast._t = setTimeout(() => toast.classList.remove("show"), 1400);
   }
 
-  // ---- FILTERS ----
   function matches(p) {
     if (isExpired(p)) return false;
 
@@ -84,7 +77,11 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     const t = typeFilter.value;
     const s = statusFilter.value;
 
-    const qOk = !q || p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+    const titleStr = String(p.title).toLowerCase();
+    const descStr = String(p.desc).toLowerCase();
+    const codeStr = String(p.code).toLowerCase();
+
+    const qOk = !q || titleStr.includes(q) || descStr.includes(q) || codeStr.includes(q);
     const tOk = t === "all" || p.type === t;
     const sOk = s === "all" || statusOf(p) === s;
 
@@ -103,10 +100,9 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     return [...arr].sort((a, b) => (b.popular === true) - (a.popular === true));
   }
 
-  // ---- CLAIM VOUCHER LOGIC ----
   function claimVoucher(codeRaw) {
     const code = (codeRaw || "").trim().toUpperCase();
-    const promo = promos.find((p) => p.code.toUpperCase() === code);
+    const promo = promos.find((p) => String(p.code).toUpperCase() === code);
 
     if (!promo) return showToast("Promo not found");
     if (isExpired(promo)) return showToast("This promo is expired");
@@ -125,7 +121,6 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     showToast(`Claimed: ${code}`);
   }
 
-  // ---- RENDER (YOUR EXACT FIREBASE TEMPLATE) ----
   function renderCard(p) {
     const d = daysLeft(p);
     const exp = statusOf(p);
@@ -142,7 +137,8 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
         ? ""
         : `• <img src="images/voucher.png" class="redIcon" alt="Redemptions left" /> ${p.redemptionsLeft} left`;
 
-    const codeUpper = p.code.toUpperCase();
+    const safeCode = String(p.code);
+    const codeUpper = safeCode.toUpperCase();
     const dailyIdUpper = `${codeUpper}_${todayKey()}`.toUpperCase();
 
     const isClaimed = p.claimOnce === false ? claimedDailyIds.has(dailyIdUpper) : claimedCodes.has(codeUpper);
@@ -172,10 +168,10 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
 
         <div class="cardBottom">
           <div class="promoCodeRow" style="width:100%;">
-            <div class="promoCodeBox" data-codebox>${p.code}</div>
+            <div class="promoCodeBox" data-codebox>${safeCode}</div>
 
-            <button class="copyBtn" data-copy="${p.code}">Copy</button>
-            <button class="copyBtn" data-claim="${p.code}" ${isClaimed ? "disabled" : ""}>
+            <button class="copyBtn" data-copy="${safeCode}">Copy</button>
+            <button class="copyBtn" data-claim="${safeCode}" ${isClaimed ? "disabled" : ""}>
               ${isClaimed ? "Claimed ✓" : "Claim"}
             </button>
           </div>
@@ -216,7 +212,6 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     promoList.innerHTML = filtered.map(renderCard).join("");
   }
 
-  // ---- ACTIONS ----
   async function copyCode(code) {
     try {
       await navigator.clipboard.writeText(code);
@@ -241,7 +236,7 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const promo = promos.find((p) => p.code.toUpperCase() === code);
+    const promo = promos.find((p) => String(p.code).toUpperCase() === code);
 
     if (!promo) {
       redeemMsg.textContent = "Invalid promo code.";
@@ -260,7 +255,6 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     showToast(`Applied: ${code}`);
   }
 
-  // ---- EVENTS ----
   promoSearch.addEventListener("input", render);
   typeFilter.addEventListener("change", render);
   statusFilter.addEventListener("change", render);
@@ -279,6 +273,5 @@ ar.jpgdocument.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") redeem(redeemInput.value);
   });
 
-  // INITIALIZE
   loadPromos();
 });

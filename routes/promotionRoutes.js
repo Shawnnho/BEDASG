@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const promotionController = require('../controllers/promotionController');
+const promoController = require('../controllers/promotionController');
 
-router.get('/', promotionController.getAllPromotions);
+router.get('/', promoController.getPromotions);
 
 module.exports = router;
