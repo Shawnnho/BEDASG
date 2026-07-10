@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hawker Point - Write a Review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/upload-feedback.css" />
+  </head>
+
+  <body class="feedbackFormPage">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill active" href="home.html">Home</a>
+          <a class="pill" href="promotions.html" id="navPromotions"
+            >Promotions</a
+          >
+          <a class="pill" href="orders.html">Orders</a>
+          <a
+            class="pill"
+            href="feedback.html"
+            style="background: #df8f3b; color: white"
+            >Feedback</a
+          >
+          <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">
+            Account
+            <span class="notif" id="notifCount" hidden></span>
+          </a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink active" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html" id="mNavPromotions"
+          >Promotions</a
+        >
+        <a class="mLink" href="orders.html">Orders</a>
+        <a
+          class="mLink"
+          href="feedback.html"
+          style="background: #df8f3b; color: white"
+          >Feedback</a
+        >
+        <a class="mLink" href="hygiene.html" id="mNavHygiene">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="review-container">
+      <div class="review-card">
+        <!-- Stall Title (like complaint-style field) -->
+        <div class="complaint-header">
+          <h2 id="selected-stall-text">Share Your Experience</h2>
+          <p>Let us know what we can improve on in the future.</p>
+        </div>
+        <!-- Select Stall -->
+        <div class="form-group">
+          <label class="fieldLabel" for="stall-select">Select Stall</label>
+          <select id="stall-select" class="full-width std-input">
+            <option value="" disabled selected>Loading stalls...</option>
+          </select>
+        </div>
+
+        <!-- Rating -->
+        <div class="form-group">
+          <label class="fieldLabel">Rating</label>
+          <div class="rating-section">
+            <div class="stars" id="star-container">
+              <span class="star" data-value="1">★</span>
+              <span class="star" data-value="2">★</span>
+              <span class="star" data-value="3">★</span>
+              <span class="star" data-value="4">★</span>
+              <span class="star" data-value="5">★</span>
+            </div>
+            <p class="rating-text">Tap a star to rate</p>
+          </div>
+        </div>
+
+        <!-- Quick Tags -->
+        <div class="form-group">
+          <label class="fieldLabel">Quick tags (optional)</label>
+          <div class="tagWrap">
+            <div id="quickTags" class="tagRow">
+              <button type="button" class="tagChip" data-tag="Food Quality">
+                Food Quality
+              </button>
+              <button type="button" class="tagChip" data-tag="Service">
+                Service
+              </button>
+              <button type="button" class="tagChip" data-tag="Price">
+                Price
+              </button>
+              <button type="button" class="tagChip" data-tag="Cleanliness">
+                Cleanliness
+              </button>
+              <button type="button" class="tagChip" data-tag="Waiting Time">
+                Waiting Time
+              </button>
+            </div>
+            <div class="tagHint">Select up to 3</div>
+          </div>
+        </div>
+
+        <!-- Review Text -->
+        <div class="form-group">
+          <label class="fieldLabel" for="review-text">Your Review</label>
+          <textarea
+            id="review-text"
+            placeholder="Tell us what you liked or what could be improved..."
+            class="review-input std-input full-width"
+          ></textarea>
+
+          <div class="textMeta">
+            <span>Be specific — it helps the stall improve</span>
+            <span id="charCount">0 / 500</span>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="error-msg" class="error-text" style="display: none">
+          Please enter something
+        </div>
+
+        <!-- Upload Photo -->
+        <div class="form-group">
+          <label class="fieldLabel" for="review-image"
+            >Upload Photo (optional)</label
+          >
+
+          <input
+            type="file"
+            id="review-image"
+            accept="image/*"
+            class="std-input full-width"
+          />
+
+          <div id="imgPreviewWrap" class="imgPreviewWrap" style="display: none">
+            <img
+              id="imgPreview"
+              class="imgPreview"
+              alt="Selected photo preview"
+            />
+            <button type="button" id="removeImgBtn" class="removeImgBtn">
+              Remove
+            </button>
+          </div>
+
+          <p class="hint">JPG / PNG • max 5MB</p>
+        </div>
+
+        <!-- Anonymous -->
+        <div class="form-group">
+          <div class="anonRow">
+            <span>Post anonymously</span>
+            <label class="switch">
+              <input type="checkbox" id="anonToggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button id="submit-btn" class="submit-btn" onclick="submitReview()">
+          Submit Feedback
+        </button>
+      </div>
+    </main>
+
+    <br>
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="cart-badge.js"></script>
+    <!-- review.js no longer uses import/export, so type="module" is dropped -->
+    <script src="review.js"></script>
+    <script type="module" src="menu.js"></script>
+  </body>
+</html>

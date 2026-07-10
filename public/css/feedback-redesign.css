@@ -1,0 +1,303 @@
+
+:root {
+  --chili: #d84315;
+  --chili-dark: #922c0d;
+  --turmeric: #e8a33d;
+  --turmeric-dark: #8a5a17;
+  --kopi: #6b4226;
+  --kopi-dark: #43290f;
+  --ink: #241a12;
+  --paper: #fffaf0;
+}
+
+.feedbackActions,
+.review-card,
+.feedback-history-card {
+  font-family: "Baloo 2", "Segoe UI", sans-serif;
+}
+
+.actionText h3,
+.complaint-header h2,
+.fbReviewsTitle,
+.feedback-history-header h2,
+.emptyTitle,
+.cartEmptyTitle {
+  font-family: "Baloo 2", "Segoe UI", sans-serif;
+  color: var(--ink);
+}
+
+
+.review-card {
+  position: relative;
+  overflow: visible;
+}
+
+.review-card::before,
+.review-card::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fbf3e6;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  z-index: 2;
+}
+.review-card::before {
+  left: 22px;
+}
+.review-card::after {
+  left: auto;
+  right: 22px;
+}
+
+/* ---------- Feedback hub: centered hero cards ---------- */
+.feedbackHero {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 20px 8px;
+}
+
+.feedbackHeroIntro {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.feedbackHeroIntro h1 {
+  font-family: "Baloo 2", "Segoe UI", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.feedbackHeroIntro p {
+  margin: 0;
+  font-size: 14.5px;
+  color: rgba(36, 26, 18, 0.6);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.heroCard {
+  background: var(--paper);
+  border-radius: 24px;
+  padding: 36px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(36, 26, 18, 0.07);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.heroCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(36, 26, 18, 0.12);
+}
+
+.heroIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.heroCard--review .heroIcon {
+  background: #fff3d6;
+}
+.heroCard--history .heroIcon {
+  background: #ece1fb;
+}
+
+.heroIcon img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.heroCard h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Baloo 2", sans-serif;
+}
+
+.heroCard p {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  color: rgba(36, 26, 18, 0.6);
+}
+
+.heroBtn {
+  margin-top: 6px;
+  background: var(--turmeric);
+  color: var(--ink);
+  border: none;
+  padding: 12px 30px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: "Baloo 2", sans-serif;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    transform 0.1s ease;
+}
+
+.heroCard--history .heroBtn {
+  background: var(--kopi);
+  color: #fff;
+}
+
+.heroBtn:hover {
+  filter: brightness(0.93);
+}
+.heroBtn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 560px) {
+  .feedbackHeroIntro h1 {
+    font-size: 24px;
+  }
+  .heroCard {
+    padding: 28px 22px;
+  }
+}
+
+/* ---------- Floating "File a Complaint" button ---------- */
+.complaintFab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  height: 66px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 33px;
+  background: linear-gradient(135deg, #ff5c39, var(--chili-dark));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 14px 32px rgba(146, 44, 13, 0.42);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.complaintFab:hover,
+.complaintFab:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(146, 44, 13, 0.52);
+}
+
+.complaintFabIcon {
+  flex: 0 0 auto;
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.fabIconBar {
+  width: 5px;
+  height: 19px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.fabIconDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.complaintFabLabel {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  margin-left: 0;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: "Baloo 2", sans-serif;
+  transition:
+    max-width 0.25s ease,
+    opacity 0.2s ease,
+    margin-left 0.25s ease;
+}
+
+.complaintFab:hover .complaintFabLabel,
+.complaintFab:focus-visible .complaintFabLabel {
+  max-width: 200px;
+  opacity: 1;
+  margin-left: 12px;
+}
+
+/* Touch devices can't hover — keep the label visible so it's still usable */
+@media (hover: none) {
+  .complaintFabLabel {
+    max-width: 200px;
+    opacity: 1;
+    margin-left: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .complaintFab {
+    right: 16px;
+    bottom: 16px;
+    height: 58px;
+  }
+}
+
+/* ---------- Forms: complaint.html / review.html / feedback_history.html ---------- */
+.review-card {
+  max-width: 640px;
+  padding: 38px 32px 32px;
+  border-radius: 0 0 22px 22px;
+  border-top: 3px dashed var(--chili);
+  background: var(--paper);
+  box-shadow: 0 10px 24px rgba(36, 26, 18, 0.09);
+}
+
+.complaint-header h2 {
+  font-weight: 700;
+}
+
+.complaint-header p {
+  color: rgba(36, 26, 18, 0.6);
+}
+
+.submit-btn {
+  background: var(--chili);
+  font-family: "Baloo 2", sans-serif;
+}
+.submit-btn:hover {
+  filter: brightness(0.92);
+}
+.submit-btn.isSuccess {
+  background: linear-gradient(135deg, #4a7c3f, #365c2d);
+}
+
+@media (max-width: 720px) {
+  .review-card {
+    padding: 28px 22px 24px;
+  }
+}
