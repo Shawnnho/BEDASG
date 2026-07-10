@@ -1,0 +1,416 @@
+/* =========================================
+   FEEDBACK FORMS — clean modern white redesign
+   Scoped under body.feedbackFormPage so it only affects
+   complaint.html / review.html / feedback_history.html.
+   Header/topbar untouched — same nav on every page.
+   Paste at the bottom of styles.css, after feedback-hub-redesign.css.
+
+   Add class="feedbackFormPage" to the <body> tag on those three pages
+   (see the updated HTML). Reuses --chili as the single accent color
+   from feedback-hub-redesign.css so it stays visually tied to the rest
+   of the site even though the surface treatment is now neutral/white.
+========================================= */
+
+body.feedbackFormPage {
+  background: #ffffff !important;
+  color: #16181d;
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+body.feedbackFormPage .review-container {
+  background: #ffffff;
+}
+
+/* ---------- Card ---------- */
+body.feedbackFormPage .review-card {
+  position: relative;
+  max-width: 640px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e7e7ea;
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 8px 24px rgba(16, 24, 40, 0.06);
+}
+
+body.feedbackFormPage .review-card::before,
+body.feedbackFormPage .review-card::after {
+  content: none;
+}
+
+/* ---------- Headings ---------- */
+body.feedbackFormPage .complaint-header,
+body.feedbackFormPage .feedback-history-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+body.feedbackFormPage .complaint-header h2,
+body.feedbackFormPage .feedback-history-header h2 {
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #16181d;
+  margin: 0 0 6px;
+}
+
+body.feedbackFormPage .complaint-header p,
+body.feedbackFormPage .feedback-history-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ---------- Form fields ---------- */
+body.feedbackFormPage .form-group {
+  margin-bottom: 18px;
+}
+
+body.feedbackFormPage .form-group label,
+body.feedbackFormPage .fieldLabel {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+body.feedbackFormPage .std-input,
+body.feedbackFormPage select,
+body.feedbackFormPage .review-input,
+body.feedbackFormPage textarea {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e2e6;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: #16181d;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+body.feedbackFormPage .std-input:focus,
+body.feedbackFormPage select:focus,
+body.feedbackFormPage .review-input:focus,
+body.feedbackFormPage textarea:focus {
+  outline: none;
+  border-color: var(--chili, #d84315);
+  box-shadow: 0 0 0 3px rgba(216, 67, 21, 0.12);
+}
+
+body.feedbackFormPage .error-text {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* ---------- Submit button ---------- */
+body.feedbackFormPage .submit-btn {
+  width: 100%;
+  background: var(--chili, #d84315);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+body.feedbackFormPage .submit-btn:hover {
+  background: #b8380f;
+}
+body.feedbackFormPage .submit-btn:active {
+  transform: scale(0.98);
+}
+body.feedbackFormPage .submit-btn.isLoading {
+  opacity: 0.85;
+}
+body.feedbackFormPage .submit-btn.isSuccess {
+  background: #16a34a;
+}
+
+/* ---------- Photo upload ---------- */
+body.feedbackFormPage .hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+body.feedbackFormPage .imgPreviewWrap {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+body.feedbackFormPage .imgPreview {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e7e7ea;
+}
+
+body.feedbackFormPage .removeImgBtn {
+  border: 1px solid #e2e2e6;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+body.feedbackFormPage .removeImgBtn:hover {
+  background: #f9fafb;
+}
+
+/* ---------- Review page: stars, tags, char counter, anonymous toggle ---------- */
+body.feedbackFormPage .rating-section {
+  text-align: center;
+}
+
+body.feedbackFormPage .stars {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+body.feedbackFormPage .star {
+  font-size: 30px;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+body.feedbackFormPage .star.active {
+  color: #f5b301;
+}
+body.feedbackFormPage .star:hover {
+  transform: scale(1.08);
+}
+
+body.feedbackFormPage .rating-text {
+  font-size: 12.5px;
+  color: #9ca3af;
+  margin-top: 6px;
+  text-align: center;
+}
+
+body.feedbackFormPage .tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.feedbackFormPage .tagChip {
+  border: 1px solid #e2e2e6;
+  background: #ffffff;
+  color: #374151;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+body.feedbackFormPage .tagChip.isOn {
+  background: var(--chili, #d84315);
+  border-color: var(--chili, #d84315);
+  color: #ffffff;
+}
+
+body.feedbackFormPage .tagHint {
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+body.feedbackFormPage .textMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+body.feedbackFormPage .anonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+body.feedbackFormPage .switch .slider {
+  background: #e2e2e6;
+}
+body.feedbackFormPage .switch input:checked + .slider {
+  background: var(--chili, #d84315);
+}
+
+/* ---------- Feedback history page ---------- */
+body.feedbackFormPage .historyTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+body.feedbackFormPage .tabBtn {
+  border: 1px solid #e2e2e6;
+  background: #ffffff;
+  color: #374151;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+body.feedbackFormPage .tabBtn.isOn {
+  background: #16181d;
+  border-color: #16181d;
+  color: #ffffff;
+}
+
+body.feedbackFormPage .historySortSelect {
+  border: 1px solid #e2e2e6;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #374151;
+  background: #ffffff;
+  margin-bottom: 18px;
+}
+
+body.feedbackFormPage .historyStatus {
+  color: #9ca3af;
+  font-size: 13.5px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+body.feedbackFormPage .historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body.feedbackFormPage .historyCard {
+  border: 1px solid #eceef1;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #ffffff;
+}
+
+body.feedbackFormPage .historyAvatarFallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+body.feedbackFormPage .badgeReview {
+  background: #ecfdf5;
+  color: #047857;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+body.feedbackFormPage .badgeComplaint {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body.feedbackFormPage .historyTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #16181d;
+}
+
+body.feedbackFormPage .historyDate {
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+body.feedbackFormPage .historyBody {
+  font-size: 13.5px;
+  color: #374151;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+body.feedbackFormPage .miniTag {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+body.feedbackFormPage .historyImg {
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+body.feedbackFormPage .historyEmpty {
+  text-align: center;
+  padding: 40px 20px;
+}
+body.feedbackFormPage .emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #16181d;
+  margin-top: 12px;
+}
+body.feedbackFormPage .emptySub {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+body.feedbackFormPage .ratingFull {
+  color: #f5b301;
+}
+body.feedbackFormPage .ratingEmpty {
+  color: #e5e7eb;
+}
+body.feedbackFormPage .ratingHalf::before {
+  color: #f5b301;
+}
+
+@media (max-width: 720px) {
+  body.feedbackFormPage .review-card {
+    padding: 28px 22px;
+    border-radius: 16px;
+  }
+}
