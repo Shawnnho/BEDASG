@@ -1,14 +1,4 @@
-/* =========================================
-   FEEDBACK FLOW — hawker-ticket redesign
-   Header/topbar is untouched — this only restyles the content below it
-   across feedback.html, complaint.html, review.html, feedback_history.html.
-   Paste at the bottom of styles.css.
 
-   Signature element: every card gets a dashed "tear line" with two
-   punched-hole notches at the top corners — like an actual hawker
-   stall queue ticket. Three accent colors (chili / turmeric / kopi)
-   replace the single repeated orange, one per action.
-========================================= */
 :root {
   --chili: #d84315;
   --chili-dark: #922c0d;
@@ -36,7 +26,7 @@
   color: var(--ink);
 }
 
-/* ---------- Ticket-card base (shared signature, forms only now) ---------- */
+
 .review-card {
   position: relative;
   overflow: visible;
@@ -196,14 +186,14 @@
   z-index: 999;
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 0 16px;
+  height: 66px;
+  padding: 0 20px;
   border: none;
-  border-radius: 28px;
+  border-radius: 33px;
   background: linear-gradient(135deg, #ff5c39, var(--chili-dark));
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(146, 44, 13, 0.4);
+  box-shadow: 0 14px 32px rgba(146, 44, 13, 0.42);
   transition:
     box-shadow 0.2s ease,
     transform 0.2s ease;
@@ -212,16 +202,30 @@
 .complaintFab:hover,
 .complaintFab:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(146, 44, 13, 0.5);
+  box-shadow: 0 18px 38px rgba(146, 44, 13, 0.52);
 }
 
 .complaintFabIcon {
   flex: 0 0 auto;
-  width: 22px;
-  text-align: center;
-  font-weight: 900;
-  font-size: 20px;
-  line-height: 1;
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.fabIconBar {
+  width: 5px;
+  height: 19px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.fabIconDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
 }
 
 .complaintFabLabel {
@@ -231,7 +235,7 @@
   opacity: 0;
   margin-left: 0;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   font-family: "Baloo 2", sans-serif;
   transition:
     max-width 0.25s ease,
@@ -243,7 +247,7 @@
 .complaintFab:focus-visible .complaintFabLabel {
   max-width: 200px;
   opacity: 1;
-  margin-left: 10px;
+  margin-left: 12px;
 }
 
 /* Touch devices can't hover — keep the label visible so it's still usable */
@@ -251,7 +255,7 @@
   .complaintFabLabel {
     max-width: 200px;
     opacity: 1;
-    margin-left: 10px;
+    margin-left: 12px;
   }
 }
 
@@ -259,7 +263,7 @@
   .complaintFab {
     right: 16px;
     bottom: 16px;
-    height: 50px;
+    height: 58px;
   }
 }
 
