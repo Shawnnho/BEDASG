@@ -115,8 +115,9 @@ form.addEventListener("submit", async (e) => {
     setTimeout(() => {
       // Redirect based on the REAL role the server returned, not the
       // role button the user happened to click before submitting.
+      const roleLocation = { "storeholder" : "stall-dashboard.html", "customer": "home.html", "operator" : "operator.html", "nea_officer" : "nea.html" };
       window.location.href =
-        data.user.role === "storeholder" ? "stall-dashboard.html" : "index.html";
+        roleLocation[data.user.role] || "index.html";
     }, 700);
   } catch (err) {
     console.error(err);

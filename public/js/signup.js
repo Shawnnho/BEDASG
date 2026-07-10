@@ -246,7 +246,7 @@ form.addEventListener("submit", async (e) => {
       : `✅ Account created as ${data.user.role}. Redirecting...`;
 
     setTimeout(() => {
-      window.location.href = selectedRole === "storeholder" ? "index.html" : "index.html";
+      window.location.href = selectedRole === "storeholder" ? "stall-dashboard.html" : "home.html";
     }, 900);
   } catch (err) {
     console.error(err);
