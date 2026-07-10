@@ -2363,7 +2363,6 @@ select,
   transition:
     transform 0.15s ease,
     opacity 0.15s ease;
-
 }
 
 .favBtn {
@@ -6310,14 +6309,14 @@ body.storePage #stallGrade.gradeD {
   overflow: hidden;
   height: 100%;
 
-.clearAllWrap {
+  .clearAllWrap {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 24px;
     padding-right: 8px;
-}
+  }
 
-.clearAllBtn {
+  .clearAllBtn {
     background: #ffebee;
     color: #d32f2f;
     border: 1px solid #ffcdd2;
@@ -6328,13 +6327,13 @@ body.storePage #stallGrade.gradeD {
     cursor: pointer;
     text-decoration: none;
     transition: all 0.2s ease;
-}
+  }
 
-.clearAllBtn:hover {
+  .clearAllBtn:hover {
     background: #ffcdd2;
-}
+  }
 
-.cartClearBtn {
+  .cartClearBtn {
     background: #f5f5f5;
     color: #616161;
     border: 1px solid #e0e0e0;
@@ -6346,10 +6345,11 @@ body.storePage #stallGrade.gradeD {
     margin-left: 12px;
     text-decoration: none;
     transition: all 0.2s ease;
-}
+  }
 
-.cartClearBtn:hover {
+  .cartClearBtn:hover {
     background: #ffebee;
     color: #d32f2f;
     border-color: #ffcdd2;
+  }
 }
