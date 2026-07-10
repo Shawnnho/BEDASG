@@ -12,8 +12,8 @@ const faqRoutes = require("./routes/faqRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const promotionRoutes = require("./routes/promotionRoutes");
 const authRoutes = require("./routes/authRoutes");
+const favStallRoutes = require("./routes/favStallRoutes");
 const cartRoutes = require('./routes/cartRoutes');
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,8 +35,8 @@ app.use("/api/faqs", require("./routes/faqRoutes"));
 app.use("/api/contact", contactRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/favstalls", favStallRoutes);
 app.use('/api/cart', cartRoutes);
-
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
