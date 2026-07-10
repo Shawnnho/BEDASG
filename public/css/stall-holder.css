@@ -2098,3 +2098,47 @@ body.stallHolder #btnAdd img {
   object-fit: contain;
   display: block;
 }
+
+/* Order action buttons (stall-orders page) */
+body.stallHolder .orderActionBtn {
+  border: none;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+body.stallHolder .orderActionBtn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.stallHolder .orderActionBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+body.stallHolder .orderActionBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Green = confirm cash received */
+body.stallHolder .orderActionBtn.confirmCash {
+  background: #16a34a;
+}
+
+/* Orange = mark completed (matches your brand accent) */
+body.stallHolder .orderActionBtn.markComplete {
+  background: #e8944c;
+}

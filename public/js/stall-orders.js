@@ -1,5 +1,5 @@
 // stall-orders.js — MSSQL/Express version (no Firebase), cookie auth
-// Loads unpaid-cash / paid / completed orders and allows confirming cash.
+// Loads unpaid-cash / paid / completed orders; confirm cash + mark completed.
 
 const API_BASE = "";
 const $ = (id) => document.getElementById(id);
@@ -84,7 +84,7 @@ function renderItem(it) {
 }
 
 function renderOrderCard(o, opts = {}) {
-  const { showConfirmCashBtn = false } = opts;
+  const { showConfirmCashBtn = false, showCompleteBtn = false } = opts;
 
   const displayId = esc(
     o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
@@ -106,8 +106,18 @@ function renderOrderCard(o, opts = {}) {
   const statusText = String(o.status || "").replaceAll("_", " ");
 
   const confirmBtn = showConfirmCashBtn
-    ? `<div style="margin-top:12px; display:flex; justify-content:flex-end;">
-         <button class="pill" type="button" data-confirm-cash="${esc(o.orderId)}">Confirm Cash Received</button>
+    ? `<div style="margin-top:14px; display:flex; justify-content:flex-end;">
+         <button class="orderActionBtn confirmCash" type="button" data-confirm-cash="${esc(o.orderId)}">
+           Confirm Cash Received
+         </button>
+       </div>`
+    : "";
+
+  const completeBtn = showCompleteBtn
+    ? `<div style="margin-top:14px; display:flex; justify-content:flex-end;">
+         <button class="orderActionBtn markComplete" type="button" data-complete="${esc(o.orderId)}">
+           Mark Completed
+         </button>
        </div>`
     : "";
 
@@ -156,6 +166,7 @@ function renderOrderCard(o, opts = {}) {
       </div>
 
       ${confirmBtn}
+      ${completeBtn}
     </div>`;
 }
 
@@ -192,7 +203,9 @@ function render(data) {
   $("unpaidList").innerHTML = unpaid
     .map((o) => renderOrderCard(o, { showConfirmCashBtn: true }))
     .join("");
-  $("paidList").innerHTML = paid.map((o) => renderOrderCard(o)).join("");
+  $("paidList").innerHTML = paid
+    .map((o) => renderOrderCard(o, { showCompleteBtn: true }))
+    .join("");
   $("completedList").innerHTML = completed
     .map((o) => renderOrderCard(o))
     .join("");
@@ -240,6 +253,32 @@ $("unpaidList")?.addEventListener("click", async (e) => {
     alert("Failed to confirm cash payment.");
     btn.disabled = false;
     btn.textContent = "Confirm Cash Received";
+  }
+});
+
+$("paidList")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-complete]");
+  if (!btn) return;
+
+  const orderId = btn.getAttribute("data-complete");
+  btn.disabled = true;
+  btn.textContent = "Completing...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/stall/orders/complete`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ orderId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast("✅ Order completed");
+    await refresh();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to complete order.");
+    btn.disabled = false;
+    btn.textContent = "Mark Completed";
   }
 });
 
