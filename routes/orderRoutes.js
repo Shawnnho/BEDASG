@@ -10,5 +10,6 @@ router.patch("/orders/status", verifyToken, orderController.bulkUpdateStatus);
 // stall-orders page
 router.get("/orders", verifyToken, orderController.getStallOrders);
 router.patch("/orders/confirm-cash", verifyToken, orderController.confirmCash);
+router.patch("/orders/complete", verifyToken, orderController.completeOrder);
 
 module.exports = router;

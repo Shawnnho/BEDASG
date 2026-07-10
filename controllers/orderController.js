@@ -267,9 +267,39 @@ async function bulkUpdateStatus(req, res) {
   }
 }
 
+// PATCH /api/stall/orders/complete  { orderId }
+async function completeOrder(req, res) {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const user = await orderModel.getUserInfo(userId);
+    if (!user?.StallId) {
+      return res.status(404).json({ error: "No stall linked to this user" });
+    }
+
+    const { orderId } = req.body;
+    if (!orderId) return res.status(400).json({ error: "Missing orderId" });
+
+    const affected = await orderModel.updateOrderStatus(
+      orderId,
+      user.StallId,
+      "completed",
+    );
+    if (affected === 0) {
+      return res.status(409).json({ error: "Order not found or not yours" });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("completeOrder error:", err);
+    res.status(500).json({ error: "Failed to complete order" });
+  }
+}
+
 module.exports = {
   getDashboard,
   bulkUpdateStatus,
   getStallOrders,
   confirmCash,
+  completeOrder,
 };
