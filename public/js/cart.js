@@ -201,6 +201,7 @@ async function render() {
   const payBox = document.getElementById("payBox");
   const proceedBtn = document.getElementById("checkoutBtn");
   const fulfillBox = document.getElementById("fulfillBox");
+  const clearAllWrap = document.getElementById("clearAllWrap");
 
   let cart = [];
   try {
@@ -221,6 +222,7 @@ async function render() {
     if (payBox) payBox.style.display = "none";
     if (proceedBtn) proceedBtn.style.display = "none";
     if (fulfillBox) fulfillBox.style.display = "none";
+    if (clearAllWrap) clearAllWrap.style.display = "none";
 
     await clearAppliedPromo();
     return;
@@ -232,6 +234,7 @@ async function render() {
   if (payBox) payBox.style.display = "";
   if (proceedBtn) proceedBtn.style.display = "";
   if (fulfillBox) fulfillBox.style.display = "";
+  if (clearAllWrap) clearAllWrap.style.display = "flex";
 
   if (!list) return;
   list.innerHTML = "";
@@ -257,6 +260,7 @@ async function render() {
           <button class="cartQtyBtn" data-act="plus" data-i="${idx}">+</button>
           <div class="cartQtyNum">${qty}</div>
           <button class="cartQtyBtn" data-act="minus" data-i="${idx}">−</button>
+          <button class="cartClearBtn" data-act="clear" data-i="${idx}">Clear</button>
         </div>
       </article>
     `;
@@ -302,11 +306,22 @@ document.addEventListener("click", async (e) => {
       if (cart[i].qty <= 1) cart.splice(i, 1);
       else cart[i].qty--;
     }
+    if (act === "clear") {
+        cart.splice(i, 1);
+    }
     
     if(cart[i]) cart[i].totalPrice = cart[i].qty * cart[i].unitPrice;
     
     await saveCart(cart);
     render();
+    return;
+  }
+
+  if (e.target.closest("#clearAllBtn")) {
+    if (confirm("Are you sure you want to empty your entire cart?")) {
+        await saveCart([]);
+        render();
+    }
     return;
   }
 

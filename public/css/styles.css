@@ -6295,3 +6295,46 @@ body.storePage #stallGrade.gradeD {
   border-color: rgba(0, 0, 0, 0.1);
 }
 
+.clearAllWrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+    padding-right: 8px;
+}
+
+.clearAllBtn {
+    background: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.clearAllBtn:hover {
+    background: #ffcdd2;
+}
+
+.cartClearBtn {
+    background: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.cartClearBtn:hover {
+    background: #ffebee;
+    color: #d32f2f;
+    border-color: #ffcdd2;
+}
