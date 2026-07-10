@@ -215,11 +215,9 @@ async function loadStalls() {
 
 async function loadFavourites() {
   if (!currentUid) return;
-
+ 
   try {
-    const res = await fetch("/api/users/favourites", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
+    const res = await AuthClient.apiFetch("/api/favstalls/get");
     if (res.ok) {
       const data = await res.json();
       favSet = new Set(data.favourites || []);
@@ -232,24 +230,22 @@ async function loadFavourites() {
 
 async function toggleFavourite(stallId) {
   if (!currentUid) return;
-
+ 
   const isFav = favSet.has(stallId);
-
+ 
   // Optimistic UI update
   if (isFav) favSet.delete(stallId);
   else favSet.add(stallId);
   applyFilters();
-
+ 
   try {
-    const res = await fetch("/api/users/favourites", {
+    const url = isFav ? "/api/favstalls/delete" : "/api/favstalls/add";
+    const res = await AuthClient.apiFetch(url, {
       method: isFav ? "DELETE" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stallId }),
     });
-
+ 
     if (!res.ok) throw new Error("Failed to save");
   } catch (err) {
     console.error("Error toggling favourite:", err);
@@ -259,7 +255,6 @@ async function toggleFavourite(stallId) {
     applyFilters();
   }
 }
-
 // =========================
 // Events
 // =========================
@@ -272,32 +267,24 @@ locationEl?.addEventListener("input", applyFilters);
 listEl?.addEventListener("click", (e) => {
   const favBtn = e.target.closest(".dFav");
   if (!favBtn) return;
-
   const stallId = favBtn.getAttribute("data-stall");
   if (!stallId) return;
-
   toggleFavourite(stallId);
 });
 
 // =========================
 // Auth & Init
 // =========================
-function checkAuthStatus() {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      currentUid = payload.userId || "authorized_user";
-      loadFavourites();
-    } catch (e) {
-      console.error("Invalid token format");
-      currentUid = null;
-      favSet = new Set();
-    }
+async function checkAuthStatus() {
+  const user = await AuthClient.getCurrentUser();
+ 
+  if (user) {
+    currentUid = user.id;
+    loadFavourites();
   } else {
     currentUid = null;
     favSet = new Set();
+    applyFilters();
   }
 }
 

@@ -1,28 +1,43 @@
 const favStallModel = require("../models/favStallModel");
 
+async function getFavStalls(req, res) {
+  try {
+    const userId = req.user.userId;
+    const rows = await favStallModel.getFavStalls(userId);
+    const favourites = rows.map((r) => r.StallId);
+    res.status(200).json({ favourites });
+  } catch (error) {
+    console.error("Error fetching favourite stalls:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 async function addFavStall(req, res) {
-    try{
-        const { userId, stallId } = req.body;
-        const favStall = await favStallModel.addFavStall(userId, stallId);
-        res.status(201).json(favStall);
-    } catch (error) {
-        console.error("Error adding favorite stall:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+  try {
+    const userId = req.user.userId;
+    const { stallId } = req.body;
+    const success = await favStallModel.addFavStall(userId, stallId);
+    res.status(201).json({ success });
+  } catch (error) {
+    console.error("Error adding favorite stall:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 async function deleteFavStall(req, res) {
-    try{
-        const { userId, stallId } = req.body;
-        const favStall = await favStallModel.deleteFavStall(userId, stallId);
-        res.status(200).json(favStall);
-    } catch (error) {
-        console.error("Error deleting favorite stall:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+  try {
+    const userId = req.user.userId;
+    const { stallId } = req.body;
+    const success = await favStallModel.deleteFavStall(userId, stallId);
+    res.status(200).json({ success });
+  } catch (error) {
+    console.error("Error deleting favorite stall:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 module.exports = {
-    addFavStall,
-    deleteFavStall
+  getFavStalls,
+  addFavStall,
+  deleteFavStall,
 };
