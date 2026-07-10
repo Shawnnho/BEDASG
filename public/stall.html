@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Stall Information</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="storePage">
+    <!-- ================= HEADER ================= -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a
+            class="pill active"
+            href="home.html"
+            style="background: #df8f3b; color: white"
+            >Home</a
+          >
+          <a class="pill" href="promotions.html" id="navPromotions"
+            >Promotions</a
+          >
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill" href="account.html">Account</a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a
+          class="mLink"
+          href="home.html"
+          style="background: #df8f3b; color: white"
+          >Home</a
+        >
+        <a class="mLink" href="promotions.html">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">Account</a>
+      </nav>
+    </header>
+
+    <!-- ================= HERO ================= -->
+    <section class="heroWrap">
+      <img id="stallHero" class="heroImg" src="" alt="Stall hero image" />
+    </section>
+
+    <!-- ================= CONTENT ================= -->
+    <main class="page stallPage">
+      <div class="titleRow">
+        <h1 id="stallName" class="stallTitle"></h1>
+
+        <div class="favWrap">
+          <br />
+          <button
+            id="favBtn"
+            class="favBtn"
+            type="button"
+            aria-label="Add to favourite"
+            aria-pressed="false"
+          >
+            <img
+              id="favIcon"
+              src="images/like.png"
+              alt="Add to favourite"
+              class="favIcon"
+            />
+          </button>
+
+          <div class="favText">Add to Favourite</div>
+        </div>
+      </div>
+
+      <div class="badgeRow">
+        <span id="stallCuisine" class="badge cuisine"></span>
+
+        <div class="gradeRatingWrap">
+          <span id="stallGrade" class="badge grade"></span>
+
+          <span id="avgText" class="ratingNum">0.0</span>
+
+          <div class="starBar inlineStars" aria-label="Average rating">
+            <div id="starFill" class="starFill">★★★★★</div>
+            <div class="starBase">★★★★★</div>
+          </div>
+
+          <span id="countText" class="ratingCount">(0)</span>
+
+          <a class="seeReview" id="seeReviewLink" href="#">See review</a>
+        </div>
+      </div>
+
+      <div id="stallMeta" class="metaLine"></div>
+
+      <div class="descBox">
+        <p id="stallDesc"></p>
+      </div>
+
+      <div class="btnRow">
+        <a id="menuLink" class="bigBtn primary" href="#">
+          <img src="images/restaurant.png" alt="" class="btnIcon" />
+          View Menu
+        </a>
+
+        <a id="hygBtn" class="bigBtn" href="#">
+          <img src="images/clipboard2.png" alt="" class="btnIcon" />
+          View Hygiene History
+        </a>
+      </div>
+
+      <h2 id="stallLocation" class="hoursTitle"></h2>
+
+      <div class="btnRow small">
+        <a id="callBtn" class="smallBtn" href="#">
+          <img src="images/phone-call.png" alt="" class="btnIcon" />
+          Call
+        </a>
+
+        <a id="dirBtn" class="smallBtn" href="#" target="_blank" rel="noopener">
+          <img src="images/location-pin.png" alt="" class="btnIcon" />
+          Directions
+        </a>
+      </div>
+    </main>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Stall page should highlight Home
+      document
+        .querySelectorAll('.nav a[href="home.html"]')
+        .forEach((a) => a.classList.add("active"));
+      document
+        .querySelectorAll('#navMobile a[href="home.html"]')
+        .forEach((a) => a.classList.add("active"));
+    </script>
+
+    <script type="module" src="cart-badge.js"></script>
+    <div id="dToast" class="dToast" role="status" aria-live="polite"></div>
+    <script type="module" src="stall.js"></script>
+    <script type="module" src="menu.js"></script>
+  </body>
+</html>
