@@ -328,6 +328,12 @@ body.stallHolder .hpRow2 {
   padding: 14px 12px;
   color: #fff;
   height: fit-content;
+
+position: sticky;
+  top: 100px;                        /* 88px header + 12px breathing room */
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  z-index: 1;
 }
 
 .shNav {
