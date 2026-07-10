@@ -4,7 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hawker Point - Feedback</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/feedback-redesign.css" />
   </head>
 
   <body class="feedbackPage">
@@ -65,28 +72,32 @@
     </header>
 
     <main class="container">
-      <div class="options">
-        <img src="images/star.png" alt="Star Icon" class="icon-img" />
-        <h3>Share Your Experience</h3>
-        <p>Help your favorite stalls!</p>
-        <button class="buttons" onclick="writeReview()">Write a Review</button>
-      </div>
+      <section class="feedbackHero">
+        <div class="feedbackHeroIntro">
+          <h1>We'd love to hear from you</h1>
+          <p>Share a review or catch up on your feedback history.</p>
+        </div>
 
-      <div class="options">
-        <img src="images/warning.png" alt="Warning Icon" class="icon-img" />
-        <h3>Report an Issue</h3>
-        <p>Tell us what went wrong</p>
-        <button class="buttons" onclick="fileComplaint()">
-          File a Complaint
-        </button>
-      </div>
+        <div class="heroGrid">
+          <div class="heroCard heroCard--review">
+            <span class="heroIcon">
+              <img src="images/star.png" alt="" />
+            </span>
+            <h3>Share Your Experience</h3>
+            <p>Help your favorite stalls!</p>
+            <button class="heroBtn" onclick="writeReview()">Write a Review</button>
+          </div>
 
-      <div class="options">
-        <img src="images/history.png" alt="History Icon" class="icon-img" />
-        <h3>Feedback History</h3>
-        <p>View previous reviews and complaints</p>
-        <button class="buttons" onclick="viewHistory()">View History</button>
-      </div>
+          <div class="heroCard heroCard--history">
+            <span class="heroIcon">
+              <img src="images/history.png" alt="" />
+            </span>
+            <h3>Feedback History</h3>
+            <p>View previous reviews and complaints</p>
+            <button class="heroBtn" onclick="viewHistory()">View History</button>
+          </div>
+        </div>
+      </section>
 
       <!-- ================= REVIEWS CAROUSEL ================= -->
       <section class="fbReviews">
@@ -124,6 +135,18 @@
         </div>
       </section>
     </main>
+
+    <!-- Floating "File a Complaint" button — icon only until hovered/focused -->
+    <button
+      id="complaintFab"
+      class="complaintFab"
+      type="button"
+      onclick="fileComplaint()"
+      aria-label="File a complaint"
+    >
+      <span class="complaintFabIcon" aria-hidden="true">!</span>
+      <span class="complaintFabLabel">File a Complaint</span>
+    </button>
 
     <br />
     <br />
