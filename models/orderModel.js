@@ -44,6 +44,7 @@ async function getOrdersByStall(stallId, limitN = 50) {
         o.CustomerName,
         o.CustomerEmail,
         o.OrderStatus,
+        o.PaymentMethod,
         o.TotalAmount,
         o.Subtotal,
         o.CreatedAt,
@@ -88,10 +89,99 @@ async function updateOrderStatus(orderId, stallId, newStatus) {
   return result.rowsAffected[0]; // 0 = not found / not owned, 1 = updated
 }
 
+// Cash-like payment methods appear as: cash, Cash. Match case-insensitively.
+// Get all orders for the stall-orders page, grouped later in the controller.
+async function getStallOrdersForPage(stallId, limitN = 50) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId)
+    .input("LimitN", sql.Int, limitN).query(`
+      SELECT TOP (@LimitN)
+        o.OrderId,
+        o.OrderNo,
+        o.CustomerName,
+        o.OrderStatus,
+        o.PaymentMethod,
+        o.PaymentStatus,
+        o.PaidAt,
+        o.FulfillmentType,
+        o.FulfillmentAddress,
+        o.FulfillmentPostal,
+        o.FulfillmentUnit,
+        o.Subtotal,
+        o.DeliveryFee,
+        o.SmallOrderFee,
+        o.PromoCode,
+        o.PromoDiscount,
+        o.TotalAmount,
+        o.CreatedAt
+      FROM Orders o
+      WHERE o.StallId = @StallId
+        AND o.OrderStatus IN
+          ('pending_payment','paid','processing','preparing','ready','completed')
+      ORDER BY o.CreatedAt DESC;
+    `);
+  return result.recordset;
+}
+
+// Get all line items for a set of order ids (one query, grouped in JS)
+async function getItemsForOrders(orderIds) {
+  if (!orderIds.length) return [];
+  const pool = await poolPromise;
+  const request = pool.request();
+
+  // Build a parameterised IN list: @o0, @o1, ...
+  const params = orderIds.map((id, i) => {
+    request.input(`o${i}`, sql.NVarChar(255), id);
+    return `@o${i}`;
+  });
+
+  const result = await request.query(`
+    SELECT
+      OrderItemId,
+      OrderId,
+      ItemName,
+      Quantity,
+      UnitPrice,
+      LineTotal,
+      VariantLabel,
+      ItemNote,
+      AddonsJson,
+      RequiredModifiersJson
+    FROM OrderItems
+    WHERE OrderId IN (${params.join(",")})
+    ORDER BY OrderItemId ASC;
+  `);
+  return result.recordset;
+}
+
+// Confirm a cash order as paid (scoped to stall). Cash orders keep PaymentStatus NULL,
+// so we only flip OrderStatus -> paid and stamp PaidAt.
+async function confirmCashReceived(orderId, stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("OrderId", sql.NVarChar(255), orderId)
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      UPDATE Orders
+      SET OrderStatus = 'paid',
+          PaidAt = SYSUTCDATETIME(),
+          UpdatedAt = SYSUTCDATETIME()
+      WHERE OrderId = @OrderId
+        AND StallId = @StallId
+        AND OrderStatus = 'pending_payment';
+    `);
+  return result.rowsAffected[0]; // 1 = confirmed, 0 = not found / already paid
+}
+
 module.exports = {
   getStallIdByUser,
   getUserInfo,
   getStallName,
   getOrdersByStall,
   updateOrderStatus,
+  getStallOrdersForPage,
+  getItemsForOrders,
+  confirmCashReceived,
 };
