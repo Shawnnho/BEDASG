@@ -13,7 +13,20 @@ async function api(endpoint, method = 'GET', body = null) {
   }
 }
 
-let currentUser = localStorage.getItem("hp_uid") ? { uid: localStorage.getItem("hp_uid") } : null;
+let currentUser = null;
+
+async function checkLogin() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      return { uid: data.user.id };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
 
 const CART_KEY = "hp_cart";
 let lastPricing = { subtotal: 0, promoDiscount: 0, smallOrderFee: 0, deliveryFee: 0, total: 0 };
@@ -26,18 +39,18 @@ function readLocalCart() {
   } catch { return []; }
 }
 
-function writeLocalCart(cart) { 
-    localStorage.setItem(CART_KEY, JSON.stringify(cart || [])); 
+function writeLocalCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart || []));
 }
 
-function clearLocalCart() { 
-    localStorage.removeItem(CART_KEY); 
+function clearLocalCart() {
+    localStorage.removeItem(CART_KEY);
 }
 
 async function readCloudCart(uid) {
   try {
       const data = await api(`/cart/${uid}`);
-      return data || [];
+      return Array.isArray(data) ? data : (data.items || data.data || []);
   } catch (e) {
       return [];
   }
@@ -73,8 +86,8 @@ function calcPromoDiscount(promo, subtotal) {
   if (!promo) return 0;
   const type = String(promo.PromoType || "cash").toLowerCase();
   let discount = 0;
-  if (type === "cash") discount = 5; 
-  if (type === "percent") discount = subtotal * 0.1; 
+  if (type === "cash") discount = 5;
+  if (type === "percent") discount = subtotal * 0.1;
   return Math.min(discount, subtotal);
 }
 
@@ -86,12 +99,12 @@ async function clearAppliedPromo(message = "") {
   if (msg && message) msg.textContent = message;
 }
 
-function money(n) { 
-    return (Number(n) || 0).toFixed(2); 
+function money(n) {
+    return (Number(n) || 0).toFixed(2);
 }
 
 function calcCount(cart) {
-  return cart.reduce((c, it) => c + (Number(it.qty ?? it.quantity ?? 1) || 1), 0);
+  return cart.reduce((c, it) => c + (Number(it.qty ?? it.Qty ?? it.Quantity ?? 1) || 1), 0);
 }
 
 function updateBadges(count) {
@@ -118,7 +131,7 @@ function validateDeliveryFields() {
   [addressEl, postalEl, unitEl].forEach(
     (el) => el && el.classList.remove("isInvalid"),
   );
-  
+
   showReq("reqAddress", false);
   showReq("reqPostal", false);
   showReq("reqUnit", false);
@@ -157,7 +170,7 @@ function clearPaySelection() {
 }
 
 function calcDeliveryFee(subtotal) {
-    return 2.50; 
+    return 2.50;
 }
 
 function syncProceedBtn() {
@@ -166,7 +179,7 @@ function syncProceedBtn() {
   const selectedPay = Boolean(getSelectedPayMethod());
   const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
   let deliveryOk = fulfillment === "delivery" ? validateDeliveryFields().ok : true;
-  
+
   const ready = selectedPay && deliveryOk;
   btn.classList.toggle("isReady", ready);
   btn.classList.toggle("isLocked", !ready);
@@ -244,15 +257,19 @@ async function render() {
   let subtotal = 0;
 
   cart.forEach((it, idx) => {
-    const qty = Number(it.qty ?? 1);
-    const line = Number(it.totalPrice) || (Number(it.unitPrice) * qty);
+    const name = it.name || it.Name || "Unknown Item";
+    const img = it.img || it.Img || 'images/defaultFood.png';
+    const qty = Number(it.qty ?? it.Qty ?? 1);
+    const unitPrice = Number(it.unitPrice ?? it.UnitPrice ?? 0);
+    const line = Number(it.totalPrice ?? it.TotalPrice) || (unitPrice * qty);
+    
     subtotal += line;
 
     list.innerHTML += `
       <article class="menuCard cartCard">
-        <div class="menuImgWrap"><img src="${it.img || 'images/defaultFood.png'}"></div>
+        <div class="menuImgWrap"><img src="${img}"></div>
         <div class="menuInfo">
-          <div class="menuName">${it.name}</div>
+          <div class="menuName">${name}</div>
           <div class="menuPrice">$${money(line)}</div>
           <div class="cartMeta">Qty: ${qty}</div>
         </div>
@@ -268,12 +285,12 @@ async function render() {
 
   let promoDiscount = calcPromoDiscount(appliedPromo, subtotal);
   const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
-  
+
   let smallOrderFee = 0;
   if (fulfillment === "delivery" && subtotal < 15) {
     smallOrderFee = Math.min(15 - subtotal, 4);
   }
-  
+
   let deliveryFee = fulfillment === "delivery" ? calcDeliveryFee(subtotal) : 0;
 
   const subEl = document.getElementById("sumSubtotal");
@@ -286,7 +303,7 @@ async function render() {
   if (promoEl) promoEl.textContent = money(promoDiscount);
   if (smallEl) smallEl.textContent = money(smallOrderFee);
   if (delEl) delEl.textContent = money(deliveryFee);
-  
+
   const total = Math.max(0, subtotal - promoDiscount + smallOrderFee + deliveryFee);
   if (totalEl) totalEl.textContent = money(total);
 
@@ -300,18 +317,23 @@ document.addEventListener("click", async (e) => {
     const act = actBtn.getAttribute("data-act");
     const i = Number(actBtn.getAttribute("data-i"));
     const cart = await readCart();
-    
-    if (act === "plus") cart[i].qty++;
-    if (act === "minus") {
-      if (cart[i].qty <= 1) cart.splice(i, 1);
-      else cart[i].qty--;
-    }
-    if (act === "clear") {
+
+    let currentQty = Number(cart[i].qty ?? cart[i].Qty ?? 1);
+
+    if (act === "plus") currentQty++;
+    if (act === "minus") currentQty--;
+    if (act === "clear") currentQty = 0;
+
+    if (currentQty <= 0) {
         cart.splice(i, 1);
+    } else {
+        cart[i].qty = currentQty;
+        cart[i].Qty = currentQty;
+        const price = Number(cart[i].unitPrice ?? cart[i].UnitPrice ?? 0);
+        cart[i].totalPrice = currentQty * price;
+        cart[i].TotalPrice = currentQty * price;
     }
-    
-    if(cart[i]) cart[i].totalPrice = cart[i].qty * cart[i].unitPrice;
-    
+
     await saveCart(cart);
     render();
     return;
@@ -323,6 +345,26 @@ document.addEventListener("click", async (e) => {
         render();
     }
     return;
+  }
+
+  if (e.target.closest("#redeemBtn")) {
+    const code = document.getElementById("redeemInput")?.value;
+    const msg = document.getElementById("redeemMsg");
+    const promo = await getPromoByCode(code);
+
+    if (promo) {
+        appliedPromo = promo;
+        if (msg) {
+            msg.textContent = "Promo applied successfully!";
+            msg.style.color = "green";
+        }
+        const label = document.getElementById("promoCodeLabel");
+        if (label) label.textContent = promo.PromoCode;
+    } else {
+        await clearAppliedPromo("Invalid or expired promo code.");
+        if (msg) msg.style.color = "red";
+    }
+    render();
   }
 
   if (e.target.closest("#checkoutBtn")) {
@@ -342,12 +384,25 @@ document.addEventListener("click", async (e) => {
     try {
         const res = await api('/orders', 'POST', payload);
         if (res && res.success) {
-            await saveCart([]); 
+            await saveCart([]);
             window.location.href = payload.paymentMethod === 'cash' ? 'orders.html' : 'qr.html';
-        } 
+        } else {
+            alert("Order failed. Please try again.");
+        }
     } catch (err) {
+        console.error(err);
+        alert("Server error: Could not submit order. Is your backend running?");
     }
   }
 });
 
-document.addEventListener("DOMContentLoaded", render);
+async function initCart() {
+    currentUser = await checkLogin();
+    render();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCart);
+} else {
+    initCart();
+}
