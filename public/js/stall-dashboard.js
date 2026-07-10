@@ -1,6 +1,8 @@
 // stall-dashboard.js — MSSQL/Express version (no Firebase), cookie auth
 // Polls /api/stall/dashboard every few seconds and renders orders + stats.
 
+let latestStats = {};
+
 const API_BASE = ""; // same origin
 const POLL_MS = 5000;
 
@@ -167,7 +169,7 @@ function renderOrdersTable() {
   setText("statProgressNum", inProgress);
   setText("statCancelledNum", cancelled);
   setText("statSalesNum", money(sales));
-  setBadge("orderBadge", pending);
+  setBadge("orderBadge", latestStats.unpaidCash || 0);
 
   const body = $("ordersBody");
   if (!body) return;
@@ -224,6 +226,7 @@ async function loadDashboard() {
 
     const prevIds = new Set(allOrders.map((o) => o.orderId));
     allOrders = Array.isArray(data.orders) ? data.orders : [];
+    latestStats = data.stats || {};
 
     if (firstLoadDone) {
       const newOnes = allOrders.filter((o) => !prevIds.has(o.orderId));
