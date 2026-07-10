@@ -928,7 +928,6 @@ body.menuOpen {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
   margin-top: 2px;
 }
 
@@ -2358,11 +2357,22 @@ select,
 /* =========================
    Favourite Heart (Image)
 ========================= */
+.heartIcon {
+  width: 18px;
+  height: 18px;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+
+}
+
 .favBtn {
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  margin-left: 4rem;
+  margin-right: -2rem;
 }
 
 .favIcon {
