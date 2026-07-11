@@ -1,5 +1,5 @@
 // stall-menu.js — MSSQL/Express (no Firebase), cookie auth
-// Core menu CRUD + separate stall add-ons manager.
+// Menu CRUD with single-price OR variant-price (sizes) support.
 // Images stored as base64 data URLs in ImageUrl (no multer).
 
 const API_BASE = "";
@@ -19,6 +19,10 @@ const catInput = $("menuCategory");
 const descInput = $("menuDesc");
 const imgInput = $("menuImage");
 const imgPreview = $("menuImagePreview");
+const addSingleWrap = $("addSingleWrap");
+const addVariantWrap = $("addVariantWrap");
+const addVariantRows = $("addVariantRows");
+const addVariantHint = $("addVariantHint");
 
 /* edit modal */
 const editModal = $("editMenuModal");
@@ -30,9 +34,14 @@ const editCategory = $("editCategory");
 const editImgPreview = $("editImgPreview");
 const deleteItemBtn = $("deleteItemBtn");
 const saveEditBtn = $("saveEditBtn");
+const editSingleWrap = $("editSingleWrap");
+const editVariantWrap = $("editVariantWrap");
+const editVariantRows = $("editVariantRows");
+const editVariantHint = $("editVariantHint");
 
 let editingMenuId = null;
 let allItems = [];
+let knownVariantKeys = [];
 
 /* ===== helpers ===== */
 function esc(s) {
@@ -47,6 +56,15 @@ function esc(s) {
 function money(n) {
   const x = Number(n);
   return Number.isFinite(x) ? `$${x.toFixed(2)}` : "—";
+}
+
+// Pretty-print a variant key: cold_s -> "Cold S", quarter_upper -> "Quarter Upper"
+function prettyVariant(key) {
+  return String(key || "")
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 function setStatus(msg, isErr = false) {
@@ -66,7 +84,6 @@ function closeOverlay(m) {
   document.body.style.overflow = "";
 }
 
-// Read a chosen file into a base64 data URL (or null if none). Caps size.
 function fileToBase64(fileInput) {
   const file = fileInput?.files?.[0];
   if (!file) return Promise.resolve(null);
@@ -75,7 +92,7 @@ function fileToBase64(fileInput) {
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result); // "data:image/...;base64,..."
+    reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(new Error("Failed to read image"));
     reader.readAsDataURL(file);
   });
@@ -102,7 +119,120 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
+/* ===== variant row builders ===== */
+function variantRowHtml(key = "", price = "") {
+  return `
+    <div class="variantRow">
+      <input type="text" class="hpModalInput vKey" placeholder="cold_s" value="${esc(key)}" />
+      <input type="number" step="0.1" class="hpModalInput vPrice" placeholder="3.00" value="${price === "" ? "" : esc(price)}" />
+      <button type="button" class="variantRemove" title="Remove">✕</button>
+    </div>`;
+}
+
+function addVariantRow(container, key = "", price = "") {
+  if (!container) return;
+  container.insertAdjacentHTML("beforeend", variantRowHtml(key, price));
+}
+
+// Read the variant rows out of a container into [{ variantKey, price }]
+function readVariants(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(".variantRow"))
+    .map((row) => ({
+      variantKey: row.querySelector(".vKey")?.value.trim().toLowerCase() || "",
+      price: Number(row.querySelector(".vPrice")?.value),
+    }))
+    .filter((v) => v.variantKey && Number.isFinite(v.price) && v.price >= 0);
+}
+
+// Render clickable suggestion chips for variant keys this stall already uses
+function renderVariantHint(hintEl, container) {
+  if (!hintEl) return;
+  if (!knownVariantKeys.length) {
+    hintEl.innerHTML = "";
+    return;
+  }
+  hintEl.innerHTML =
+    `<span>Common sizes: </span>` +
+    knownVariantKeys
+      .map(
+        (k) =>
+          `<span class="variantChip" data-key="${esc(k)}">${esc(k)}</span>`,
+      )
+      .join("");
+
+  hintEl.querySelectorAll(".variantChip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      addVariantRow(container, chip.dataset.key, "");
+    });
+  });
+}
+
+// Wire the single/variants radio toggle for a modal
+function wirePriceMode(radioName, singleWrap, variantWrap) {
+  const radios = document.querySelectorAll(`input[name="${radioName}"]`);
+  radios.forEach((r) => {
+    r.addEventListener("change", () => {
+      const useVariants = r.value === "variants" && r.checked;
+      if (r.checked) {
+        singleWrap.hidden = useVariants;
+        variantWrap.hidden = !useVariants;
+      }
+    });
+  });
+}
+
+function setPriceMode(radioName, mode) {
+  const radio = document.querySelector(
+    `input[name="${radioName}"][value="${mode}"]`,
+  );
+  if (radio) {
+    radio.checked = true;
+    radio.dispatchEvent(new Event("change"));
+  }
+}
+
+wirePriceMode("addPriceMode", addSingleWrap, addVariantWrap);
+wirePriceMode("editPriceMode", editSingleWrap, editVariantWrap);
+
+// Remove-row delegation (works for both modals)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".variantRemove");
+  if (!btn) return;
+  btn.closest(".variantRow")?.remove();
+});
+
+$("addVariantBtn")?.addEventListener("click", () =>
+  addVariantRow(addVariantRows),
+);
+$("editVariantBtn")?.addEventListener("click", () =>
+  addVariantRow(editVariantRows),
+);
+
 /* ===== render menu ===== */
+function priceLabel(it) {
+  if (it.hasVariants && it.variants.length) {
+    const cheapest = Math.min(...it.variants.map((v) => v.price));
+    return `from ${money(cheapest)}`;
+  }
+  return money(it.price);
+}
+
+function variantChipsHtml(it) {
+  if (!it.hasVariants || !it.variants.length) return "";
+  return `
+    <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${it.variants
+        .map(
+          (v) =>
+            `<span class="prep" style="text-transform:none; font-size:12px;">
+               ${esc(prettyVariant(v.variantKey))} ${money(v.price)}
+             </span>`,
+        )
+        .join("")}
+    </div>`;
+}
+
 function renderMenu() {
   if (!listEl) return;
 
@@ -131,7 +261,8 @@ function renderMenu() {
                 ${isActive ? "Active" : "Inactive"}
               </span>
             </div>
-            <div style="margin-top:10px; font-weight:900;">${money(it.price)}</div>
+            <div style="margin-top:10px; font-weight:900;">${priceLabel(it)}</div>
+            ${variantChipsHtml(it)}
           </div>
           <div class="menuActionRow" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
             <button class="copyBtn" data-action="toggle">${isActive ? "Deactivate" : "Activate"}</button>
@@ -154,6 +285,7 @@ async function loadMenu() {
     if (menuTitle) menuTitle.textContent = `Menu — ${data.stallName || ""}`;
 
     allItems = Array.isArray(data.items) ? data.items : [];
+    knownVariantKeys = Array.isArray(data.variantKeys) ? data.variantKeys : [];
     renderMenu();
     setStatus("");
   } catch (err) {
@@ -174,6 +306,9 @@ function openAddModal() {
     imgPreview.src = "";
     imgPreview.style.display = "none";
   }
+  if (addVariantRows) addVariantRows.innerHTML = "";
+  setPriceMode("addPriceMode", "single");
+  renderVariantHint(addVariantHint, addVariantRows);
   openOverlay(addModal);
   nameInput?.focus();
 }
@@ -183,7 +318,6 @@ $("btnAdd2")?.addEventListener("click", openAddModal);
 $("closeAddMenu")?.addEventListener("click", () => closeOverlay(addModal));
 $("cancelAddMenu")?.addEventListener("click", () => closeOverlay(addModal));
 
-// live preview (add)
 imgInput?.addEventListener("change", () => {
   const f = imgInput.files?.[0];
   if (!imgPreview) return;
@@ -197,10 +331,20 @@ imgInput?.addEventListener("change", () => {
 
 $("saveMenu")?.addEventListener("click", async () => {
   const name = nameInput.value.trim();
-  const price = Number(priceInput.value);
   if (!name) return alert("Please enter item name");
-  if (!Number.isFinite(price) || price <= 0)
+
+  const useVariants =
+    document.querySelector('input[name="addPriceMode"]:checked')?.value ===
+    "variants";
+  const variants = useVariants ? readVariants(addVariantRows) : [];
+  const price = Number(priceInput.value);
+
+  if (useVariants) {
+    if (!variants.length)
+      return alert("Add at least one size with a valid price");
+  } else if (!Number.isFinite(price) || price <= 0) {
     return alert("Please enter a valid price");
+  }
 
   try {
     $("saveMenu").disabled = true;
@@ -209,7 +353,8 @@ $("saveMenu")?.addEventListener("click", async () => {
       method: "POST",
       body: JSON.stringify({
         name,
-        price,
+        price: useVariants ? null : price,
+        variants,
         category: catInput?.value.trim() || "",
         description: descInput?.value.trim() || "",
         imageUrl,
@@ -224,7 +369,7 @@ $("saveMenu")?.addEventListener("click", async () => {
   }
 });
 
-/* ===== edit / toggle / delete (event delegation) ===== */
+/* ===== edit / toggle / delete ===== */
 $("closeEditMenu")?.addEventListener("click", () => closeOverlay(editModal));
 
 listEl?.addEventListener("click", async (e) => {
@@ -266,17 +411,30 @@ listEl?.addEventListener("click", async (e) => {
     editingMenuId = menuId;
     editName.value = item.name || "";
     editDesc.value = item.description || "";
-    editPrice.value = item.price != null ? String(item.price) : "";
     if (editCategory) editCategory.value = item.category || "";
     if (editImg) editImg.value = "";
     if (editImgPreview)
       editImgPreview.src = item.imageUrl || "images/defaultfood.png";
+
+    // Populate pricing according to the item's mode
+    if (editVariantRows) editVariantRows.innerHTML = "";
+    if (item.hasVariants && item.variants.length) {
+      setPriceMode("editPriceMode", "variants");
+      editPrice.value = "";
+      item.variants.forEach((v) =>
+        addVariantRow(editVariantRows, v.variantKey, v.price),
+      );
+    } else {
+      setPriceMode("editPriceMode", "single");
+      editPrice.value = item.price != null ? String(item.price) : "";
+    }
+    renderVariantHint(editVariantHint, editVariantRows);
+
     openOverlay(editModal);
     editName?.focus();
   }
 });
 
-// live preview (edit)
 editImg?.addEventListener("change", () => {
   const f = editImg.files?.[0];
   if (editImgPreview && f) editImgPreview.src = URL.createObjectURL(f);
@@ -285,21 +443,33 @@ editImg?.addEventListener("change", () => {
 saveEditBtn?.addEventListener("click", async () => {
   if (!editingMenuId) return;
   const name = editName.value.trim();
-  const price = Number(editPrice.value);
   if (!name) return alert("Please enter item name");
-  if (!Number.isFinite(price) || price <= 0)
+
+  const useVariants =
+    document.querySelector('input[name="editPriceMode"]:checked')?.value ===
+    "variants";
+  const variants = useVariants ? readVariants(editVariantRows) : [];
+  const price = Number(editPrice.value);
+
+  if (useVariants) {
+    if (!variants.length)
+      return alert("Add at least one size with a valid price");
+  } else if (!Number.isFinite(price) || price <= 0) {
     return alert("Please enter a valid price");
+  }
 
   try {
     saveEditBtn.disabled = true;
     const item = allItems.find((i) => i.menuId === editingMenuId);
     const b64 = await fileToBase64(editImg);
     const imageUrl = b64 || item?.imageUrl || "";
+
     await api(`/api/stall/menu/${encodeURIComponent(editingMenuId)}`, {
       method: "PATCH",
       body: JSON.stringify({
         name,
-        price,
+        price: useVariants ? null : price,
+        variants,
         category: editCategory?.value.trim() || "",
         description: editDesc.value.trim(),
         imageUrl,

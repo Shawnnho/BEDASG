@@ -34,11 +34,12 @@ async function addMenuItem(stallId, data) {
     .input("Description", sql.NVarChar(sql.MAX), data.description || "")
     .input("Category", sql.NVarChar(100), data.category || "")
     .input("ImageUrl", sql.NVarChar(sql.MAX), data.imageUrl || "")
-    .input("Price", sql.Decimal(10, 2), data.price).query(`
+    .input("Price", sql.Decimal(10, 2), data.price ?? null)
+    .input("PriceFrom", sql.Decimal(10, 2), data.priceFrom ?? null).query(`
       INSERT INTO StallMenus
-        (MenuId, StallId, Active, Available, Category, Name, Description, ImageUrl, Price, CreatedAt, UpdatedAt)
+        (MenuId, StallId, Active, Available, Category, Name, Description, ImageUrl, Price, PriceFrom, CreatedAt, UpdatedAt)
       VALUES
-        (@MenuId, @StallId, 1, 1, @Category, @Name, @Description, @ImageUrl, @Price, SYSUTCDATETIME(), SYSUTCDATETIME());
+        (@MenuId, @StallId, 1, 1, @Category, @Name, @Description, @ImageUrl, @Price, @PriceFrom, SYSUTCDATETIME(), SYSUTCDATETIME());
     `);
   return menuId;
 }
@@ -53,13 +54,15 @@ async function updateMenuItem(menuId, stallId, data) {
     .input("Description", sql.NVarChar(sql.MAX), data.description || "")
     .input("Category", sql.NVarChar(100), data.category || "")
     .input("ImageUrl", sql.NVarChar(sql.MAX), data.imageUrl || "")
-    .input("Price", sql.Decimal(10, 2), data.price).query(`
+    .input("Price", sql.Decimal(10, 2), data.price ?? null)
+    .input("PriceFrom", sql.Decimal(10, 2), data.priceFrom ?? null).query(`
       UPDATE StallMenus
       SET Name = @Name,
           Description = @Description,
           Category = @Category,
           ImageUrl = @ImageUrl,
           Price = @Price,
+          PriceFrom = @PriceFrom,
           UpdatedAt = SYSUTCDATETIME()
       WHERE MenuId = @MenuId AND StallId = @StallId;
     `);
@@ -156,12 +159,103 @@ async function deleteAddon(addonId, stallId) {
   return result.rowsAffected[0];
 }
 
+/* ===================== VARIANT PRICES ===================== */
+
+// Get all variant prices for a set of menu ids (one query, grouped in JS)
+async function getPricesForMenus(menuIds) {
+  if (!menuIds.length) return [];
+  const pool = await poolPromise;
+  const request = pool.request();
+
+  const params = menuIds.map((id, i) => {
+    request.input(`m${i}`, sql.NVarChar(255), id);
+    return `@m${i}`;
+  });
+
+  const result = await request.query(`
+    SELECT MenuPriceId, MenuId, VariantKey, Price
+    FROM StallMenuPrices
+    WHERE MenuId IN (${params.join(",")})
+    ORDER BY MenuPriceId ASC;
+  `);
+  return result.recordset;
+}
+
+// Replace all variant prices for one item (delete + reinsert = simplest correct approach)
+async function replaceMenuPrices(menuId, variants) {
+  const pool = await poolPromise;
+
+  // clear existing
+  await pool
+    .request()
+    .input("MenuId", sql.NVarChar(255), menuId)
+    .query("DELETE FROM StallMenuPrices WHERE MenuId = @MenuId;");
+
+  // insert new set
+  for (const v of variants) {
+    const key = String(v.variantKey || "")
+      .trim()
+      .toLowerCase();
+    const price = Number(v.price);
+    if (!key || !Number.isFinite(price) || price < 0) continue;
+
+    await pool
+      .request()
+      .input("MenuId", sql.NVarChar(255), menuId)
+      .input("VariantKey", sql.NVarChar(50), key)
+      .input("Price", sql.Decimal(10, 2), price).query(`
+        IF NOT EXISTS (
+          SELECT 1 FROM StallMenuPrices
+          WHERE MenuId = @MenuId AND VariantKey = @VariantKey
+        )
+        INSERT INTO StallMenuPrices (MenuId, VariantKey, Price)
+        VALUES (@MenuId, @VariantKey, @Price);
+      `);
+  }
+}
+
+// Set Price / PriceFrom on the item itself based on pricing mode
+async function setMenuPricing(menuId, stallId, { price, priceFrom }) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("MenuId", sql.NVarChar(255), menuId)
+    .input("StallId", sql.NVarChar(255), stallId)
+    .input("Price", sql.Decimal(10, 2), price)
+    .input("PriceFrom", sql.Decimal(10, 2), priceFrom).query(`
+      UPDATE StallMenus
+      SET Price = @Price,
+          PriceFrom = @PriceFrom,
+          UpdatedAt = SYSUTCDATETIME()
+      WHERE MenuId = @MenuId AND StallId = @StallId;
+    `);
+}
+
+// Distinct variant keys this stall already uses (for suggestions in the UI)
+async function getVariantKeysByStall(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT DISTINCT p.VariantKey
+      FROM StallMenuPrices p
+      JOIN StallMenus m ON m.MenuId = p.MenuId
+      WHERE m.StallId = @StallId
+      ORDER BY p.VariantKey;
+    `);
+  return result.recordset.map((r) => r.VariantKey);
+}
+
 module.exports = {
   getMenuByStall,
   addMenuItem,
   updateMenuItem,
   toggleMenuActive,
   deleteMenuItem,
+  getPricesForMenus,
+  replaceMenuPrices,
+  setMenuPricing,
+  getVariantKeysByStall,
   getAddonsByStall,
   addAddon,
   updateAddon,
