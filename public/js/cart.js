@@ -311,6 +311,25 @@ async function render() {
   syncProceedBtn();
 }
 
+// Normalize a cart item (either DB-cased or local-cased) into the shape
+// the backend's checkoutCardModel expects.
+function normalizeCheckoutItem(it) {
+  return {
+    stallId: it.stallId ?? it.StallId ?? null,
+    itemId: it.itemId ?? it.ItemId ?? null,
+    name: it.name ?? it.Name ?? "Item",
+    img: it.img ?? it.Img ?? null,
+    qty: Number(it.qty ?? it.Qty ?? 1),
+    unitPrice: Number(it.unitPrice ?? it.UnitPrice ?? 0),
+    totalPrice: Number(it.totalPrice ?? it.TotalPrice ?? 0),
+    note: it.note ?? it.Note ?? null,
+    variantKey: it.variantKey ?? it.VariantKey ?? null,
+    variantLabel: it.variantLabel ?? it.VariantLabel ?? null,
+    addons: it.addons ?? it.Addons ?? [],
+    required: it.required ?? it.RequiredModifiers ?? [],
+  };
+}
+
 document.addEventListener("click", async (e) => {
   const actBtn = e.target.closest("[data-act]");
   if (actBtn) {
@@ -369,32 +388,37 @@ document.addEventListener("click", async (e) => {
 
   if (e.target.closest("#checkoutBtn")) {
     const cart = await readCart();
+    const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
+    const paymentMethod = getSelectedPayMethod();
+
     const payload = {
         userId: currentUser ? currentUser.uid : "guest",
-        items: cart,
-        paymentMethod: getSelectedPayMethod(),
-        total: document.getElementById("sumTotal").textContent,
-        fulfillment: document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup"
+        items: cart.map(normalizeCheckoutItem),
+        paymentMethod,
+        fulfillment,
+        pricing: lastPricing,
+        promoCode: appliedPromo ? appliedPromo.PromoCode : "NONE",
     };
 
-    if (payload.fulfillment === "delivery") {
+    if (fulfillment === "delivery") {
         payload.address = validateDeliveryFields().addressObj;
     }
 
     try {
         const res = await api('/checkoutCard/create', 'POST', payload);
         if (res && res.success) {
-            if (payload.paymentMethod === 'cash') {
-                // Cash is confirmed at pickup/delivery, so it's safe to clear now.
+            if (paymentMethod === 'cash') {
+                // Cash is confirmed by the stall at pickup/delivery, so it's
+                // safe to clear the cart immediately.
                 await saveCart([]);
                 window.location.href = 'orders.html';
-            } else if (payload.paymentMethod === 'card') {
-                // Do NOT clear the cart yet — payment hasn't happened.
-                // card.html must clear the cart itself only after payment succeeds.
-                window.location.href = `card.html?checkoutId=${encodeURIComponent(res.orderId)}`;
+            } else if (paymentMethod === 'card') {
+                // Do NOT clear the cart here — payment hasn't happened yet.
+                // card.js clears it only after a real payment confirmation.
+                window.location.href = `card.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else {
                 // Same for Paynow/NETS — clear only after qr.html confirms payment.
-                window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.orderId)}`;
+                window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             }
         } else {
             alert("Order failed. Please try again.");

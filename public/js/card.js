@@ -35,6 +35,8 @@ function getCheckoutIdFromUrl() {
   return url.searchParams.get("checkoutId") || "";
 }
 
+// Returns { checkout, orders, items } — checkout may be null for a single
+// bare-order (cash) lookup, so always read totals/userId off orders[0] too.
 async function loadCheckout(checkoutId) {
   try {
     return await api(`/checkoutCard/${checkoutId}`);
@@ -43,8 +45,8 @@ async function loadCheckout(checkoutId) {
   }
 }
 
-async function markCheckoutPaid(checkout, paymentData) {
-  await api(`/checkoutCard/${checkout.id}/pay`, 'POST', paymentData);
+async function markCheckoutPaid(checkoutId, paymentData) {
+  return await api(`/checkoutCard/${checkoutId}/pay`, 'POST', paymentData);
 }
 
 let isCardValid = false;
@@ -110,18 +112,26 @@ async function initCard() {
   payBtn.disabled = true;
   payBtn.classList.remove("isReady");
 
-  const checkout = await loadCheckout(checkoutId);
-  if (!checkout) {
+  const summary = await loadCheckout(checkoutId);
+  if (!summary || !Array.isArray(summary.orders) || !summary.orders.length) {
     window.location.href = "cart.html";
     return;
   }
 
-  if (checkout.userId && checkout.userId !== user.uid) {
+  // Ownership: the checkout row's UserId, or the first order's CustomerId
+  // if this is a bare single-order (no linked Checkout row).
+  const ownerId = summary.checkout?.UserId ?? summary.orders[0]?.CustomerId;
+  if (ownerId && ownerId !== "guest" && ownerId !== user.uid) {
     window.location.href = "home.html";
     return;
   }
 
-  const total = checkout.total || checkout.pricing?.total || checkout.TotalAmount || 0;
+  // Total: PricingTotal on the Checkout row if present, otherwise sum the
+  // orders' TotalAmount (covers the bare single-order case).
+  const total =
+    summary.checkout?.PricingTotal ??
+    summary.orders.reduce((sum, o) => sum + Number(o.TotalAmount || 0), 0);
+
   if (amountText) amountText.textContent = money(total);
   if (payBtn) payBtn.textContent = `Pay $${money(total)}`;
 
@@ -145,14 +155,16 @@ async function initCard() {
         const cardDigits = (cardNoEl.value || "").replace(/\D/g, "");
         const last4 = cardDigits.slice(-4);
 
+        // Backend reads `paymentRef` specifically — this is what gets
+        // stamped onto dbo.Checkouts.PaymentRef / dbo.Orders.PaymentRef.
         const paymentData = {
-          method: "Credit / Debit Card",
-          status: "Paid",
-          ref: `CARD-${Date.now()}`,
-          last4
+          paymentRef: `CARD-${Date.now()}-${last4}`,
         };
 
-        await markCheckoutPaid(checkout, paymentData);
+        const result = await markCheckoutPaid(checkoutId, paymentData);
+        if (!result || !result.success) {
+          throw new Error("Payment was not confirmed by the server");
+        }
 
         setTimeout(() => {
           window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(checkoutId)}`;
@@ -160,6 +172,7 @@ async function initCard() {
       } catch (err) {
         payBtn.disabled = false;
         validateFields();
+        alert("Payment failed. Please try again.");
       }
     });
   }
