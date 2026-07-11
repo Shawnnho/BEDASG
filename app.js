@@ -19,6 +19,7 @@ const stallMenuRoutes = require("./routes/stallMenuRoutes");
 
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const checkoutCardRoutes = require('./routes/checkoutCardRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -45,6 +46,7 @@ app.use("/api/stall", stallMenuRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use('/api/checkoutCard', checkoutCardRoutes);
 
 
 // Health check route — confirms the server + DB are alive
