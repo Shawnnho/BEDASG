@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Hygiene Trend</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/hygiene.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill" href="index.html">Home</a>
+          <a class="pill" href="promotions.html">Promotions</a>
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill active" href="hygiene.html">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">Account</a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="index.html">Home</a>
+        <a class="mLink" href="promotions.html">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink active" href="hygiene.html">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">Account</a>
+      </nav>
+    </header>
+
+    <div class="mobileHeader">
+      <button id="mobileBackBtn" class="mobileBackBtn">‹</button>
+      <h1>Detailed Analytic</h1>
+    </div>
+
+    <main class="page trendPage">
+      <div class="htGrid">
+        <aside class="hhSidebar desktopOnly">
+          <a href="#" class="hhBackLink" id="deskBackBtn">‹ Back</a>
+
+          <div class="hhStallInfo">
+            <img id="stallImg" src="" alt="Stall Image" class="hhStallImg" />
+            <h2 id="stallName" class="hhStallName">Loading...</h2>
+          </div>
+
+          <div class="currentGradeCard">
+            <div class="cgLabel">Current Grade</div>
+            <div id="cgValue" class="cgValue">—</div>
+          </div>
+        </aside>
+
+        <div class="htContent">
+          <section class="hygieneCard trendChartCard">
+            <h3>Hygiene Score Trend</h3>
+
+            <div class="chartWrap bigChart" id="chartWrap">
+              <div class="chartGrid">
+                <div class="chartLine"></div>
+                <div class="chartLine"></div>
+                <div class="chartLine"></div>
+                <div class="chartLine"></div>
+              </div>
+            </div>
+
+            <div class="chartFooter"></div>
+          </section>
+
+          <div class="htBottomRow">
+            <section class="hygieneCard">
+              <h3>Detailed Score Breakdown</h3>
+              <div id="breakdownList" class="breakdownList"></div>
+            </section>
+
+            <section class="hygieneCard">
+              <h3>Market comparison</h3>
+              <p class="subLabel">
+                Compared to the other stalls using this app
+              </p>
+
+              <div class="marketStats">
+                <div class="mStat">
+                  <div class="mVal">—</div>
+                  <div class="mLabel">Ranked</div>
+                </div>
+                <div class="mDivider"></div>
+                <div class="mStat">
+                  <div class="mVal">—</div>
+                  <div class="mLabel">Percentile</div>
+                </div>
+              </div>
+
+              <div class="compWidget">
+                <div class="compLabels">
+                  <span id="avgCentreScoreLabel">Average Centre Score: —%</span>
+                  <span class="compStoreLabel">This store</span>
+                </div>
+
+                <div class="compTrack">
+                  <div class="compBar" style="width: 0%"></div>
+                  <div class="compMarker" style="left: 0%">
+                    <div class="compLine"></div>
+                    <div class="compVal">—</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/authClient.js"></script>
+    <script type="module" src="js/cart-badge.js"></script>
+    <script type="module" src="js/menu.js"></script>
+    <script type="module" src="js/hygiene-trend.js"></script>
+  </body>
+</html>
