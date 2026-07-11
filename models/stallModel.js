@@ -79,4 +79,38 @@ async function createStall({ ownerUid, centreId, stallName, cuisine, phone }) {
   return { stallId, unitNo };
 }
 
-module.exports = { getAllStalls, createStall };
+async function getStallById(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT
+        s.StallId,
+        s.PublicStallId,
+        s.CentreId,
+        s.StallName,
+        s.Cuisine,
+        s.Desc,
+        s.ImageUrl,
+        s.HygieneGrade,
+        s.UnitNo,
+        s.Phone,
+        s.OpenTime,
+        s.CloseTime,
+        s.OperatingHours,
+        s.PrepMin,
+        s.PrepMax,
+        s.RatingCount,
+        s.RatingAvg,
+        s.IsPopular,
+      FROM dbo.Stalls s
+      WHERE s.StallId = @stallId
+        AND s.IsActive = 1
+        AND s.IsCanonical = 1
+    `);
+
+  return result.recordset;
+}
+
+module.exports = { getAllStalls, createStall, getStallById };
