@@ -382,15 +382,24 @@ document.addEventListener("click", async (e) => {
     }
 
     try {
-        const res = await api('/orders', 'POST', payload);
+        const res = await api('/checkoutCard/create', 'POST', payload);
         if (res && res.success) {
-            await saveCart([]);
-            window.location.href = payload.paymentMethod === 'cash' ? 'orders.html' : 'qr.html';
+            if (payload.paymentMethod === 'cash') {
+                // Cash is confirmed at pickup/delivery, so it's safe to clear now.
+                await saveCart([]);
+                window.location.href = 'orders.html';
+            } else if (payload.paymentMethod === 'card') {
+                // Do NOT clear the cart yet — payment hasn't happened.
+                // card.html must clear the cart itself only after payment succeeds.
+                window.location.href = `card.html?checkoutId=${encodeURIComponent(res.orderId)}`;
+            } else {
+                // Same for Paynow/NETS — clear only after qr.html confirms payment.
+                window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.orderId)}`;
+            }
         } else {
             alert("Order failed. Please try again.");
         }
     } catch (err) {
-        console.error(err);
         alert("Server error: Could not submit order. Is your backend running?");
     }
   }
