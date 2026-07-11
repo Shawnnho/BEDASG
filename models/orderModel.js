@@ -175,6 +175,23 @@ async function confirmCashReceived(orderId, stallId) {
   return result.rowsAffected[0]; // 1 = confirmed, 0 = not found / already paid
 }
 
+// Cancel an order — only allowed while it's still pending_payment (nothing to refund)
+async function cancelOrder(orderId, stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("OrderId", sql.NVarChar(255), orderId)
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      UPDATE Orders
+      SET OrderStatus = 'cancelled',
+          UpdatedAt = SYSUTCDATETIME()
+      WHERE OrderId = @OrderId
+        AND StallId = @StallId
+        AND OrderStatus = 'pending_payment';
+    `);
+  return result.rowsAffected[0]; // 0 = not found / not yours / already paid
+}
+
 module.exports = {
   getStallIdByUser,
   getUserInfo,
@@ -183,5 +200,6 @@ module.exports = {
   updateOrderStatus,
   getStallOrdersForPage,
   getItemsForOrders,
+  cancelOrder,
   confirmCashReceived,
 };

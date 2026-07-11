@@ -39,7 +39,7 @@
       <div class="shLayout">
         <!-- ===== Sidebar (same as account page) ===== -->
         <aside class="shSide">
-          <center><h2>Dashboard</h2></center>
+          <div class="shSideTitle">Stall Manager</div>
           <a class="shNav" href="stall-dashboard.html">
             <span>Dashboard</span>
           </a>
@@ -89,81 +89,34 @@
           </div>
 
           <!-- ============ UNPAID CASH ============ -->
-          <div
-            class="legal-card"
-            style="padding: 14px; border-radius: 16px; margin: 12px 0"
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 10px;
-              "
-            >
-              <h2 style="margin: 0">Unpaid (Cash Pending)</h2>
-              <span class="legal-muted" id="unpaidMeta">—</span>
-            </div>
-
-            <div id="unpaidList"></div>
-
-            <div
-              id="unpaidEmpty"
-              class="legal-muted"
-              style="display: none; margin-top: 10px"
-            >
-              No unpaid cash orders.
-            </div>
+          <div class="ordersSectionHead">
+            <h2>Unpaid (Cash Pending)</h2>
+            <span class="ordersCount" id="unpaidMeta">0</span>
+          </div>
+          <div id="unpaidList"></div>
+          <div id="unpaidEmpty" class="legal-muted" style="display: none">
+            No unpaid cash orders.
           </div>
 
           <!-- ============ PAID ORDERS ============ -->
-          <div
-            class="legal-card"
-            style="padding: 14px; border-radius: 16px; margin: 12px 0"
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 10px;
-              "
-            >
-              <h2 style="margin: 0">Paid Orders (Cook These)</h2>
-              <span class="legal-muted" id="paidMeta">—</span>
-            </div>
-
-            <div id="paidList"></div>
-
-            <div
-              id="paidEmpty"
-              class="legal-muted"
-              style="display: none; margin-top: 10px"
-            >
-              No paid orders yet.
-            </div>
+          <div class="ordersSectionHead">
+            <h2>Paid Orders (Cook These)</h2>
+            <span class="ordersCount" id="paidMeta">0</span>
+          </div>
+          <div id="paidList"></div>
+          <div id="paidEmpty" class="legal-muted" style="display: none">
+            No paid orders yet.
           </div>
 
-          <!-- Completed Orders -->
-          <div class="legal-card" style="margin-top: 14px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-            >
-              <div style="font-weight: 900">Completed Orders</div>
-              <div class="pill" id="completedMeta">0</div>
-            </div>
-
-            <div
-              id="completedEmpty"
-              class="legal-muted"
-              style="margin-top: 10px; display: none"
-            >
-              No completed orders yet.
-            </div>
+          <!-- ============ COMPLETED ============ -->
+          <div class="ordersSectionHead">
+            <h2>Completed Orders</h2>
+            <span class="ordersCount" id="completedMeta">0</span>
+          </div>
+          <div id="completedList"></div>
+          <div id="completedEmpty" class="legal-muted" style="display: none">
+            No completed orders yet.
+          </div>
 
             <div id="completedList" style="margin-top: 10px"></div>
           </div>
