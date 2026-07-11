@@ -1007,6 +1007,165 @@ position: sticky;
   background: #d9382c !important;
 }
 
+/* ===== Menu grid ===== */
+body.stallHolder .menuList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+body.stallHolder .menuItem {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.15s ease;
+}
+
+/* Inactive items read as "off" at a glance */
+body.stallHolder .menuItem[data-active="0"] {
+  opacity: 0.55;
+}
+
+body.stallHolder .menuItem[data-active="0"]:hover {
+  opacity: 0.85;
+}
+
+body.stallHolder img.menuThumb {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* flex:1 pushes the action row to the card bottom, so cards align */
+body.stallHolder .menuBody {
+  flex: 1 1 auto;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+body.stallHolder .menuItemName {
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+body.stallHolder .menuItemCat {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+  margin-top: 2px;
+}
+
+body.stallHolder .menuItemDesc {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* price block sits at the bottom of the body, so prices line up across cards */
+body.stallHolder .menuPriceBlock {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+body.stallHolder .menuItemPrice {
+  font-weight: 900;
+  font-size: 17px;
+}
+
+body.stallHolder .menuVariants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+body.stallHolder .menuVariants .prep {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+body.stallHolder .menuStatus {
+  margin-top: 8px;
+}
+
+body.stallHolder .menuStatus .prep {
+  font-size: 12px;
+}
+
+body.stallHolder .menuStatus .prep.isActive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+body.stallHolder .menuStatus .prep.isInactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Action row: Edit is primary (most common action), others are quiet */
+body.stallHolder .menuItem .menuActionRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: stretch;
+}
+
+body.stallHolder .menuItem .menuActionRow button {
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+/* PRIMARY — Edit (what owners do most) */
+body.stallHolder .menuBtnEdit {
+  background: #e8944c;
+  color: #fff;
+}
+body.stallHolder .menuBtnEdit:hover {
+  filter: brightness(1.06);
+}
+
+/* SECONDARY — Activate / Deactivate */
+body.stallHolder .menuBtnToggle {
+  background: #fff;
+  color: #444;
+  border: 2px solid rgba(0, 0, 0, 0.18) !important;
+}
+body.stallHolder .menuBtnToggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* TERTIARY — Delete: quiet until you reach for it */
+body.stallHolder .menuBtnDelete {
+  background: transparent;
+  color: #c0392b;
+  border: 2px solid transparent !important;
+  padding: 9px 10px;
+}
+body.stallHolder .menuBtnDelete:hover {
+  background: #fee2e2;
+  border-color: #f5b5b0 !important;
+}
+
 /* ===== Toast ===== */
 .toast {
   position: fixed;
@@ -2211,4 +2370,425 @@ body.stallHolder .variantChip {
 
 body.stallHolder .variantChip:hover {
   background: rgba(0, 0, 0, 0.14);
+}
+
+/* ===== Stall Orders page ===== */
+body.stallHolder .shContent .legal-card {
+  max-width: 760px;
+}
+
+/* Section heading + count badge */
+body.stallHolder .ordersSectionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 10px;
+  max-width: 760px;
+}
+
+body.stallHolder .ordersSectionHead h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+body.stallHolder .ordersCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* Order card */
+body.stallHolder .orderCardSh {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  padding: 14px 16px;
+  margin: 10px 0;
+  max-width: 760px;
+}
+
+body.stallHolder .orderTopSh {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+body.stallHolder .orderIdSh {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+body.stallHolder .orderMetaSh {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+  margin-top: 2px;
+}
+
+body.stallHolder .orderStatusSh {
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+body.stallHolder .orderDivSh {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 10px 0;
+}
+
+body.stallHolder .orderItemsSh {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+body.stallHolder .orderItemsSh li {
+  margin: 6px 0;
+}
+
+body.stallHolder .orderItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Pricing rows — constrained so label/value aren't miles apart */
+body.stallHolder .orderPricingSh {
+  margin-top: 12px;
+  margin-left: auto;
+  max-width: 320px;
+  font-size: 14px;
+}
+
+body.stallHolder .orderPriceRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+body.stallHolder .orderPriceRow.total {
+  border-top: 1px dashed rgba(0, 0, 0, 0.18);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-size: 16px;
+  font-weight: 900;
+  color: #000;
+}
+
+body.stallHolder .orderActionsSh {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* Completed orders: compact rows that expand */
+body.stallHolder .orderCompact {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  margin: 8px 0;
+  max-width: 760px;
+  overflow: hidden;
+}
+
+body.stallHolder .orderCompactHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.stallHolder .orderCompactHead:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.stallHolder .orderCompactId {
+  font-weight: 900;
+  font-size: 14px;
+}
+
+body.stallHolder .orderCompactMeta {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  flex: 1 1 auto;
+}
+
+body.stallHolder .orderCompactTotal {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+body.stallHolder .orderCompactChev {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+
+body.stallHolder .orderCompact.isOpen .orderCompactChev {
+  transform: rotate(90deg);
+}
+
+body.stallHolder .orderCompactBody {
+  display: none;
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.stallHolder .orderCompact.isOpen .orderCompactBody {
+  display: block;
+}
+
+/* Action buttons */
+body.stallHolder .orderActionBtn {
+  border: none;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+
+body.stallHolder .orderActionBtn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+body.stallHolder .orderActionBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+body.stallHolder .orderActionBtn.confirmCash {
+  background: #16a34a;
+}
+
+body.stallHolder .orderActionBtn.markComplete {
+  background: #e8944c;
+}
+
+/* ===== Dashboard toolbar ===== */
+body.stallHolder .dashToolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+body.stallHolder .dashFilters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+body.stallHolder .dashSearch {
+  flex: 1 1 260px;
+  max-width: 380px;
+}
+
+body.stallHolder .dashSearch input {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  font-size: 14px;
+  background: #fff;
+}
+
+body.stallHolder .shTabs {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+
+/* ===== Stats ===== */
+body.stallHolder .statsTitle {
+  margin: 18px 0 10px;
+  font-weight: 900;
+}
+
+body.stallHolder .statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+body.stallHolder .statBox {
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+body.stallHolder .statNum {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+body.stallHolder .statLabel {
+  margin-top: 6px;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+/* ===== Orders panel: bulk toolbar attached to table ===== */
+body.stallHolder .ordersPanel {
+  margin-top: 22px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+body.stallHolder .ordersPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body.stallHolder .ordersPanelHead h3 {
+  margin: 0;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+body.stallHolder .bulkInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.stallHolder .bulkInlineLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+body.stallHolder .ordersTableWrap {
+  overflow-x: auto;
+}
+
+body.stallHolder .ordersTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+body.stallHolder .ordersTable thead tr {
+  background: #f0b35b;
+}
+
+body.stallHolder .ordersTable th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+body.stallHolder .ordersTable td {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+body.stallHolder .ordersTable tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Row action buttons */
+body.stallHolder .rowActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+body.stallHolder .rowBtn {
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+body.stallHolder .rowBtnView {
+  background: #e8944c;
+  color: #fff;
+}
+body.stallHolder .rowBtnView:hover {
+  filter: brightness(1.06);
+}
+
+body.stallHolder .rowBtnCancel {
+  background: transparent;
+  color: #c0392b;
+  border: 1px solid transparent;
+}
+body.stallHolder .rowBtnCancel:hover {
+  background: #fee2e2;
+  border-color: #f5b5b0;
+}
+
+/* Override the global select { width: 250px } from styles.css */
+body.stallHolder .bulkInline select {
+  width: auto;
+  min-width: 150px;
+  padding: 8px 10px;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+body.stallHolder .bulkInline button {
+  flex: 0 0 auto;
+}
+
+/* Keep the head on one row unless the screen is genuinely narrow */
+body.stallHolder .ordersPanelHead {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 720px) {
+  body.stallHolder .ordersPanelHead {
+    flex-wrap: wrap;
+  }
+}
+body.stallHolder .dashFilters select {
+  width: auto;
+  min-width: 120px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+body.stallHolder .shSideTitle {
+  text-align: center;
+  font-weight: 900;
+  font-size: 17px;
+  color: #fff;
+  padding: 6px 0 14px;
+  letter-spacing: 0.3px;
 }

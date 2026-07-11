@@ -221,13 +221,11 @@ function priceLabel(it) {
 function variantChipsHtml(it) {
   if (!it.hasVariants || !it.variants.length) return "";
   return `
-    <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+    <div class="menuVariants">
       ${it.variants
         .map(
           (v) =>
-            `<span class="prep" style="text-transform:none; font-size:12px;">
-               ${esc(prettyVariant(v.variantKey))} ${money(v.price)}
-             </span>`,
+            `<span class="prep">${esc(prettyVariant(v.variantKey))} ${money(v.price)}</span>`,
         )
         .join("")}
     </div>`;
@@ -250,24 +248,29 @@ function renderMenu() {
       return `
         <article class="menuItem" data-id="${esc(it.menuId)}" data-active="${isActive ? "1" : "0"}">
           <img class="menuThumb" src="${esc(img)}" alt="${esc(it.name)}"
-               onerror="this.src='images/defaultfood.png'"
-               style="width:100%; height:140px; object-fit:cover; border-radius:12px;" />
-          <div style="margin-top:10px;">
-            <div style="font-weight:900; font-size:16px;">${esc(it.name)}</div>
-            ${it.category ? `<div class="legal-muted" style="font-size:12px;">${esc(it.category)}</div>` : ""}
-            ${it.description ? `<div class="legal-muted" style="margin-top:4px;">${esc(it.description)}</div>` : ""}
-            <div style="margin-top:6px;">
-              <span class="prep ${isActive ? "" : "cancelled"}" style="text-transform:none;">
+               onerror="this.src='images/defaultfood.png'" />
+
+          <div class="menuBody">
+            <div class="menuItemName">${esc(it.name)}</div>
+            ${it.category ? `<div class="menuItemCat">${esc(it.category)}</div>` : ""}
+            ${it.description ? `<div class="menuItemDesc">${esc(it.description)}</div>` : ""}
+
+            <div class="menuStatus">
+              <span class="prep ${isActive ? "isActive" : "isInactive"}">
                 ${isActive ? "Active" : "Inactive"}
               </span>
             </div>
-            <div style="margin-top:10px; font-weight:900;">${priceLabel(it)}</div>
-            ${variantChipsHtml(it)}
+
+            <div class="menuPriceBlock">
+              <div class="menuItemPrice">${priceLabel(it)}</div>
+              ${variantChipsHtml(it)}
+            </div>
           </div>
-          <div class="menuActionRow" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="copyBtn" data-action="toggle">${isActive ? "Deactivate" : "Activate"}</button>
-            <button class="copyBtn ghostBtn" data-action="edit">Edit</button>
-            <button class="copyBtn dangerBtn2" data-action="delete">Delete</button>
+
+          <div class="menuActionRow">
+            <button class="menuBtnEdit" data-action="edit">Edit</button>
+            <button class="menuBtnToggle" data-action="toggle">${isActive ? "Deactivate" : "Activate"}</button>
+            <button class="menuBtnDelete" data-action="delete" title="Delete item">Delete</button>
           </div>
         </article>`;
     })
