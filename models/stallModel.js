@@ -34,7 +34,9 @@ async function generateUnitNoForCentre(pool, centreId) {
     const countResult = await pool
       .request()
       .input("centreId", sql.NVarChar, centreId)
-      .query("SELECT COUNT(*) AS cnt FROM dbo.Stalls WHERE CentreId = @centreId");
+      .query(
+        "SELECT COUNT(*) AS cnt FROM dbo.Stalls WHERE CentreId = @centreId",
+      );
 
     const next = countResult.recordset[0].cnt + 1 + attempt;
     const candidate = `01-${String(next).padStart(3, "0")}`;
@@ -68,8 +70,7 @@ async function createStall({ ownerUid, centreId, stallName, cuisine, phone }) {
     .input("stallName", sql.NVarChar, stallName)
     .input("cuisine", sql.NVarChar, cuisine)
     .input("unitNo", sql.NVarChar, unitNo)
-    .input("phone", sql.NVarChar, phone || null)
-    .query(`
+    .input("phone", sql.NVarChar, phone || null).query(`
       INSERT INTO dbo.Stalls
         (StallId, OwnerUid, CentreId, StallName, Cuisine, UnitNo, Phone, IsActive, HasMenu, HasSetup)
       VALUES
@@ -81,9 +82,7 @@ async function createStall({ ownerUid, centreId, stallName, cuisine, phone }) {
 
 async function getStallById(stallId) {
   const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("stallId", sql.NVarChar, stallId)
+  const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
         s.StallId,
@@ -91,7 +90,7 @@ async function getStallById(stallId) {
         s.CentreId,
         s.StallName,
         s.Cuisine,
-        s.Desc,
+        s.[Desc],
         s.ImageUrl,
         s.HygieneGrade,
         s.UnitNo,
@@ -102,15 +101,15 @@ async function getStallById(stallId) {
         s.PrepMin,
         s.PrepMax,
         s.RatingCount,
-        s.RatingAvg,
-        s.IsPopular,
+        s.RatingTotal,
+        s.IsPopular
       FROM dbo.Stalls s
       WHERE s.StallId = @stallId
         AND s.IsActive = 1
         AND s.IsCanonical = 1
     `);
 
-  return result.recordset;
+  return result.recordset[0] || null;
 }
 
 module.exports = { getAllStalls, createStall, getStallById };

@@ -1,7 +1,6 @@
 const menuModel = require("../models/stallMenuModel");
 const orderModel = require("../models/orderModel"); // reuse getUserInfo
 
-
 // Resolve the logged-in owner's stall (and name) from the JWT cookie
 async function resolveStall(req, res) {
   const userId = req.user?.UserId || req.user?.userId;
@@ -22,6 +21,32 @@ function num(v) {
   return Number.isFinite(x) ? x : NaN;
 }
 
+// Normalise the incoming variants array: [{ variantKey, price }, ...]
+// Returns { variants, priceFrom } or null if invalid.
+function parseVariants(raw) {
+  if (!Array.isArray(raw)) return { variants: [], priceFrom: null };
+
+  const variants = [];
+  for (const v of raw) {
+    const key = String(v?.variantKey || "")
+      .trim()
+      .toLowerCase();
+    const p = num(v?.price);
+    if (!key) continue;
+    if (!Number.isFinite(p) || p < 0) continue;
+    // skip duplicate keys — last one wins
+    const existing = variants.findIndex((x) => x.variantKey === key);
+    if (existing >= 0) variants[existing] = { variantKey: key, price: p };
+    else variants.push({ variantKey: key, price: p });
+  }
+
+  const priceFrom = variants.length
+    ? Math.min(...variants.map((v) => v.price))
+    : null;
+
+  return { variants, priceFrom };
+}
+
 /* ===================== MENU ===================== */
 
 // GET /api/stall/menu
@@ -33,23 +58,45 @@ async function getMenu(req, res) {
     const stallName = await orderModel.getStallName(user.StallId);
     const rows = await menuModel.getMenuByStall(user.StallId);
 
-    const items = rows.map((r) => ({
-      menuId: r.MenuId,
-      name: r.Name,
-      description: r.Description || "",
-      category: r.Category || "",
-      imageUrl: r.ImageUrl || "",
-      price: r.Price != null ? Number(r.Price) : null,
-      priceFrom: r.PriceFrom != null ? Number(r.PriceFrom) : null,
-      active: !!r.Active,
-      available: !!r.Available,
-      createdAt: r.CreatedAt,
-    }));
+    // Fetch variant prices for all items in one query, then group
+    const priceRows = await menuModel.getPricesForMenus(
+      rows.map((r) => r.MenuId),
+    );
+    const byMenu = new Map();
+    for (const p of priceRows) {
+      if (!byMenu.has(p.MenuId)) byMenu.set(p.MenuId, []);
+      byMenu.get(p.MenuId).push({
+        variantKey: p.VariantKey,
+        price: Number(p.Price),
+      });
+    }
+
+    const items = rows.map((r) => {
+      const variants = byMenu.get(r.MenuId) || [];
+      return {
+        menuId: r.MenuId,
+        name: r.Name,
+        description: r.Description || "",
+        category: r.Category || "",
+        imageUrl: r.ImageUrl || "",
+        price: r.Price != null ? Number(r.Price) : null,
+        priceFrom: r.PriceFrom != null ? Number(r.PriceFrom) : null,
+        variants, // [] means single-price item
+        hasVariants: variants.length > 0,
+        active: !!r.Active,
+        available: !!r.Available,
+        createdAt: r.CreatedAt,
+      };
+    });
+
+    // Distinct variant keys this stall already uses — UI shows as suggestions
+    const variantKeys = await menuModel.getVariantKeysByStall(user.StallId);
 
     res.json({
       stallName: stallName || "—",
       ownerName: user.Name || "Owner",
       items,
+      variantKeys,
     });
   } catch (err) {
     console.error("getMenu error:", err);
@@ -57,28 +104,45 @@ async function getMenu(req, res) {
   }
 }
 
-// POST /api/stall/menu  { name, price, category?, description?, imageUrl? }
+// POST /api/stall/menu
+// { name, category?, description?, imageUrl?, price? , variants?: [{variantKey, price}] }
 async function createMenu(req, res) {
   try {
     const user = await resolveStall(req, res);
     if (!user) return;
 
-    const { name, price, category, description, imageUrl } = req.body;
+    const { name, price, category, description, imageUrl, variants } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Name is required" });
     }
-    const p = num(price);
-    if (!Number.isFinite(p) || p <= 0) {
-      return res.status(400).json({ error: "Valid price is required" });
+
+    const parsed = parseVariants(variants);
+    const useVariants = parsed.variants.length > 0;
+
+    let singlePrice = null;
+    if (!useVariants) {
+      const p = num(price);
+      if (!Number.isFinite(p) || p <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Enter a price, or add at least one size" });
+      }
+      singlePrice = p;
     }
 
     const menuId = await menuModel.addMenuItem(user.StallId, {
       name: String(name).trim(),
-      price: p,
+      price: singlePrice, // null when variant-priced
+      priceFrom: parsed.priceFrom, // null when single-priced
       category: category || "",
       description: description || "",
       imageUrl: imageUrl || "",
     });
+
+    if (useVariants) {
+      await menuModel.replaceMenuPrices(menuId, parsed.variants);
+    }
+
     res.json({ ok: true, menuId });
   } catch (err) {
     console.error("createMenu error:", err);
@@ -86,25 +150,36 @@ async function createMenu(req, res) {
   }
 }
 
-// PATCH /api/stall/menu/:menuId  { name, price, category?, description?, imageUrl? }
+// PATCH /api/stall/menu/:menuId
 async function editMenu(req, res) {
   try {
     const user = await resolveStall(req, res);
     if (!user) return;
 
     const { menuId } = req.params;
-    const { name, price, category, description, imageUrl } = req.body;
+    const { name, price, category, description, imageUrl, variants } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Name is required" });
     }
-    const p = num(price);
-    if (!Number.isFinite(p) || p <= 0) {
-      return res.status(400).json({ error: "Valid price is required" });
+
+    const parsed = parseVariants(variants);
+    const useVariants = parsed.variants.length > 0;
+
+    let singlePrice = null;
+    if (!useVariants) {
+      const p = num(price);
+      if (!Number.isFinite(p) || p <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Enter a price, or add at least one size" });
+      }
+      singlePrice = p;
     }
 
     const affected = await menuModel.updateMenuItem(menuId, user.StallId, {
       name: String(name).trim(),
-      price: p,
+      price: singlePrice,
+      priceFrom: parsed.priceFrom,
       category: category || "",
       description: description || "",
       imageUrl: imageUrl || "",
@@ -112,6 +187,10 @@ async function editMenu(req, res) {
     if (affected === 0) {
       return res.status(404).json({ error: "Item not found or not yours" });
     }
+
+    // Rewrite the variant set (empty array clears them = switched to single price)
+    await menuModel.replaceMenuPrices(menuId, parsed.variants);
+
     res.json({ ok: true });
   } catch (err) {
     console.error("editMenu error:", err);
@@ -150,6 +229,7 @@ async function removeMenu(req, res) {
     if (!user) return;
 
     const { menuId } = req.params;
+    // StallMenuPrices rows drop automatically via ON DELETE CASCADE
     const affected = await menuModel.deleteMenuItem(menuId, user.StallId);
     if (affected === 0) {
       return res.status(404).json({ error: "Item not found or not yours" });
@@ -254,23 +334,6 @@ async function removeAddon(req, res) {
   }
 }
 
-// POST /api/stall/upload  (multipart, field name: "image")
-async function uploadImage(req, res) {
-  try {
-    const user = await resolveStall(req, res);
-    if (!user) return;
-
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    // Public path the browser can use
-    const url = `images/uploads/${req.file.filename}`;
-    res.json({ ok: true, url });
-  } catch (err) {
-    console.error("uploadImage error:", err);
-    res.status(500).json({ error: "Failed to upload image" });
-  }
-}
 module.exports = {
   getMenu,
   createMenu,
@@ -281,5 +344,4 @@ module.exports = {
   createAddon,
   editAddon,
   removeAddon,
-  uploadImage,
 };

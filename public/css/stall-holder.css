@@ -2142,3 +2142,73 @@ body.stallHolder .orderActionBtn.confirmCash {
 body.stallHolder .orderActionBtn.markComplete {
   background: #e8944c;
 }
+
+/* ===== Menu pricing mode + variant rows ===== */
+body.stallHolder .priceModeRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+body.stallHolder .priceModeOpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+body.stallHolder .variantRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+body.stallHolder .variantRow input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.stallHolder .variantRow input[type="number"] {
+  width: 110px;
+  flex: 0 0 auto;
+}
+
+body.stallHolder .variantRemove {
+  border: none;
+  background: #e5484d;
+  color: #fff;
+  font-weight: 900;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+body.stallHolder .variantRemove:hover {
+  filter: brightness(1.08);
+}
+
+body.stallHolder .variantHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+body.stallHolder .variantChip {
+  display: inline-block;
+  padding: 3px 9px;
+  margin: 0 4px 4px 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.07);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+body.stallHolder .variantChip:hover {
+  background: rgba(0, 0, 0, 0.14);
+}
