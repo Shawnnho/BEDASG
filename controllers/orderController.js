@@ -296,10 +296,38 @@ async function completeOrder(req, res) {
   }
 }
 
+// PATCH /api/stall/orders/cancel  { orderId }
+async function cancelOrder(req, res) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const user = await orderModel.getUserInfo(userId);
+    if (!user?.StallId) {
+      return res.status(404).json({ error: "No stall linked to this user" });
+    }
+
+    const { orderId } = req.body;
+    if (!orderId) return res.status(400).json({ error: "Missing orderId" });
+
+    const affected = await orderModel.cancelOrder(orderId, user.StallId);
+    if (affected === 0) {
+      return res.status(409).json({
+        error: "Only unpaid orders can be cancelled",
+      });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("cancelOrder error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+}
+
 module.exports = {
   getDashboard,
   bulkUpdateStatus,
   getStallOrders,
   confirmCash,
+  cancelOrder,
   completeOrder,
 };

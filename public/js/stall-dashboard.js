@@ -184,22 +184,25 @@ function renderOrdersTable() {
       const displayId = escapeHtml(
         o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
       );
+      // Cancel only makes sense before payment — no refund path exists
+      const cancelBtn =
+        o.status === "pending"
+          ? `<button class="rowBtn rowBtnCancel" type="button" data-cancel="${escapeHtml(o.orderId)}">Cancel</button>`
+          : "";
+
       return `
       <tr>
-        <td style="padding:10px;">
-          <input type="checkbox" class="orderCheck" data-oid="${escapeHtml(o.orderId)}" />
-        </td>
-        <td style="padding:10px;">${displayId}</td>
-        <td style="padding:10px;">${escapeHtml(o.customer)}</td>
-        <td style="padding:10px;">
-          <span class="prep ${prettyStatus(o.status)}">${prettyStatus(o.status)}</span>
-        </td>
-        <td style="padding:10px;">${escapeHtml(o.item)}</td>
-        <td style="padding:10px;">${money(o.amount)}</td>
-        <td style="padding:10px;">
-          <button class="btn small primary" type="button" data-view="${escapeHtml(o.orderId)}">
-            View Order
-          </button>
+        <td><input type="checkbox" class="orderCheck" data-oid="${escapeHtml(o.orderId)}" /></td>
+        <td>${displayId}</td>
+        <td>${escapeHtml(o.customer)}</td>
+        <td><span class="prep ${prettyStatus(o.status)}">${prettyStatus(o.status)}</span></td>
+        <td>${escapeHtml(o.item)}</td>
+        <td>${money(o.amount)}</td>
+        <td>
+          <div class="rowActions">
+            <button class="rowBtn rowBtnView" type="button" data-view="${escapeHtml(o.orderId)}">View</button>
+            ${cancelBtn}
+          </div>
         </td>
       </tr>`;
     })
@@ -306,12 +309,44 @@ $("bulkCheckAll")?.addEventListener("change", (e) => {
   document.querySelectorAll(".orderCheck").forEach((cb) => (cb.checked = on));
 });
 
-$("ordersBody")?.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-view]");
-  if (!btn) return;
-  const orderId = btn.getAttribute("data-view");
-  if (orderId) {
-    window.location.href = `stall-orders.html?orderId=${encodeURIComponent(orderId)}`;
+// Row actions: View + Cancel
+$("ordersBody")?.addEventListener("click", async (e) => {
+  const viewBtn = e.target.closest("[data-view]");
+  if (viewBtn) {
+    const orderId = viewBtn.getAttribute("data-view");
+    if (orderId) {
+      window.location.href = `stall-orders.html?orderId=${encodeURIComponent(orderId)}`;
+    }
+    return;
+  }
+
+  const cancelBtn = e.target.closest("[data-cancel]");
+  if (cancelBtn) {
+    const orderId = cancelBtn.getAttribute("data-cancel");
+    if (!confirm("Cancel this order? This cannot be undone.")) return;
+
+    cancelBtn.disabled = true;
+    cancelBtn.textContent = "Cancelling…";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/stall/orders/cancel`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ orderId }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      showToast("Order cancelled");
+      await loadDashboard();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to cancel order.");
+      cancelBtn.disabled = false;
+      cancelBtn.textContent = "Cancel";
+    }
   }
 });
 

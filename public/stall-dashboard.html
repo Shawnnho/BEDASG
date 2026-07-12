@@ -9,7 +9,7 @@
   </head>
 
   <body class="stallHolder">
-    <!-- ================= HEADER (same style as your pages) ================= -->
+    <!-- ================= HEADER ================= -->
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="stall-dashboard.html" aria-label="Hawker Point">
@@ -31,12 +31,12 @@
       </div>
     </header>
 
-    <!-- ================= PAGE LAYOUT (THIS IS THE IMPORTANT PART) ================= -->
+    <!-- ================= PAGE LAYOUT ================= -->
     <main class="shPage">
       <div class="shLayout">
-        <!-- ===== Sidebar (same as account page) ===== -->
+        <!-- ===== Sidebar ===== -->
         <aside class="shSide">
-          <center><h2>Dashboard</h2></center>
+          <div class="shSideTitle">Stall Manager</div>
           <a class="shNav active" href="stall-dashboard.html">
             <span>Dashboard</span>
           </a>
@@ -76,15 +76,14 @@
 
         <!-- ===== Content ===== -->
         <section class="shContent">
-          <!-- Top heading card (same style family as account) -->
           <div class="shHead">
             <h1>Dashboard</h1>
             <p>View orders, stats and manage operations</p>
           </div>
 
-          <!-- Filters + Search (reuse your existing classes) -->
-          <div class="searchWrap">
-            <div class="filters">
+          <!-- Toolbar: filters + search -->
+          <div class="dashToolbar">
+            <div class="dashFilters">
               <select id="dateFilter">
                 <option value="">Date</option>
               </select>
@@ -102,8 +101,7 @@
               </button>
             </div>
 
-            <div class="searchBar">
-              <span class="searchIcon"></span>
+            <div class="dashSearch">
               <input
                 id="searchInput"
                 type="text"
@@ -113,7 +111,7 @@
           </div>
 
           <!-- Status tabs -->
-          <div class="shTabs" style="display: flex; gap: 10px; margin: 14px 0">
+          <div class="shTabs">
             <button
               class="btn small primary tabBtn"
               data-status=""
@@ -151,93 +149,76 @@
             </button>
           </div>
 
-          <!-- Stats (simple blocks; your CSS already styles .prep nicely in your project) -->
+          <!-- Stats -->
           <h3 class="statsTitle">Stats Overview</h3>
 
           <div class="statsRow">
             <div class="statBox statPending">
-              <div class="statTop">
-                <div class="statNum" id="statPendingNum">0</div>
-                <div class="statLines" aria-hidden="true"></div>
-              </div>
-              <div class="statLabel">Pending<br />Orders</div>
+              <div class="statNum" id="statPendingNum">0</div>
+              <div class="statLabel">Pending Orders</div>
             </div>
 
             <div class="statBox statProgress">
-              <div class="statTop">
-                <div class="statNum" id="statProgressNum">0</div>
-                <div class="statLines" aria-hidden="true"></div>
-              </div>
-              <div class="statLabel">In Progress<br />Orders</div>
+              <div class="statNum" id="statProgressNum">0</div>
+              <div class="statLabel">In Progress Orders</div>
             </div>
 
             <div class="statBox statSales">
-              <div class="statTop">
-                <div class="statNum" id="statSalesNum">$0</div>
-                <div class="statLines" aria-hidden="true"></div>
-              </div>
-              <div class="statLabel">Total Sales<br />(This Month)</div>
+              <div class="statNum" id="statSalesNum">$0</div>
+              <div class="statLabel">Total Sales (This Month)</div>
             </div>
 
             <div class="statBox statCancelled">
-              <div class="statTop">
-                <div class="statNum" id="statCancelledNum">0</div>
-                <div class="statLines" aria-hidden="true"></div>
+              <div class="statNum" id="statCancelledNum">0</div>
+              <div class="statLabel">Cancelled Orders</div>
+            </div>
+          </div>
+
+          <!-- Orders table with attached bulk toolbar -->
+          <div class="ordersPanel">
+            <div class="ordersPanelHead">
+              <h3>Recent Orders</h3>
+
+              <div class="bulkInline">
+                <label class="bulkInlineLabel">
+                  <input type="checkbox" id="bulkCheckAll" />
+                  <span>Select all</span>
+                </label>
+
+                <select id="bulkActionSelect">
+                  <option value="">Bulk action…</option>
+                  <option value="pending">Mark Pending</option>
+                  <option value="in-progress">Mark In Progress</option>
+                  <option value="completed">Mark Completed</option>
+                  <option value="cancelled">Mark Cancelled</option>
+                </select>
+
+                <button class="btn small primary" id="bulkApplyBtn">
+                  Apply
+                </button>
               </div>
-              <div class="statLabel">Cancelled<br />Orders</div>
-            </div>
-          </div>
-
-          <br />
-          <hr />
-          <br />
-
-          <div class="bulkBar">
-            <div class="bulkLeft">
-              <input type="checkbox" id="bulkCheckAll" />
-              <label for="bulkCheckAll" class="bulkLabel">Bulk Action:</label>
-
-              <select id="bulkActionSelect">
-                <option value="">Update Status</option>
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
             </div>
 
-            <button class="btn small primary" id="bulkApplyBtn">Apply</button>
-          </div>
-
-          <!-- Recent orders table -->
-          <h3 style="margin: 8px 0 10px; font-weight: 900">Recent Orders</h3>
-
-          <div style="overflow: auto">
-            <table
-              style="
-                width: 100%;
-                border-collapse: collapse;
-                background: #fff;
-                border: 1px solid rgba(0, 0, 0, 0.15);
-              "
-            >
-              <thead>
-                <tr style="background: #f0b35b">
-                  <th style="padding: 10px"></th>
-                  <th style="padding: 10px">Order ID</th>
-                  <th style="padding: 10px">Customer</th>
-                  <th style="padding: 10px">Status</th>
-                  <th style="padding: 10px">Item</th>
-                  <th style="padding: 10px">Amount</th>
-                  <th style="padding: 10px">Action</th>
-                </tr>
-              </thead>
-              <tbody id="ordersBody">
-                <tr>
-                  <td colspan="7" style="padding: 14px">Loading…</td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="ordersTableWrap">
+              <table class="ordersTable">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Item</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersBody">
+                  <tr>
+                    <td colspan="7" style="padding: 14px">Loading…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </div>
