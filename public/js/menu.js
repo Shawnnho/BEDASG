@@ -5,11 +5,22 @@
  * - Loads menu items, grouped by category, from SQL
  *   via GET /api/menu/:id
  * - Handles nav highlighting + hamburger menu + search filter
+ * - Handles per-item favourite ("like") toggling via AuthClient,
+ *   mirroring the favSet pattern used in home.js for stalls.
  **************************************/
 const params = new URLSearchParams(window.location.search);
 const stallId = params.get("stallId");
 
+// GUESS: following the /api/favstalls/{get,add,delete} convention from
+// home.js. Update these if your real routes for item-level favourites
+// are named differently.
+const FAV_ITEMS_GET_URL = "/api/favitems/get";
+const FAV_ITEMS_ADD_URL = "/api/favitems/add";
+const FAV_ITEMS_DELETE_URL = "/api/favitems/delete";
+
 let allMenuItems = []; // cached so the search box can filter without refetching
+let currentUid = null;
+let favItemsSet = new Set(); // ids of menu items the current user has liked
 
 /**
  * Fetch stall details (image, name, hygiene grade, etc.) from SQL
@@ -123,9 +134,12 @@ function groupByCategory(items) {
 /**
  * Render a single menu item as a <article class="menuCard"> matching
  * the required markup: menuImgWrap > img, menuInfo > menuName/menuPrice/menuLikes,
- * and a sibling menuAddBtn.
+ * and a sibling menuAddBtn. The like button inside menuLikes mirrors
+ * home.js's .dFav favourite button (heart icon swap + "on" class).
  */
 function renderMenuItemCard(item, category) {
+  const favOn = favItemsSet.has(item.id);
+
   return `
     <article class="menuCard" data-item-id="${escapeHtml(item.id)}" data-item-name="${escapeHtml(item.name).toLowerCase()}" data-category="${escapeHtml(category).toLowerCase()}">
       <div class="menuImgWrap">
@@ -134,8 +148,20 @@ function renderMenuItemCard(item, category) {
       <div class="menuInfo">
         <div class="menuName">${escapeHtml(item.name)}</div>
         <div class="menuPrice">${escapeHtml(formatPrice(item))}</div>
-        <div class="menuLikes" role="button" tabindex="0" aria-label="Like ${escapeHtml(item.name)}">
-          <span class="likeIcon" aria-hidden="true">♡</span>
+        <div class="menuLikes">
+          <button
+            class="dFav favBtn ${favOn ? " on" : ""}"
+            type="button"
+            data-item="${escapeHtml(item.id)}"
+            aria-label="Favourite ${escapeHtml(item.name)}"
+          >
+            <img
+              class="heartIcon"
+              alt=""
+              aria-hidden="true"
+              src="${favOn ? "images/heart.png" : "images/like.png"}"
+            />
+          </button>
           <span class="likeCount">${Number(item.likes) || 0}</span>
         </div>
       </div>
@@ -214,19 +240,93 @@ function wireMenuSearch() {
   });
 }
 
-/* Add-to-cart and like buttons: rendering only for now.
- * TODO: wire menuAddBtn to a real cart (update #cartCount / #cartCountMobile)
- * and menuLikes to a SQL-backed likes endpoint once those are ready. */
+/**
+ * Load the current user's liked menu items and re-render so the
+ * heart icons reflect the "on" state. Mirrors home.js's loadFavourites().
+ */
+async function loadFavouriteItems() {
+  if (!currentUid) return;
+
+  try {
+    const res = await AuthClient.apiFetch(FAV_ITEMS_GET_URL);
+    if (res.ok) {
+      const data = await res.json();
+      favItemsSet = new Set(data.favourites || []);
+      renderMenuItems(allMenuItems);
+    }
+  } catch (err) {
+    console.error("Failed to load favourite items:", err);
+  }
+}
+
+/**
+ * Toggle a menu item's liked state, with optimistic UI update and
+ * rollback on failure. Mirrors home.js's toggleFavourite().
+ */
+async function toggleFavouriteItem(itemId) {
+  if (!currentUid) return;
+
+  const isFav = favItemsSet.has(itemId);
+
+  // Optimistic UI update
+  if (isFav) favItemsSet.delete(itemId);
+  else favItemsSet.add(itemId);
+  renderMenuItems(allMenuItems);
+
+  try {
+    const url = isFav ? FAV_ITEMS_DELETE_URL : FAV_ITEMS_ADD_URL;
+    const res = await AuthClient.apiFetch(url, {
+      method: isFav ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId }),
+    });
+
+    if (!res.ok) throw new Error("Failed to save");
+  } catch (err) {
+    console.error("Error toggling favourite item:", err);
+    // Revert on failure
+    if (isFav) favItemsSet.add(itemId);
+    else favItemsSet.delete(itemId);
+    renderMenuItems(allMenuItems);
+  }
+}
+
+/**
+ * Check auth status via AuthClient (same helper home.js uses) and load
+ * this user's favourite menu items if logged in.
+ */
+async function checkAuthStatus() {
+  const user = await AuthClient.getCurrentUser();
+
+  if (user) {
+    currentUid = user.id;
+    loadFavouriteItems();
+  } else {
+    currentUid = null;
+    favItemsSet = new Set();
+  }
+}
+
+/* Add-to-cart and item-like buttons. */
 document.addEventListener("click", (e) => {
   const addBtn = e.target.closest(".menuAddBtn");
   if (addBtn) {
+    // TODO: wire to a real cart (update #cartCount / #cartCountMobile)
     console.warn("Add-to-cart not yet implemented.");
     return;
   }
 
-  const likeEl = e.target.closest(".menuLikes");
-  if (likeEl) {
-    console.warn("Menu item likes not yet implemented.");
+  const favBtn = e.target.closest(".itemFavBtn");
+  if (favBtn) {
+    const itemId = favBtn.getAttribute("data-item");
+    if (!itemId) return;
+
+    if (!currentUid) {
+      console.warn("Must be logged in to like a menu item.");
+      return;
+    }
+
+    toggleFavouriteItem(itemId);
   }
 });
 
@@ -283,30 +383,9 @@ document.addEventListener("DOMContentLoaded", () => {
   wireMenuSearch();
   loadStallInfo();
   loadMenuItems();
+  checkAuthStatus();
 
   // TODO: Once an auth/session route exists in the SQL backend, re-add
   // role-based visibility for Promotions/Hygiene nav links here
   // (previously done via Firestore user role lookup).
 });
-
-/* TODO: Favourite toggling (for the stall itself, not menu items) used to
- * write to Firestore (arrayUnion/arrayRemove on users/{uid}.favourites).
- * Re-implement once there's a SQL/session-based endpoint
- * (e.g. POST /api/users/:id/favourites) to call instead. */
-document.addEventListener(
-  "click",
-  (e) => {
-    const heart = e.target.closest(".likeBtn");
-    if (!heart) return;
-
-    if (!stallId) {
-      console.error("Missing stallId in URL");
-      return;
-    }
-
-    console.warn(
-      "Stall favourite toggling not yet implemented for SQL backend.",
-    );
-  },
-  true,
-);
