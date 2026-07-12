@@ -5,15 +5,19 @@
  * - Loads menu items, grouped by category, from SQL
  *   via GET /api/menu/:id
  * - Handles nav highlighting + hamburger menu + search filter
- * - Handles per-item favourite ("like") toggling via AuthClient,
- *   mirroring the favSet pattern used in home.js for stalls.
+ * - Handles per-item favourite ("like") toggling
+ * - "+" button navigates to item.html for that menu item
+ *
+ * NOTE: markup/classnames here (menuCard, menuImgWrap, menuInfo,
+ * menuName, menuPrice, menuLikes, likeBtn, likeCount, menuAddBtn)
+ * are matched to the MENU PAGE section of styles.css.
  **************************************/
 const params = new URLSearchParams(window.location.search);
 const stallId = params.get("stallId");
 
-// GUESS: following the /api/favstalls/{get,add,delete} convention from
-// home.js. Update these if your real routes for item-level favourites
-// are named differently.
+// TODO (pending backend confirmation): endpoints for per-item favourites.
+// Placeholder, following the /api/favstalls/{get,add,delete} convention
+// used for stalls in home.js. Will update once real routes are confirmed.
 const FAV_ITEMS_GET_URL = "/api/favitems/get";
 const FAV_ITEMS_ADD_URL = "/api/favitems/add";
 const FAV_ITEMS_DELETE_URL = "/api/favitems/delete";
@@ -132,10 +136,9 @@ function groupByCategory(items) {
 }
 
 /**
- * Render a single menu item as a <article class="menuCard"> matching
- * the required markup: menuImgWrap > img, menuInfo > menuName/menuPrice/menuLikes,
- * and a sibling menuAddBtn. The like button inside menuLikes mirrors
- * home.js's .dFav favourite button (heart icon swap + "on" class).
+ * Render a single menu item as <article class="menuCard">, matching
+ * styles.css exactly: menuImgWrap > img, menuInfo > menuName/menuPrice/
+ * menuLikes (likeBtn + likeCount), and a sibling menuAddBtn.
  */
 function renderMenuItemCard(item, category) {
   const favOn = favItemsSet.has(item.id);
@@ -150,10 +153,10 @@ function renderMenuItemCard(item, category) {
         <div class="menuPrice">${escapeHtml(formatPrice(item))}</div>
         <div class="menuLikes">
           <button
-            class="dFav favBtn ${favOn ? " on" : ""}"
+            class="likeBtn${favOn ? " active" : ""}"
             type="button"
             data-item="${escapeHtml(item.id)}"
-            aria-label="Favourite ${escapeHtml(item.name)}"
+            aria-label="Like ${escapeHtml(item.name)}"
           >
             <img
               class="heartIcon"
@@ -165,7 +168,7 @@ function renderMenuItemCard(item, category) {
           <span class="likeCount">${Number(item.likes) || 0}</span>
         </div>
       </div>
-      <button class="menuAddBtn" type="button" aria-label="Add ${escapeHtml(item.name)} to cart">+</button>
+      <button class="menuAddBtn" type="button" aria-label="View ${escapeHtml(item.name)}">+</button>
     </article>
   `;
 }
@@ -241,8 +244,8 @@ function wireMenuSearch() {
 }
 
 /**
- * Load the current user's liked menu items and re-render so the
- * heart icons reflect the "on" state. Mirrors home.js's loadFavourites().
+ * Load the current user's liked menu items and re-render so likeBtn
+ * "active" state + likeCount reflect it. Mirrors home.js's loadFavourites().
  */
 async function loadFavouriteItems() {
   if (!currentUid) return;
@@ -307,18 +310,21 @@ async function checkAuthStatus() {
   }
 }
 
-/* Add-to-cart and item-like buttons. */
+/* "+" button (view item) and like button clicks. */
 document.addEventListener("click", (e) => {
   const addBtn = e.target.closest(".menuAddBtn");
   if (addBtn) {
-    // TODO: wire to a real cart (update #cartCount / #cartCountMobile)
-    console.warn("Add-to-cart not yet implemented.");
+    const card = addBtn.closest(".menuCard");
+    const itemId = card?.dataset.itemId;
+    if (!itemId || !stallId) return;
+
+    window.location.href = `item.html?stallid=${encodeURIComponent(stallId)}&itemid=${encodeURIComponent(itemId)}`;
     return;
   }
 
-  const favBtn = e.target.closest(".itemFavBtn");
-  if (favBtn) {
-    const itemId = favBtn.getAttribute("data-item");
+  const likeBtn = e.target.closest(".likeBtn");
+  if (likeBtn) {
+    const itemId = likeBtn.getAttribute("data-item");
     if (!itemId) return;
 
     if (!currentUid) {
