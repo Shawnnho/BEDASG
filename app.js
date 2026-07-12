@@ -15,6 +15,7 @@ const authRoutes = require("./routes/authRoutes");
 const favStallRoutes = require("./routes/favStallRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const menuRoutes = require("./routes/menuRoutes");
 
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
@@ -39,6 +40,7 @@ app.use("/api/promotions", promotionRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/favstalls", favStallRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/menu", menuRoutes);
 app.use("/api/stall", orderRoutes);
 
 app.use("/api/complaints", complaintRoutes);
