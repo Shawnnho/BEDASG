@@ -16,8 +16,10 @@ const favStallRoutes = require("./routes/favStallRoutes");
 const hygieneRoutes = require("./routes/hygieneRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const menuRoutes = require("./routes/menuRoutes");
 const stallMenuRoutes = require("./routes/stallMenuRoutes");
 const neaRoutes = require("./routes/neaRoutes");
+
 
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
@@ -47,6 +49,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/favstalls", favStallRoutes);
 app.use("/api/hygiene", hygieneRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/menu", menuRoutes);
 app.use("/api/operator", operatorRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
