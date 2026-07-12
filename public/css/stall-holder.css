@@ -3547,3 +3547,31 @@ body.stallHolder #deleteAddonBtn:hover {
   background: #fee2e2;
   border-color: #f5b5b0;
 }
+
+body.stallHolder .anBarRow {
+  display: grid;
+  grid-template-columns: 32px 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.stallHolder .anBarTrack {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+body.stallHolder .anBarFill {
+  display: block;
+  height: 100%;
+  background: #e8944c;
+  border-radius: 999px;
+}
+
+body.stallHolder .anBarCount {
+  text-align: right;
+}
