@@ -83,17 +83,28 @@ function formatTimeOnly(d) {
   return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
-function setPaidAtAndPickup(paidAtRaw) {
+function setPaidAtAndPickup(paidAtRaw, isCash, createdAtRaw) {
   const paidDate = tsToDate(paidAtRaw);
 
   const paidAtEl = document.getElementById("prPaidAt");
-  if (paidAtEl) paidAtEl.textContent = formatDateTime(paidDate);
+  if (paidAtEl) {
+    if (paidDate) {
+      paidAtEl.textContent = formatDateTime(paidDate);
+    } else if (isCash) {
+      paidAtEl.textContent = "Pay at pickup / delivery";
+    } else {
+      paidAtEl.textContent = "—";
+    }
+  }
+
+  // Cash orders have no PaidAt yet, so estimate pickup off CreatedAt instead.
+  const anchorDate = paidDate || (isCash ? tsToDate(createdAtRaw) : null);
 
   const pickupEl = document.getElementById("prPickupTime");
   if (pickupEl) {
-    if (paidDate) {
-      const from = addMinutes(paidDate, 15);
-      const to = addMinutes(paidDate, 20);
+    if (anchorDate) {
+      const from = addMinutes(anchorDate, 15);
+      const to = addMinutes(anchorDate, 20);
       pickupEl.textContent = `${formatTimeOnly(from)} – ${formatTimeOnly(to)}`;
     } else {
       pickupEl.textContent = "—";
@@ -184,8 +195,11 @@ async function loadSummary(id) {
   };
   setDeliveryBox(fulfillmentType, address);
 
+  const paymentMethodRaw = checkout?.PaymentMethod || orders[0].PaymentMethod;
+  const isCash = String(paymentMethodRaw || "").toLowerCase().includes("cash");
   const paidAt = checkout?.PaymentPaidAt || orders[0].PaidAt;
-  setPaidAtAndPickup(paidAt);
+  const createdAt = checkout?.CreatedAt || orders[0].CreatedAt;
+  setPaidAtAndPickup(paidAt, isCash, createdAt);
 
   const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
   const stallsEl = document.getElementById("prStalls");

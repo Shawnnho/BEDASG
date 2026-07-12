@@ -6381,3 +6381,48 @@ body.storePage #stallGrade.gradeD {
   width: auto;
   pointer-events: none;
 }
+
+.ordersPageWrap {
+  padding: 28px 16px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.ordersTitle {
+  margin: 0 0 10px;
+  font-size: 28px;
+}
+
+.ordersSubtitle {
+  margin: 0 0 18px;
+}
+
+.ordersBannerBox {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  margin-bottom: 14px;
+  font-weight: 700;
+}
+
+.ordersEmptyCard {
+  padding: 18px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.ordersEmptyCardTitle {
+  font-weight: 900;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.ordersEmptyCardDesc {
+  margin-bottom: 14px;
+}
+
+.ordersBrowseLink {
+  display: inline-block;
+}
