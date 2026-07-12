@@ -12,7 +12,7 @@ function getCurrentMonthKey() {
 
 async function getMyCentres(req, res) {
   try {
-    const operatorId = req.user.userId; // set by verifyToken from the accessToken cookie
+    const operatorId = req.user.userId; 
     const centres = await centreModel.getCentresByOperator(operatorId);
 
     const centreIds = centres.map((c) => c.CentreId);
@@ -29,6 +29,7 @@ async function getMyCentres(req, res) {
     res.status(500).json({ error: "Failed to retrieve centres." });
   }
 }
+
 
 async function getOverview(req, res) {
   try {
@@ -74,7 +75,6 @@ async function getStallsForCentre(req, res) {
   }
 }
 
-
 async function getRentalsForCentre(req, res) {
   try {
     const { centreId } = req.params;
@@ -103,7 +103,18 @@ async function getRentalsForCentre(req, res) {
 
 async function createRental(req, res) {
   try {
-    const { centreId, stallId, ownerName, monthlyRent, startDate, unitNo } = req.body;
+    const {
+      centreId,
+      stallId,
+      ownerName,
+      monthlyRent,
+      startDate,
+      unitNo,
+      utilities,
+      cleaningFee,
+      penalty,
+      other,
+    } = req.body;
 
     if (!centreId || !stallId)
       return res.status(400).json({ error: "centreId and stallId are required." });
@@ -130,6 +141,14 @@ async function createRental(req, res) {
       startDate,
     });
 
+    await operatorBillModel.upsertBill(stall.StallId, getCurrentMonthKey(), centreId, {
+      rent: Number(monthlyRent),
+      utilities: Number(utilities || 0),
+      cleaningFee: Number(cleaningFee || 0),
+      penalty: Number(penalty || 0),
+      other: Number(other || 0),
+    });
+
     res.status(201).json({ agreementId });
   } catch (err) {
     console.error("createRental error:", err.message);
@@ -137,15 +156,16 @@ async function createRental(req, res) {
   }
 }
 
+// DELETE 
 async function deleteRental(req, res) {
   try {
     const { agreementId } = req.params;
     const deleted = await rentalAgreementModel.deleteRentalAgreement(agreementId);
- 
+
     if (!deleted) {
       return res.status(404).json({ error: "Rental agreement not found." });
     }
- 
+
     res.status(204).send();
   } catch (err) {
     console.error("deleteRental error:", err.message);
@@ -153,7 +173,7 @@ async function deleteRental(req, res) {
   }
 }
 
-
+// PUT 
 async function saveBill(req, res) {
   try {
     const { stallId, billMonth } = req.params;
@@ -177,5 +197,11 @@ async function saveBill(req, res) {
 }
 
 module.exports = {
-  getMyCentres, getOverview, getStallsForCentre, getRentalsForCentre, createRental, deleteRental, saveBill,
+  getMyCentres,
+  getOverview,
+  getStallsForCentre,
+  getRentalsForCentre,
+  createRental,
+  deleteRental,
+  saveBill,
 };

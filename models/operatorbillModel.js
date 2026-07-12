@@ -14,8 +14,7 @@ async function getBill(stallId, billMonth) {
   return result.recordset[0] || null;
 }
 
-
-async function ensureBill(stallId, centreId, billMonth, defaultRent) {  
+async function ensureBill(stallId, centreId, billMonth, defaultRent) {
   const existing = await getBill(stallId, billMonth);
   if (existing) return existing;
 
@@ -108,6 +107,4 @@ async function upsertBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-module.exports = { 
-    getBill, ensureBill, upsertBill, computeBillId
-};
+module.exports = { getBill, ensureBill, upsertBill, computeBillId };
