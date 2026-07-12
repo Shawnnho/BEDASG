@@ -20,8 +20,7 @@ async function getMenuItems(req, res) {
       category: r.Category || "Other",
       desc: r.Desc || r.Description || "",
       img: r.ImageUrl || "images/menu/placeholder.jpg",
-      price: r.Price != null ? Number(r.Price) : null,
-      priceFrom: r.PriceFrom === true || r.PriceFrom === 1,
+      price: r.PriceFrom === null ? Number(r.Price) : Number(r.PriceFrom),
       popular: r.IsPopular === true || r.IsPopular === 1,
       likes: r.Likes ?? 0,
     }));
