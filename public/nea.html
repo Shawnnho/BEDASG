@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEA Officer Portal - Hawker Point</title>
+    <link rel="stylesheet" href="css/nea.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="nea-body">
+    <nav class="nea-sidebar">
+      <div class="nea-brand">
+        <img src="images/logo.png" alt="Logo" />
+        <h3>NEA Officer</h3>
+      </div>
+
+      <ul class="nea-menu">
+        <li class="active" onclick="switchTab('inspections')">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>Inspections</span>
+          <span id="badgeInspections" class="menu-badge" style="display: none"
+            >0</span
+          >
+        </li>
+
+        <li onclick="switchTab('complaints')">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Complaints</span>
+          <span id="badgeComplaints" class="menu-badge" style="display: none"
+            >0</span
+          >
+        </li>
+
+        <li onclick="switchTab('grading')">
+          <i class="fa-solid fa-star"></i> <span>Update Grades</span>
+        </li>
+      </ul>
+
+      <button class="nea-logout" onclick="logoutNEA()">
+        <i class="fa-solid fa-right-from-bracket"></i> Exit Portal
+      </button>
+    </nav>
+
+    <main class="nea-content">
+      <!-- ================= INSPECTIONS ================= -->
+      <section id="tab-inspections" class="nea-tab active">
+        <div class="nea-header">
+          <h2>Inspection Management</h2>
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <select
+              id="inspectionFilter"
+              class="std-input small"
+              style="width: auto"
+              onchange="loadInspections()"
+            >
+              <option value="all">All Inspections</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+            </select>
+
+            <button class="btn-primary" onclick="openScheduleModal()">
+              + Schedule New
+            </button>
+
+            <button
+              class="btn-primary"
+              style="background: #27ae60"
+              onclick="openCompleteModal()"
+            >
+              + Complete Inspection
+            </button>
+          </div>
+        </div>
+
+        <div class="nea-card-container">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button
+                class="chip active"
+                id="inspFilterAll"
+                onclick="setInspectionFilter('all')"
+              >
+                All
+              </button>
+              <button
+                class="chip"
+                id="inspFilterUpcoming"
+                onclick="setInspectionFilter('upcoming')"
+              >
+                Upcoming
+              </button>
+              <button
+                class="chip"
+                id="inspFilterPast"
+                onclick="setInspectionFilter('past')"
+              >
+                Past
+              </button>
+            </div>
+
+            <div class="toolbar-right">
+              <input
+                id="inspSearch"
+                class="std-input small"
+                placeholder="Search stall / officer..."
+                oninput="renderInspections()"
+              />
+
+              <select
+                id="inspSort"
+                class="std-input small"
+                onchange="renderInspections()"
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 style="margin-top: 10px">Upcoming & Past Inspections</h3>
+
+          <div id="inspectionList" class="nea-list">
+            <p>Loading inspections...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= COMPLAINTS ================= -->
+      <section id="tab-complaints" class="nea-tab">
+        <div class="nea-header">
+          <h2>Public Complaints</h2>
+        </div>
+
+        <div class="nea-card-container">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button
+                class="chip active"
+                id="cmpFilterAll"
+                onclick="setComplaintFilter('all')"
+              >
+                All
+              </button>
+              <button
+                class="chip"
+                id="cmpFilterNew"
+                onclick="setComplaintFilter('new')"
+              >
+                New
+              </button>
+              <button
+                class="chip"
+                id="cmpFilterUnder"
+                onclick="setComplaintFilter('under_review')"
+              >
+                Under Review
+              </button>
+              <button
+                class="chip"
+                id="cmpFilterResolved"
+                onclick="setComplaintFilter('resolved')"
+              >
+                Resolved
+              </button>
+            </div>
+
+            <div class="toolbar-right">
+              <input
+                id="cmpSearch"
+                class="std-input small"
+                placeholder="Search stall / user..."
+                oninput="renderComplaints()"
+              />
+
+              <select
+                id="cmpSort"
+                class="std-input small"
+                onchange="renderComplaints()"
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="complaintList" class="nea-list">
+            <p>Loading complaints...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= GRADING ================= -->
+      <section id="tab-grading" class="nea-tab">
+        <div class="nea-header">
+          <h2>Update Hygiene Grades</h2>
+        </div>
+
+        <div class="nea-card-container" style="margin-bottom: 18px">
+          <h3>Hygiene Overview</h3>
+          <div class="overview-grid">
+            <div class="overview-box">Total <span id="ovTotal">-</span></div>
+            <div class="overview-box">A <span id="ovA">-</span></div>
+            <div class="overview-box">B <span id="ovB">-</span></div>
+            <div class="overview-box">C <span id="ovC">-</span></div>
+            <div class="overview-box">D <span id="ovD">-</span></div>
+            <div class="overview-box">
+              Not graded <span id="ovNone">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grading-wrapper">
+          <div class="nea-form-card">
+            <label>Select Stall to Grade</label>
+
+            <input
+              id="gradeSearch"
+              class="std-input"
+              placeholder="Search stall name..."
+              oninput="filterGradeDropdown()"
+              style="margin-bottom: 10px"
+            />
+
+            <select
+              id="gradeStallSelect"
+              class="std-input"
+              onchange="updateCurrentGradeDisplay()"
+            >
+              <option value="" disabled selected>Loading Stalls...</option>
+            </select>
+
+            <div
+              style="
+                background: #f1f1f1;
+                padding: 10px;
+                border-radius: 6px;
+                margin: 15px 0;
+              "
+            >
+              <strong>Current Grade in Database: </strong>
+              <span
+                id="currentGradeDisplay"
+                style="color: #e67e22; font-weight: bold"
+                >-</span
+              >
+            </div>
+
+            <label>New Hygiene Grade</label>
+            <div class="grade-picker">
+              <button class="grade-btn" onclick="selectGrade('A')">A</button>
+              <button class="grade-btn" onclick="selectGrade('B')">B</button>
+              <button class="grade-btn" onclick="selectGrade('C')">C</button>
+              <button class="grade-btn" onclick="selectGrade('D')">D</button>
+            </div>
+
+            <input type="hidden" id="selectedGrade" />
+
+            <button
+              class="btn-primary full-width"
+              onclick="submitGradeUpdate()"
+            >
+              Update Grade
+            </button>
+            <p id="gradeMsg" class="success-msg"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= MODAL ================= -->
+    <div id="scheduleModal" class="nea-modal">
+      <div class="modal-content">
+        <h3>Schedule Inspection</h3>
+
+        <label>Stall</label>
+        <select id="schStall" class="std-input">
+          <option value="" disabled selected>Select Stall</option>
+        </select>
+
+        <label>Date</label>
+        <input type="date" id="schDate" class="std-input" />
+
+        <label>Officer Name</label>
+        <input
+          type="text"
+          id="schOfficer"
+          placeholder="e.g. Officer Tan"
+          class="std-input"
+        />
+
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeScheduleModal()">
+            Cancel
+          </button>
+          <button class="btn-primary" onclick="submitSchedule()">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="completeModal" class="nea-modal">
+      <div
+        class="modal-content"
+        style="width: 500px; max-height: 90vh; overflow-y: auto"
+      >
+        <h3>Complete Inspection</h3>
+
+        <label>Stall</label>
+        <select
+          id="compStall"
+          class="std-input"
+          onchange="updateCurrentGradeForCompletion()"
+        >
+          <option value="" disabled selected>Select Stall</option>
+        </select>
+
+        <div
+          style="
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+          "
+        >
+          <strong>Current Grade: </strong>
+          <span id="compCurrentGrade" style="color: #e67e22; font-weight: bold"
+            >-</span
+          >
+        </div>
+
+        <label>Inspection Date</label>
+        <input type="date" id="compDate" class="std-input" />
+
+        <label>License Issued Date (optional)</label>
+        <input type="date" id="compLicenseIssued" class="std-input" />
+
+        <label>License Expiry Date (optional)</label>
+        <input type="date" id="compLicenseExpiry" class="std-input" />
+
+        <p style="font-size: 12px; color: #666; margin-top: 4px">
+          If you fill these, the stall’s license validity on the Hygiene page
+          will update.
+        </p>
+
+        <label>Officer Name</label>
+        <input
+          type="text"
+          id="compOfficer"
+          placeholder="e.g. Officer Tan"
+          class="std-input"
+        />
+
+        <label>Overall Score (0-100)</label>
+        <input
+          type="number"
+          id="compScore"
+          class="std-input"
+          min="0"
+          max="100"
+          placeholder="e.g. 85"
+        />
+        <p style="font-size: 12px; color: #666; margin-top: 4px">
+          Grade will be auto-calculated: A (85-100), B (70-84), C (55-69), D
+          (&lt;55)
+        </p>
+
+        <label>Score Breakdown</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+          <div>
+            <label style="font-size: 13px">Food Hygiene</label>
+            <input
+              type="number"
+              id="compFoodHygiene"
+              class="std-input"
+              min="0"
+              max="100"
+              placeholder="0-100"
+            />
+          </div>
+          <div>
+            <label style="font-size: 13px">Personal Hygiene</label>
+            <input
+              type="number"
+              id="compPersonalHygiene"
+              class="std-input"
+              min="0"
+              max="100"
+              placeholder="0-100"
+            />
+          </div>
+          <div>
+            <label style="font-size: 13px">Equipment</label>
+            <input
+              type="number"
+              id="compEquipment"
+              class="std-input"
+              min="0"
+              max="100"
+              placeholder="0-100"
+            />
+          </div>
+          <div>
+            <label style="font-size: 13px">Premises</label>
+            <input
+              type="number"
+              id="compPremises"
+              class="std-input"
+              min="0"
+              max="100"
+              placeholder="0-100"
+            />
+          </div>
+        </div>
+
+        <label>Officer Remarks</label>
+        <textarea
+          id="compRemarks"
+          class="std-input"
+          rows="3"
+          placeholder="Enter inspection observations..."
+        ></textarea>
+
+        <div style="background: #f1f1f1; padding: 10px; border-radius: 6px">
+          <strong>Calculated Grade: </strong>
+          <span
+            id="compCalculatedGrade"
+            style="color: #e67e22; font-weight: bold"
+            >-</span
+          >
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeCompleteModal()">
+            Cancel
+          </button>
+          <button class="btn-primary" onclick="submitCompletion()">
+            Complete Inspection
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/authClient.js"></script>
+    <script src="js/nea.js"></script>
+  </body>
+</html>

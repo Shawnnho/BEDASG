@@ -17,6 +17,7 @@ const hygieneRoutes = require("./routes/hygieneRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const stallMenuRoutes = require("./routes/stallMenuRoutes");
+const neaRoutes = require("./routes/neaRoutes");
 
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
@@ -45,6 +46,7 @@ app.use("/api/hygiene", hygieneRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
+app.use("/api/nea", neaRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/reviews", reviewRoutes);
