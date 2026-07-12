@@ -101,7 +101,8 @@ async function getStallById(stallId) {
         s.OperatingHours,
         s.PrepMin,
         s.PrepMax,
-        s.RatingCount,
+        s.RatingCount,  
+        s.RatingTotal,
         s.IsPopular
       FROM dbo.Stalls s
       WHERE s.StallId = @stallId

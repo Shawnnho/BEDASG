@@ -135,7 +135,8 @@ async function loadStall() {
     img: d.img || "images/default-stall.png",
     unit: d.unit || "",
     phone: d.phone || "",
-    ratingCount: Number(d.ratingCount ?? 0),
+    ratingCount: d.ratingCount,
+    ratingTotal: d.ratingTotal,
     openTime: open,
     closeTime: close,
   };
@@ -183,10 +184,10 @@ function fillUI() {
   descEl.textContent = stall.desc;
   metaEl.textContent = `Open: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
 
-  if (avgText) avgText.textContent = stall.rating.toFixed(1);
+  if (avgText) avgText.textContent = (stall.ratingTotal / stall.ratingCount).toFixed(1);
   if (countText) countText.textContent = `(${stall.ratingCount})`;
   if (starFill) {
-    const pct = Math.max(0, Math.min(100, (stall.rating / 5) * 100));
+    const pct = Math.max(0, Math.min(100, ((stall.ratingTotal / stall.ratingCount) / 5) * 100));
     starFill.style.width = pct + "%";
   }
 
