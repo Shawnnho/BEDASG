@@ -6362,3 +6362,22 @@ body.storePage #stallGrade.gradeD {
     border-color: #ffcdd2;
   }
 }
+
+.cardInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cardInputWrap input {
+  width: 100%;
+  padding-right: 45px;
+}
+
+.cardTypeIcon {
+  position: absolute;
+  right: 12px;
+  height: 24px;
+  width: auto;
+  pointer-events: none;
+}

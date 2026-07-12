@@ -27,30 +27,43 @@ async function getAllStalls(req, res) {
   }
 }
 
+// GET /api/stalls/:id
 async function getStallById(req, res) {
   try {
     const stallId = req.params.id;
     const row = await stallModel.getStallById(stallId);
+
     if (!row) {
       return res.status(404).json({ error: "Stall not found." });
     }
 
     const stall = {
       id: row.StallId,
+      publicStallId: row.PublicStallId || "",
       centreId: row.CentreId,
+      stallDocId: row.StallId,
       name: row.StallName,
       cuisine: row.Cuisine || "",
       grade: row.HygieneGrade || "",
+      prepMin: row.PrepMin,
+      prepMax: row.PrepMax,
+      popular: row.IsPopular === true,
       desc: row.Desc || "",
       img: row.ImageUrl || "images/stalls/placeholder.jpg",
       unit: row.UnitNo || "",
-      ratingCount: row.RatingCount,
-      ratingTotal: row.RatingTotal,
+      unitNo: row.UnitNo || "", // Kept both unit and unitNo in case different frontend components rely on them
+      rating:
+        row.RatingCount > 0
+          ? Number((row.RatingTotal / row.RatingCount).toFixed(1))
+          : null,
+      ratingCount: row.RatingCount ?? 0,
+      ratingTotal: row.RatingTotal ?? 0,
       phone: row.Phone || "",
       openTime: row.OpenTime || "",
       closeTime: row.CloseTime || "",
       operatingHours: row.OperatingHours || null,
     };
+    
     res.json(stall);
   } catch (err) {
     console.error("getStallById error:", err.message);

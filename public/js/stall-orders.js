@@ -1,5 +1,6 @@
 // stall-orders.js — MSSQL/Express version (no Firebase), cookie auth
-// Loads unpaid-cash / paid / completed orders; confirm cash + mark completed.
+// Unpaid + Paid: full detail cards (owner acts on these).
+// Completed: compact rows, expand on click (reference only).
 
 const API_BASE = "";
 const $ = (id) => document.getElementById(id);
@@ -70,12 +71,12 @@ function renderItem(it) {
     : "";
 
   return `
-    <li style="margin: 8px 0;">
-      <div style="display:flex; justify-content:space-between; gap:10px;">
+    <li>
+      <div class="orderItemTop">
         <div><b>${qty}×</b> ${name}</div>
         <div style="font-weight:800;">${money(it.lineTotal)}</div>
       </div>
-      <div class="legal-muted">${money(it.unitPrice)} each</div>
+      <div class="legal-muted" style="font-size:12px;">${money(it.unitPrice)} each</div>
       ${required}
       ${addons}
       ${note}
@@ -83,19 +84,27 @@ function renderItem(it) {
     </li>`;
 }
 
-function renderOrderCard(o, opts = {}) {
-  const { showConfirmCashBtn = false, showCompleteBtn = false } = opts;
+function pricingHtml(o) {
+  return `
+    <div class="orderPricingSh">
+      <div class="orderPriceRow"><span>Subtotal</span><span>${money(o.pricing.subtotal)}</span></div>
+      <div class="orderPriceRow"><span>Delivery Fee</span><span>${money(o.pricing.deliveryFee)}</span></div>
+      <div class="orderPriceRow"><span>Small Order Fee</span><span>${money(o.pricing.smallOrderFee)}</span></div>
+      <div class="orderPriceRow"><span>Promo (${esc(o.promo.code)})</span><span>- ${money(o.promo.discount)}</span></div>
+      <div class="orderPriceRow total"><span>Total</span><span>${money(o.pricing.total)}</span></div>
+    </div>`;
+}
 
-  const displayId = esc(
-    o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
-  );
-  const paidAt = o.paidAt ? fmtTime(o.paidAt) : "Not paid yet";
+function orderDetailHtml(o) {
   const type = o.fulfillmentType || "pickup";
   const typeLabel = type === "delivery" ? "Delivery" : "Pickup";
 
   const addrLine =
     type === "delivery"
-      ? `${esc(o.fulfillmentAddress)}, #${esc(o.fulfillmentUnit)}, S(${esc(o.fulfillmentPostal)})`
+      ? `<div style="margin-top:4px; font-size:13px;">
+           <span class="legal-muted">Address:</span>
+           ${esc(o.fulfillmentAddress)}, #${esc(o.fulfillmentUnit)}, S(${esc(o.fulfillmentPostal)})
+         </div>`
       : "";
 
   const itemsHtml =
@@ -103,70 +112,82 @@ function renderOrderCard(o, opts = {}) {
       ? o.items.map(renderItem).join("")
       : `<li class="legal-muted">No items found.</li>`;
 
+  return `
+    <div style="font-size:13px;">
+      <span class="legal-muted">Fulfillment:</span> <b>${esc(typeLabel)}</b>
+    </div>
+    ${addrLine}
+
+    <div style="margin-top:10px;">
+      <div style="font-weight:900; margin-bottom:4px; font-size:14px;">Items</div>
+      <ul class="orderItemsSh">${itemsHtml}</ul>
+    </div>
+
+    ${pricingHtml(o)}`;
+}
+
+// Full card — Unpaid + Paid (owner needs to act)
+function renderOrderCard(o, opts = {}) {
+  const { showConfirmCashBtn = false, showCompleteBtn = false } = opts;
+
+  const displayId = esc(
+    o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
+  );
+  const paidAt = o.paidAt ? fmtTime(o.paidAt) : "Not paid yet";
   const statusText = String(o.status || "").replaceAll("_", " ");
 
   const confirmBtn = showConfirmCashBtn
-    ? `<div style="margin-top:14px; display:flex; justify-content:flex-end;">
-         <button class="orderActionBtn confirmCash" type="button" data-confirm-cash="${esc(o.orderId)}">
-           Confirm Cash Received
-         </button>
-       </div>`
+    ? `<button class="orderActionBtn confirmCash" type="button" data-confirm-cash="${esc(o.orderId)}">Confirm Cash Received</button>`
     : "";
 
   const completeBtn = showCompleteBtn
-    ? `<div style="margin-top:14px; display:flex; justify-content:flex-end;">
-         <button class="orderActionBtn markComplete" type="button" data-complete="${esc(o.orderId)}">
-           Mark Completed
-         </button>
-       </div>`
+    ? `<button class="orderActionBtn markComplete" type="button" data-complete="${esc(o.orderId)}">Mark Completed</button>`
     : "";
 
+  const actions =
+    confirmBtn || completeBtn
+      ? `<div class="orderActionsSh">${confirmBtn}${completeBtn}</div>`
+      : "";
+
   return `
-    <div class="legal-card" style="padding:14px; border-radius:16px; box-shadow:0 8px 22px rgba(0,0,0,.08); background:#fff; margin:12px 0;">
-      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div class="orderCardSh">
+      <div class="orderTopSh">
         <div>
-          <div style="font-weight:900; font-size:16px;">Order ${displayId}</div>
-          <div class="legal-muted">Created: ${esc(fmtTime(o.createdAt))}</div>
+          <div class="orderIdSh">Order ${displayId}</div>
+          <div class="orderMetaSh">Created: ${esc(fmtTime(o.createdAt))}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-weight:900;">${esc(statusText)}</div>
-          <div class="legal-muted">Payment: ${esc(o.paymentMethod)} • ${esc(paidAt)}</div>
+          <div class="orderStatusSh">${esc(statusText)}</div>
+          <div class="orderMetaSh">${esc(o.paymentMethod)} • ${esc(paidAt)}</div>
         </div>
       </div>
 
-      <hr style="border:none; border-top:1px solid rgba(0,0,0,.08); margin:12px 0;" />
+      <hr class="orderDivSh" />
+      ${orderDetailHtml(o)}
+      ${actions}
+    </div>`;
+}
 
-      <div>
-        <div><span class="legal-muted">Fulfillment:</span> <b>${esc(typeLabel)}</b></div>
-        ${type === "delivery" ? `<div style="margin-top:6px;"><span class="legal-muted">Address:</span> ${addrLine}</div>` : ""}
+// Compact row — Completed (archive; expand on click)
+function renderOrderCompact(o) {
+  const displayId = esc(
+    o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
+  );
+  const itemCount = Array.isArray(o.items) ? o.items.length : 0;
+
+  return `
+    <div class="orderCompact" data-oid="${esc(o.orderId)}">
+      <div class="orderCompactHead">
+        <span class="orderCompactChev">▶</span>
+        <span class="orderCompactId">${displayId}</span>
+        <span class="orderCompactMeta">
+          ${esc(fmtTime(o.createdAt))} • ${itemCount} item${itemCount === 1 ? "" : "s"} • ${esc(o.paymentMethod)}
+        </span>
+        <span class="orderCompactTotal">${money(o.pricing.total)}</span>
       </div>
-
-      <div style="margin-top:12px;">
-        <div style="font-weight:900; margin-bottom:6px;">Items</div>
-        <ul class="legal-list" style="margin:0; padding-left:18px;">${itemsHtml}</ul>
+      <div class="orderCompactBody">
+        ${orderDetailHtml(o)}
       </div>
-
-      <div style="margin-top:12px;">
-        <div style="display:flex; justify-content:space-between;">
-          <span class="legal-muted">Subtotal</span><b>${money(o.pricing.subtotal)}</b>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <span class="legal-muted">Delivery Fee</span><b>${money(o.pricing.deliveryFee)}</b>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <span class="legal-muted">Small Order Fee</span><b>${money(o.pricing.smallOrderFee)}</b>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <span class="legal-muted">Promo (${esc(o.promo.code)})</span><b>- ${money(o.promo.discount)}</b>
-        </div>
-        <hr style="border:none; border-top:1px dashed rgba(0,0,0,.15); margin:10px 0;" />
-        <div style="display:flex; justify-content:space-between; font-size:16px;">
-          <span style="font-weight:900;">Total</span><span style="font-weight:900;">${money(o.pricing.total)}</span>
-        </div>
-      </div>
-
-      ${confirmBtn}
-      ${completeBtn}
     </div>`;
 }
 
@@ -203,11 +224,13 @@ function render(data) {
   $("unpaidList").innerHTML = unpaid
     .map((o) => renderOrderCard(o, { showConfirmCashBtn: true }))
     .join("");
+
   $("paidList").innerHTML = paid
     .map((o) => renderOrderCard(o, { showCompleteBtn: true }))
     .join("");
+
   $("completedList").innerHTML = completed
-    .map((o) => renderOrderCard(o))
+    .map((o) => renderOrderCompact(o))
     .join("");
 
   // Order nav badge — unpaid cash orders needing attention
@@ -280,6 +303,13 @@ $("paidList")?.addEventListener("click", async (e) => {
     btn.disabled = false;
     btn.textContent = "Mark Completed";
   }
+});
+
+// Completed rows expand/collapse
+$("completedList")?.addEventListener("click", (e) => {
+  const head = e.target.closest(".orderCompactHead");
+  if (!head) return;
+  head.closest(".orderCompact")?.classList.toggle("isOpen");
 });
 
 $("logoutBtn")?.addEventListener("click", () => {
