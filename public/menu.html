@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Menu</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel=""stylesheet" href="css/menuItems.css">
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Back to Home">
+          <img
+            src="images/logo.png"
+            alt="Hawker Point logo"
+            class="brand-logo"
+          />
+        </a>
+
+        <nav class="nav" aria-label="Main navigation">
+          <a class="pill active" href="home.html">Home</a>
+          <a class="pill" href="promotions.html">Promotions</a>
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html">Hygiene</a>
+
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">Account</a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink active" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html">Hygiene</a>
+
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">Account</a>
+      </nav>
+    </header>
+
+    <main class="page menuPage">
+      <div class="menuShell">
+        <section class="menuTop">
+          <div class="stallHeader">
+            <img id="stallIcon" src="" alt="Selected stall" />
+          </div>
+
+          <div id="gradePill" class="hpGradePill">✓ Hygiene Grade</div>
+
+          <div class="menuSearchBar">
+            <span aria-hidden="true"><img src="images/search.png" alt="Search icon" />
+            </span>
+            <input
+              id="menuQ"
+              type="text"
+              placeholder="What shall we deliver?"
+            />
+          </div>
+
+          <div id="menuTitle" class="menuSectionTitle">Menu</div>
+        </section>
+
+        <section
+          id="menuList"
+          class="menuList"
+          aria-label="Menu items"
+        ></section>
+      </div>
+    </main>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+    <script type="module" src="js/menu.js"></script>
+
+    <script type="module" src="js/stallmenu.js"></script>
+  </body>
+</html>

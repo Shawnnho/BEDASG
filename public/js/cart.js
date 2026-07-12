@@ -411,7 +411,7 @@ document.addEventListener("click", async (e) => {
                 // Cash is confirmed by the stall at pickup/delivery, so it's
                 // safe to clear the cart immediately.
                 await saveCart([]);
-                window.location.href = 'orders.html';
+                window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else if (paymentMethod === 'card') {
                 // Do NOT clear the cart here — payment hasn't happened yet.
                 // card.js clears it only after a real payment confirmation.

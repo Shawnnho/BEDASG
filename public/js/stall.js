@@ -1,44 +1,10 @@
 /*************************************************
  * stall.js (module)
- * - Loads stall UI from local array
+ * - Loads stall UI from MSSQL via REST API
  *************************************************/
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  arrayUnion,
-  arrayRemove,
-  onSnapshot,
-  collection,
-  query,
-  orderBy,
-  limit,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* Firebase Config */
-const firebaseConfig = {
-  apiKey: "AIzaSyC-NTWADB-t1OGl7NbdyMVXjpVjnqjpTXg",
-  authDomain: "fedproject-8d254.firebaseapp.com",
-  projectId: "fedproject-8d254",
-  storageBucket: "fedproject-8d254.firebasestorage.app",
-  messagingSenderId: "477538553634",
-  appId: "1:477538553634:web:a14b93bbd93d33b9281f7b",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
 // =========================
-// Load stall from Firestore
+// URL params
 // =========================
 const params = new URLSearchParams(window.location.search);
 const centreId = params.get("centreId");
@@ -48,97 +14,9 @@ if (!centreId || !stallId) {
   window.location.href = "home.html";
 }
 
-const stallRef = doc(db, "centres", centreId, "stalls", stallId);
-
 let stall = null;
-
-async function loadStall() {
-  const snap = await getDoc(stallRef);
-
-  if (!snap.exists()) {
-    window.location.href = "home.html";
-    return;
-  }
-
-  const d = snap.data();
-
-  const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
-    new Date().getDay()
-  ];
-
-  let openTime = "";
-  let closeTime = "";
-
-  if (d.operatingHours && typeof d.operatingHours === "object") {
-    openTime = d.operatingHours?.[dayKey]?.open || "";
-    closeTime = d.operatingHours?.[dayKey]?.close || "";
-  } else {
-    // fallback to old fields if any
-    openTime = d.openTime ?? "";
-    closeTime = d.closeTime ?? "";
-  }
-
-  stall = {
-    id: stallId,
-    centreId,
-    reviewStallId: d.reviewStallId || stallId,
-    name: d.stallName ?? d.name ?? stallId,
-    cuisine: d.cuisine ?? "",
-    grade: d.hygieneGrade ?? d.grade ?? "—",
-    desc: d.desc ?? "",
-    img: d.imageUrl ?? d.img ?? "images/default-stall.png",
-    openTime,
-    closeTime,
-    unit: d.unitNo ?? "",
-    location: d.location ?? "",
-  };
-
-  fillUI();
-  refreshRatingsFromReviews().catch(console.error);
-}
-
-async function refreshRatingsFromReviews() {
-  const reviewsRef = collection(db, "stalls", stall.reviewStallId, "reviews");
-  const qs = query(reviewsRef, orderBy("createdAt", "desc"), limit(200));
-  const snap = await getDocs(qs);
-
-  let total = 0;
-  let count = 0;
-
-  snap.forEach((d) => {
-    const r = d.data() || {};
-    const stars = Number(r.rating ?? r.stars ?? 0); // supports rating or stars
-    if (stars > 0) {
-      total += stars;
-      count += 1;
-    }
-  });
-
-  const avg = count ? total / count : 0;
-
-  if (avgText) avgText.textContent = avg.toFixed(1);
-  if (countText) countText.textContent = `(${count})`;
-
-  const pct = Math.max(0, Math.min(100, (avg / 5) * 100));
-  if (starFill) starFill.style.width = pct + "%";
-}
-
-// HELPER
-
-function to12h(hhmm) {
-  if (!hhmm || !hhmm.includes(":")) return "";
-
-  const [h, m] = hhmm.split(":").map(Number);
-  const isPM = h >= 12;
-  const hour12 = ((h + 11) % 12) + 1;
-
-  return `${hour12}:${String(m).padStart(2, "0")}${isPM ? " PM" : " AM"}`;
-}
-
-function buildHours12(open, close) {
-  if (!open || !close) return "—";
-  return `${to12h(open)} – ${to12h(close)}`;
-}
+let isFav = false;
+let isLoggedIn = false;
 
 // =========================
 // DOM
@@ -149,7 +27,6 @@ const cuisineEl = document.getElementById("stallCuisine");
 const gradeEl = document.getElementById("stallGrade");
 const descEl = document.getElementById("stallDesc");
 const metaEl = document.getElementById("stallMeta");
-
 const locationEl = document.getElementById("stallLocation");
 
 const menuLink = document.getElementById("menuLink");
@@ -157,18 +34,133 @@ const callBtn = document.getElementById("callBtn");
 const dirBtn = document.getElementById("dirBtn");
 
 const favBtn = document.getElementById("favBtn");
+const favIcon = document.getElementById("favIcon");
 
 const avgText = document.getElementById("avgText");
 const countText = document.getElementById("countText");
 const starFill = document.getElementById("starFill");
 
 const seeReviewLink = document.getElementById("seeReviewLink");
-
-const favIcon = document.getElementById("favIcon");
 const hygBtn = document.getElementById("hygBtn");
 
 const HEART_OUTLINE = "images/like.png";
 const HEART_FILLED = "images/heart.png";
+
+// =========================
+// Helpers
+// =========================
+function parseTimeParts(value) {
+  if (!value) return null;
+
+  // Case 1: TIME column serialized as a Date/ISO string, e.g. "1970-01-01T07:00:00.000Z"
+  if (typeof value === "string" && value.includes("T") && value.endsWith("Z")) {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return { h: d.getUTCHours(), m: d.getUTCMinutes() };
+    }
+  }
+
+  // Case 2: plain "HH:MM" or "HH:MM:SS" string
+  if (typeof value === "string" && value.includes(":")) {
+    const [hStr, mStr] = value.split(":");
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (!isNaN(h) && !isNaN(m)) return { h, m };
+  }
+
+  return null;
+}
+
+function buildHours12(open, close) {
+  if (!open || !close) return "—";
+  return `${open} – ${close}`;
+}
+
+// OperatingHours may come back as a JSON string (per-day open/close) or null.
+// Falls back to the flat OpenTime/CloseTime columns if not present.
+function resolveTodayHours(stall) {
+  const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+    new Date().getDay()
+  ];
+
+  let raw = stall.operatingHours;
+  if (raw && typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = null;
+    }
+  }
+
+  if (raw && typeof raw === "object" && raw[dayKey]) {
+    return {
+      open: raw[dayKey].open || "",
+      close: raw[dayKey].close || "",
+    };
+  }
+
+  return { open: stall.openTime || "", close: stall.closeTime || "" };
+}
+
+// centreModel's shape isn't known here, so check the common field names.
+function resolveCentreName(centre) {
+  return centre?.Name || "";
+}
+
+// =========================
+// Fetch stall + centre
+// =========================
+async function loadStall() {
+  const res = await fetch(`/api/stalls/${encodeURIComponent(stallId)}`);
+
+  if (res.status === 404) {
+    window.location.href = "home.html";
+    return;
+  }
+  if (!res.ok) {
+    console.error("Failed to load stall:", res.status);
+    return;
+  }
+
+  const d = await res.json();
+  const { open, close } = resolveTodayHours(d);
+
+  stall = {
+    id: d.id ?? stallId,
+    centreId: d.centreId ?? centreId,
+    name: d.name || stallId,
+    cuisine: d.cuisine || "",
+    grade: d.grade || "—",
+    desc: d.desc || "",
+    img: d.img || "images/default-stall.png",
+    unit: d.unit || "",
+    phone: d.phone || "",
+    ratingCount: d.ratingCount,
+    ratingTotal: d.ratingTotal,
+    openTime: open,
+    closeTime: close,
+  };
+  
+  fillUI();
+  loadCentreName().catch(console.error);
+}
+
+async function loadCentreName() {
+  const res = await fetch(`/api/centres/${encodeURIComponent(centreId)}`);
+  if (!res.ok) {
+    console.error("Failed to load centre:", res.status);
+    return;
+  }
+  const centre = await res.json();
+  const centreName = resolveCentreName(centre);
+
+  if (locationEl) locationEl.textContent = centreName ? ` ${centreName}` : "";
+  if (dirBtn) {
+    dirBtn.href =
+      "https://www.google.com/maps?q=" +
+      encodeURIComponent(centreName || stall.name);
+  }
+}
 
 function fillUI() {
   heroEl.src = stall.img;
@@ -190,23 +182,22 @@ function fillUI() {
   );
 
   descEl.textContent = stall.desc;
+  metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
 
-  metaEl.textContent = `Open: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
-
-  if (locationEl) {
-    locationEl.textContent = ` ${stall.location}`;
+  if (avgText) avgText.textContent = (stall.ratingTotal / stall.ratingCount).toFixed(1);
+  if (countText) countText.textContent = `(${stall.ratingCount})`;
+  if (starFill) {
+    const pct = Math.max(0, Math.min(100, ((stall.ratingTotal / stall.ratingCount) / 5) * 100));
+    starFill.style.width = pct + "%";
   }
 
   if (menuLink)
     menuLink.href = `menu.html?centreId=${centreId}&stallId=${stallId}`;
-  if (callBtn) callBtn.href = "tel:+6590000000";
-  if (dirBtn) {
-    dirBtn.href =
-      "https://www.google.com/maps?q=" +
-      encodeURIComponent(stall.location || stall.name);
+  if (callBtn) {
+    callBtn.href = stall.phone ? `tel:${stall.phone}` : "#";
   }
   if (seeReviewLink) {
-    seeReviewLink.href = `feedback.html?id=${encodeURIComponent(stall.reviewStallId)}`;
+    seeReviewLink.href = `feedback.html?id=${encodeURIComponent(stallId)}`;
   }
   if (hygBtn) {
     hygBtn.href = `hygiene.html?id=${encodeURIComponent(stallId)}&centreId=${encodeURIComponent(centreId)}`;
@@ -214,73 +205,91 @@ function fillUI() {
 }
 
 // =========================
-// Favourite (Firestore)
+// Favourites (MSSQL, cookie auth)
 // =========================
-function setFavUI(isFav) {
+function setFavUI(fav) {
   if (!favBtn || !favIcon) return;
 
-  favBtn.classList.toggle("active", isFav);
-  favBtn.setAttribute("aria-pressed", String(isFav));
+  favBtn.classList.toggle("active", fav);
+  favBtn.setAttribute("aria-pressed", String(fav));
   favBtn.setAttribute(
     "aria-label",
-    isFav ? "Remove favourite" : "Add to favourite",
+    fav ? "Remove favourite" : "Add to favourite",
   );
 
-  favIcon.src = isFav ? HEART_FILLED : HEART_OUTLINE;
-  favIcon.alt = isFav ? "Remove from favourite" : "Add to favourite";
+  favIcon.src = fav ? HEART_FILLED : HEART_OUTLINE;
+  favIcon.alt = fav ? "Remove from favourite" : "Add to favourite";
 }
 
-onAuthStateChanged(auth, async (user) => {
-  await loadStall();
-
-  if (!favBtn) return;
-
-  // If not logged in, block favourites
-  if (!user) {
-    setFavUI(false);
-    favBtn.addEventListener("click", () => {
-      alert("Please login to use favourites.");
-      window.location.href = "signin.html";
-    });
-    return;
-  }
-
-  const userRef = doc(db, "users", user.uid);
-
-  // Load favourites
-  let isFav = false;
+async function loadFavStatus() {
   try {
-    const snap = await getDoc(userRef);
-    const data = snap.exists() ? snap.data() : {};
-    const favs = Array.isArray(data.favourites) ? data.favourites : [];
-    isFav = favs.includes(stall.id);
+    const res = await fetch("/api/favstalls/get", {
+      credentials: "include",
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      isLoggedIn = false;
+      setFavUI(false);
+      return;
+    }
+
+    if (!res.ok) {
+      console.error("Failed to load favourites:", res.status);
+      return;
+    }
+
+    isLoggedIn = true;
+    const data = await res.json();
+    const favourites = Array.isArray(data.favourites) ? data.favourites : [];
+    isFav = favourites.includes(stallId);
     setFavUI(isFav);
   } catch (e) {
     console.error("Failed to load favourites:", e);
     setFavUI(false);
   }
+}
 
-  // Toggle favourite
+function setupFavButton() {
+  if (!favBtn) return;
+
   favBtn.addEventListener("click", async () => {
-    try {
-      isFav = !isFav;
-      setFavUI(isFav);
+    if (!isLoggedIn) {
+      alert("Please login to use favourites.");
+      window.location.href = "signin.html";
+      return;
+    }
 
-      await setDoc(
-        userRef,
+    const wantFav = !isFav;
+    isFav = wantFav;
+    setFavUI(isFav);
+
+    try {
+      const res = await fetch(
+        wantFav ? "/api/favstalls/add" : "/api/favstalls/delete",
         {
-          favourites: isFav ? arrayUnion(stall.id) : arrayRemove(stall.id),
+          method: wantFav ? "POST" : "DELETE",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stallId }),
         },
-        { merge: true },
       );
+
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
     } catch (e) {
       console.error("Failed to update favourite:", e);
-
       // rollback
-      isFav = !isFav;
+      isFav = !wantFav;
       setFavUI(isFav);
-
       alert("Failed to update favourite. Try again.");
     }
   });
-});
+}
+
+// =========================
+// Init
+// =========================
+(async function init() {
+  await loadStall();
+  await loadFavStatus();
+  setupFavButton();
+})();

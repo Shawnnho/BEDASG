@@ -239,6 +239,13 @@
 .btn-mini.gray:hover {
   filter: brightness(0.97);
 }
+.btn-mini.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.btn-mini.danger:hover {
+  background: #fecaca;
+}
 
 /* Toolbar */
 .toolbar {
