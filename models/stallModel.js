@@ -91,7 +91,7 @@ async function getStallById(stallId) {
         s.CentreId,
         s.StallName,
         s.Cuisine,
-        s.Desc,
+        s.[Desc],
         s.ImageUrl,
         s.HygieneGrade,
         s.UnitNo,
@@ -102,15 +102,14 @@ async function getStallById(stallId) {
         s.PrepMin,
         s.PrepMax,
         s.RatingCount,
-        s.RatingAvg,
-        s.IsPopular,
+        s.IsPopular
       FROM dbo.Stalls s
       WHERE s.StallId = @stallId
         AND s.IsActive = 1
         AND s.IsCanonical = 1
     `);
 
-  return result.recordset;
+  return result.recordset[0];
 }
 
 module.exports = { getAllStalls, createStall, getStallById };

@@ -28,27 +28,33 @@ async function getAllStalls(req, res) {
 }
 
 async function getStallById(req, res) {
-  const stallId = req.params.id;
-  const stall = row.map((r) => ({
-    id: r.StallId,
-    centreId: r.CentreId,
-    stallDocId: r.StallId,
-    name: r.StallName,
-    cuisine: r.Cuisine || "",
-    grade: r.HygieneGrade || "",
-    prepMin: r.PrepMin,
-    prepMax: r.PrepMax,
-    popular: r.IsPopular === true,
-    img: r.ImageUrl || "images/stalls/placeholder.jpg",
-    desc: r.Desc || "",
-    unit: r.UnitNo || "",
-    rating: r.RatingAvg,
-    phone: r.Phone || "",
-    openTime: r.OpenTime || "",
-    closeTime: r.CloseTime || "",
-    unitNo: r.UnitNo || "",
-  })
-)
+  try {
+    const stallId = req.params.id;
+    const row = await stallModel.getStallById(stallId);
+    if (!row) {
+      return res.status(404).json({ error: "Stall not found." });
+    }
+
+    const stall = {
+      id: row.StallId,
+      centreId: row.CentreId,
+      name: row.StallName,
+      cuisine: row.Cuisine || "",
+      grade: row.HygieneGrade || "",
+      desc: row.Desc || "",
+      img: row.ImageUrl || "images/stalls/placeholder.jpg",
+      unit: row.UnitNo || "",
+      ratingCount: row.RatingCount ?? 0,
+      phone: row.Phone || "",
+      openTime: row.OpenTime || "",
+      closeTime: row.CloseTime || "",
+      operatingHours: row.OperatingHours || null,
+    };
+    res.json(stall);
+  } catch (err) {
+    console.error("getStallById error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve stall." });
+  }
 }
 
-module.exports = { getAllStalls };
+module.exports = { getAllStalls, getStallById };
