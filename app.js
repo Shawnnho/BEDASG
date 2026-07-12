@@ -22,6 +22,7 @@ const neaRoutes = require("./routes/neaRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const checkoutCardRoutes = require('./routes/checkoutCardRoutes');
+const operatorRoutes = require("./routes/operatorRoutes");
 const customerOrdersRoutes = require("./routes/customerOrdersRoutes");
 
 const app = express();
@@ -46,6 +47,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/favstalls", favStallRoutes);
 app.use("/api/hygiene", hygieneRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/operator", operatorRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
 app.use("/api/nea", neaRoutes);
