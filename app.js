@@ -21,6 +21,7 @@ const stallMenuRoutes = require("./routes/stallMenuRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const checkoutCardRoutes = require('./routes/checkoutCardRoutes');
+const operatorRoutes = require("./routes/operatorRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -43,6 +44,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/favstalls", favStallRoutes);
 app.use("/api/hygiene", hygieneRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/operator", operatorRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
 

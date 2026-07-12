@@ -19,4 +19,17 @@ async function getCentreById(centreId) {
   return result.recordset[0];
 }
 
-module.exports = { getAllCentres, getCentreById };
+async function getCentresByOperator(operatorId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("operatorId", sql.NVarChar, operatorId)
+    .query(
+      "SELECT CentreId, Name, ImagePath FROM Centres WHERE OperatorId = @operatorId ORDER BY Name",
+    );
+  return result.recordset;
+}
+
+
+
+module.exports = { getAllCentres, getCentreById, getCentresByOperator  };

@@ -112,4 +112,25 @@ async function getStallById(stallId) {
   return result.recordset[0] || null;
 }
 
-module.exports = { getAllStalls, createStall, getStallById };
+
+
+async function getStallsByCentre(centreId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("centreId", sql.NVarChar, centreId)
+    .query(`
+      SELECT
+        StallId, PublicStallId, OwnerUid, CentreId,
+        StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location
+      FROM dbo.Stalls
+      WHERE CentreId = @centreId
+      ORDER BY StallName;
+    `);
+  return result.recordset;
+}
+
+
+
+
+module.exports = { getAllStalls, createStall, getStallById, getStallsByCentre};
