@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Orders</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill active" href="home.html">Home</a>
+          <a class="pill" href="promotions.html" id="navPromotions"
+            >Promotions</a
+          >
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+
+          <a class="pill account" href="account.html">
+            Account
+            <span class="notif" id="notifCount" hidden></span>
+          </a>
+        </nav>
+
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html" id="mNavPromotions"
+          >Promotions</a
+        >
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html" id="mNavHygiene">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="ordersPage ordersPageWrap">
+      <h1 class="ordersTitle">My Orders</h1>
+      <p class="legal-muted ordersSubtitle">
+        View your recent orders and open the receipt.
+      </p>
+
+      <div class="ordersFilters">
+        <input
+          id="ordersSearch"
+          class="ordersSearch"
+          type="search"
+          placeholder="Search stall or order id..."
+        />
+
+        <select id="ordersStatusFilter" class="ordersSelect">
+          <option value="all">All</option>
+          <option value="pending">Pending (not collected yet)</option>
+          <option value="completed">Completed</option>
+        </select>
+
+        <select id="ordersPayFilter" class="ordersSelect">
+          <option value="all">All payments</option>
+          <option value="cash">Cash</option>
+          <option value="qr">PayNow / NETS QR</option>
+          <option value="card">Card</option>
+        </select>
+      </div>
+
+      <div class="ordersTabs">
+        <button class="ordersTab isActive" type="button" data-tab="pending">
+          Pending
+          <span id="pendingCount" class="tabCount">0</span>
+        </button>
+
+        <button class="ordersTab" type="button" data-tab="completed">
+          Completed
+          <span id="completedCount" class="tabCount">0</span>
+        </button>
+      </div>
+
+      <section id="ordersPendingWrap">
+        <section id="ordersPendingList" class="ordersGrid"></section>
+        <div id="ordersPendingEmpty" class="ordersEmptyBox" hidden>
+          No pending orders.
+        </div>
+      </section>
+
+      <section id="ordersCompletedWrap" hidden>
+        <section id="ordersCompletedList" class="ordersGrid"></section>
+        <div id="ordersCompletedEmpty" class="ordersEmptyBox" hidden>
+          No completed orders.
+        </div>
+      </section>
+
+      <div id="ordersBanner" class="legal-card ordersBannerBox" hidden></div>
+
+      <div id="ordersEmpty" hidden class="legal-card ordersEmptyCard">
+        <div class="ordersEmptyCardTitle">No orders yet</div>
+        <div class="legal-muted ordersEmptyCardDesc">
+          Once you checkout, your orders will appear here.
+        </div>
+        <a class="pill ordersBrowseLink" href="home.html">Browse stalls</a>
+      </div>
+    </main>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/cart-badge.js"></script>
+    <script type="module" src="js/menu.js"></script>
+    <script src="js/orders.js"></script>
+  </body>
+</html>
