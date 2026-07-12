@@ -113,7 +113,6 @@ async function getStallById(stallId) {
 }
 
 
-
 async function getStallsByCentre(centreId) {
   const pool = await poolPromise;
   const result = await pool
@@ -131,6 +130,5 @@ async function getStallsByCentre(centreId) {
 }
 
 
-
-
 module.exports = { getAllStalls, createStall, getStallById, getStallsByCentre};
+
