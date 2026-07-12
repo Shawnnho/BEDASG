@@ -182,7 +182,7 @@ function fillUI() {
   );
 
   descEl.textContent = stall.desc;
-  metaEl.textContent = `Open: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
+  metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
 
   if (avgText) avgText.textContent = (stall.ratingTotal / stall.ratingCount).toFixed(1);
   if (countText) countText.textContent = `(${stall.ratingCount})`;
