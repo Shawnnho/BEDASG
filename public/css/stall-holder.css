@@ -2792,3 +2792,758 @@ body.stallHolder .shSideTitle {
   padding: 6px 0 14px;
   letter-spacing: 0.3px;
 }
+
+/* ===================================================
+   Menu modal — modernized
+   =================================================== */
+
+body.stallHolder .hpModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.55);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+body.stallHolder .hpModalOverlay[hidden] {
+  display: none;
+}
+
+body.stallHolder .hpModal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: hpModalIn 0.18s ease-out;
+}
+
+@keyframes hpModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Header ---------- */
+body.stallHolder .hpModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 16px;
+  background: transparent;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+body.stallHolder .hpModalTitle {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+}
+
+body.stallHolder .hpModalClose {
+  border: none;
+  background: transparent;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 17px;
+  color: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+body.stallHolder .hpModalClose:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000;
+}
+
+/* ---------- Body ---------- */
+body.stallHolder .hpModalBody {
+  padding: 20px 24px 8px;
+}
+
+body.stallHolder .hpModalRow {
+  margin-bottom: 18px;
+}
+
+body.stallHolder .hpModalLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 7px;
+}
+
+/* ---------- Inputs ---------- */
+body.stallHolder .hpModal .hpModalInput {
+  width: 100%;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 11px 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  background: #fcfcfc;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease,
+    background 0.14s ease;
+}
+
+body.stallHolder .hpModal .hpModalInput::placeholder {
+  color: rgba(0, 0, 0, 0.32);
+}
+
+body.stallHolder .hpModal .hpModalInput:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.stallHolder .hpModal .hpModalInput:focus {
+  outline: none;
+  background: #fff;
+  border-color: #e8944c;
+  box-shadow: 0 0 0 3px rgba(232, 148, 76, 0.16);
+}
+
+body.stallHolder .hpModal textarea.hpModalInput {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+/* ---------- Pricing mode: segmented control ---------- */
+body.stallHolder .priceModeRow {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+}
+
+body.stallHolder .priceModeOpt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+  gap: 0;
+}
+
+/* hide the native radio, style the label instead */
+body.stallHolder .priceModeOpt input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+body.stallHolder .priceModeOpt:hover {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+body.stallHolder .priceModeOpt:has(input:checked) {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------- Variant rows ---------- */
+body.stallHolder #addVariantRows,
+body.stallHolder #editVariantRows {
+  margin-bottom: 8px;
+}
+
+body.stallHolder .variantRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+body.stallHolder .variantRow .hpModalInput {
+  margin: 0;
+}
+
+body.stallHolder .variantRow input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.stallHolder .variantRow input[type="number"] {
+  width: 110px;
+  flex: 0 0 auto;
+}
+
+body.stallHolder .variantRemove {
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.45);
+  font-weight: 900;
+  width: 36px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+body.stallHolder .variantRemove:hover {
+  background: #fee2e2;
+  color: #c0392b;
+}
+
+body.stallHolder #addVariantBtn,
+body.stallHolder #editVariantBtn {
+  border: 1.5px dashed rgba(0, 0, 0, 0.2) !important;
+  background: transparent !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+body.stallHolder #addVariantBtn:hover,
+body.stallHolder #editVariantBtn:hover {
+  border-color: #e8944c !important;
+  color: #b96a28 !important;
+  background: rgba(232, 148, 76, 0.06) !important;
+}
+
+body.stallHolder .variantHint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+body.stallHolder .variantChip {
+  display: inline-block;
+  padding: 4px 10px;
+  margin: 0 5px 5px 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  transition: background 0.12s ease;
+}
+
+body.stallHolder .variantChip:hover {
+  background: rgba(232, 148, 76, 0.18);
+}
+
+/* ---------- File input as a drop zone ---------- */
+body.stallHolder .hpModal input[type="file"].hpModalFile {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 18px 14px;
+  border: 1.5px dashed rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+  background: #fcfcfc;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+body.stallHolder .hpModal input[type="file"].hpModalFile:hover {
+  border-color: #e8944c;
+  background: rgba(232, 148, 76, 0.05);
+}
+
+body.stallHolder .hpModal input[type="file"].hpModalFile::file-selector-button {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 8px 14px;
+  margin-right: 12px;
+  border: none;
+  border-radius: 9px;
+  background: #e8944c;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+body.stallHolder
+  .hpModal
+  input[type="file"].hpModalFile::file-selector-button:hover {
+  filter: brightness(1.07);
+}
+
+body.stallHolder .hpStallImagePreview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Footer ---------- */
+body.stallHolder .hpModalFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  margin-top: 8px;
+}
+
+body.stallHolder .hpModalBtn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 11px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+body.stallHolder .hpModalBtn:active {
+  transform: translateY(1px);
+}
+
+body.stallHolder .hpModalBtn.primary {
+  background: #e8944c;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(232, 148, 76, 0.35);
+}
+
+body.stallHolder .hpModalBtn.primary:hover {
+  filter: brightness(1.06);
+}
+
+body.stallHolder .hpModalBtn.primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+}
+
+body.stallHolder .hpModalBtn.ghost {
+  background: transparent;
+  color: rgba(0, 0, 0, 0.6);
+  border: 1.5px solid rgba(0, 0, 0, 0.14);
+}
+
+body.stallHolder .hpModalBtn.ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #000;
+}
+
+/* Delete button in the edit modal — destructive, but quiet until hovered */
+body.stallHolder #deleteItemBtn {
+  margin-right: auto; /* pushes it away from Save */
+  background: transparent;
+  color: #c0392b;
+  border: 1.5px solid transparent;
+}
+
+body.stallHolder #deleteItemBtn:hover {
+  background: #fee2e2;
+  border-color: #f5b5b0;
+}
+
+/* ===================================================
+   Account page
+   =================================================== */
+body.stallHolder .acctGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+body.stallHolder .acctCard {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+body.stallHolder .acctWide {
+  grid-column: 1 / -1;
+}
+
+body.stallHolder .acctCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+body.stallHolder .acctCardHead h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+/* ---------- Profile ---------- */
+body.stallHolder .acctProfile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+body.stallHolder .acctAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  flex: 0 0 auto;
+}
+
+body.stallHolder .acctName {
+  font-weight: 900;
+  font-size: 16px;
+}
+
+body.stallHolder .acctMeta {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.55);
+  margin-top: 2px;
+}
+
+/* ---------- Labels / detail grid ---------- */
+body.stallHolder .acctLabel {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 3px;
+}
+
+body.stallHolder .acctDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  font-size: 14px;
+}
+
+body.stallHolder .acctSpan2 {
+  grid-column: 1 / -1;
+}
+
+body.stallHolder .acctHint {
+  display: block;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ---------- Toggles / checkboxes ---------- */
+body.stallHolder .acctToggleRow,
+body.stallHolder .acctCheckRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+body.stallHolder .acctCheckRow input,
+body.stallHolder .acctToggleRow input {
+  margin-top: 2px;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  accent-color: #e8944c;
+}
+
+body.stallHolder #savePrefsBtn {
+  margin-top: 12px;
+}
+
+/* ---------- Stall status stats ---------- */
+body.stallHolder .acctStatRow {
+  display: flex;
+  gap: 24px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+body.stallHolder .acctStatNum {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+body.stallHolder .acctStatLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 700;
+}
+
+body.stallHolder .prep.isLive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+body.stallHolder .prep.isOffline {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ---------- Opening hours ---------- */
+body.stallHolder .acctHours {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px 16px;
+  font-size: 14px;
+}
+
+body.stallHolder .acctHourRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+}
+
+body.stallHolder .acctHourDay {
+  font-weight: 800;
+}
+
+body.stallHolder .acctHourTime {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+body.stallHolder .acctHourTime.closed {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* ---------- Menu feature pills ---------- */
+body.stallHolder .acctFeatures {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.stallHolder .acctFeature {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.4);
+}
+
+body.stallHolder .acctFeature.isOn {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ---------- Danger zone ---------- */
+body.stallHolder .acctDanger {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+body.stallHolder .acctDangerBtn {
+  margin-top: 8px;
+  border: 1.5px solid #f5b5b0;
+  background: transparent;
+  color: #c0392b;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+body.stallHolder .acctDangerBtn:hover {
+  background: #fee2e2;
+}
+
+/* ---------- Hours editor (in modal) ---------- */
+body.stallHolder .hoursEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.stallHolder .hourEditRow {
+  display: grid;
+  grid-template-columns: 46px 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+body.stallHolder .hourEditRow .hourDayLabel {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+body.stallHolder .hourEditRow input[type="time"] {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: #fcfcfc;
+}
+
+body.stallHolder .hourEditRow input[type="time"]:disabled {
+  opacity: 0.4;
+}
+
+body.stallHolder .hourClosedLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ===== Add-ons manager ===== */
+body.stallHolder .addonList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+body.stallHolder .addonCard {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+body.stallHolder .addonCard[data-active="0"] {
+  opacity: 0.5;
+}
+
+body.stallHolder .addonTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+body.stallHolder .addonName {
+  font-weight: 900;
+  font-size: 14px;
+}
+
+body.stallHolder .addonPrice {
+  font-weight: 900;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+body.stallHolder .addonRule {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+body.stallHolder .addonActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+body.stallHolder .addonBtn {
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+body.stallHolder .addonBtnEdit {
+  background: #e8944c;
+  color: #fff;
+}
+
+body.stallHolder .addonBtnToggle {
+  background: #fff;
+  color: #444;
+  border: 1.5px solid rgba(0, 0, 0, 0.16);
+}
+
+body.stallHolder .addonEmpty {
+  padding: 20px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+}
+
+body.stallHolder .addonCatList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.stallHolder .addonCatOpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+body.stallHolder .addonCatOpt:has(input:checked) {
+  background: rgba(232, 148, 76, 0.18);
+  color: #8a4f18;
+}
+
+body.stallHolder .addonCatOpt input {
+  accent-color: #e8944c;
+  cursor: pointer;
+}
+
+body.stallHolder #deleteAddonBtn {
+  margin-right: auto;
+  color: #c0392b;
+  background: transparent;
+  border: 1.5px solid transparent;
+}
+
+body.stallHolder #deleteAddonBtn:hover {
+  background: #fee2e2;
+  border-color: #f5b5b0;
+}
