@@ -2370,8 +2370,17 @@ select,
   border: none;
   padding: 0;
   cursor: pointer;
+  /* margin-left: 4rem;
+  margin-right: -2rem; */
+}
+
+.HomeFavBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   margin-left: 4rem;
-  margin-right: -2rem;
+  margin-right: -2rem; 
 }
 
 .favIcon {
