@@ -17,11 +17,14 @@ const hygieneRoutes = require("./routes/hygieneRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const stallMenuRoutes = require("./routes/stallMenuRoutes");
+const neaRoutes = require("./routes/neaRoutes");
 
 const complaintRoutes = require("./routes/complaintRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const checkoutCardRoutes = require('./routes/checkoutCardRoutes');
 const operatorRoutes = require("./routes/operatorRoutes");
+const customerOrdersRoutes = require("./routes/customerOrdersRoutes");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -47,10 +50,13 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/operator", operatorRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
+app.use("/api/nea", neaRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use('/api/checkoutCard', checkoutCardRoutes);
+app.use("/api/orders", customerOrdersRoutes);
+
 
 
 // Health check route — confirms the server + DB are alive

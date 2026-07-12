@@ -113,7 +113,7 @@ function renderCard(s) {
           <span class="prep dPrep ${prepClass(s)}">Prep Time ${timeLabel(s)}</span>
 
           <button
-            class="dFav ${favOn ? "on" : ""} favBtn"
+            class="dFav ${favOn ? "on" : ""} HomeFavBtn"
             type="button"
             data-stall="${esc(s.id)}"
             aria-label="Favourite"
