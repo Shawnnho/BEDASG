@@ -56,6 +56,7 @@ async function getMenu(req, res) {
     if (!user) return;
 
     const stallName = await orderModel.getStallName(user.StallId);
+    const features = await menuModel.getStallFeatures(user.StallId);
     const rows = await menuModel.getMenuByStall(user.StallId);
 
     // Fetch variant prices for all items in one query, then group
@@ -97,6 +98,7 @@ async function getMenu(req, res) {
       ownerName: user.Name || "Owner",
       items,
       variantKeys,
+      features,
     });
   } catch (err) {
     console.error("getMenu error:", err);
@@ -243,6 +245,19 @@ async function removeMenu(req, res) {
 
 /* ===================== ADD-ONS ===================== */
 
+// Collapse the rules rows into a single { ruleType, categories } shape
+function shapeRules(rules) {
+  if (!rules.length) return { ruleType: null, categories: [] };
+  // A given addon uses one rule type in practice; take the first as authoritative
+  const ruleType = rules[0].RuleType;
+  return {
+    ruleType,
+    categories: rules
+      .filter((r) => r.RuleType === ruleType)
+      .map((r) => r.Category),
+  };
+}
+
 // GET /api/stall/addons
 async function getAddons(req, res) {
   try {
@@ -250,37 +265,76 @@ async function getAddons(req, res) {
     if (!user) return;
 
     const rows = await menuModel.getAddonsByStall(user.StallId);
-    const addons = rows.map((r) => ({
-      addonId: r.AddonId,
-      name: r.Name,
-      price: r.Price != null ? Number(r.Price) : 0,
-      active: !!r.Active,
-      createdAt: r.CreatedAt,
-    }));
-    res.json({ addons });
+    const ruleRows = await menuModel.getCategoryRules(
+      rows.map((r) => r.AddonId),
+    );
+
+    // group rules by addon
+    const byAddon = new Map();
+    for (const r of ruleRows) {
+      if (!byAddon.has(r.AddonId)) byAddon.set(r.AddonId, []);
+      byAddon.get(r.AddonId).push(r);
+    }
+
+    const addons = rows.map((r) => {
+      const { ruleType, categories } = shapeRules(byAddon.get(r.AddonId) || []);
+      return {
+        addonId: r.AddonId,
+        name: r.Name || r.Label || "",
+        label: r.Label || r.Name || "",
+        price: r.Price != null ? Number(r.Price) : 0,
+        active: !!r.Active,
+        ruleType, // 'allow' | 'deny' | null (null = applies to everything)
+        categories,
+        createdAt: r.CreatedAt,
+      };
+    });
+
+    // All categories this stall uses, for the picker
+    const categories = await menuModel.getCategoriesByStall(user.StallId);
+
+    res.json({ addons, categories });
   } catch (err) {
     console.error("getAddons error:", err);
     res.status(500).json({ error: "Failed to load add-ons" });
   }
 }
 
-// POST /api/stall/addons  { name, price? }
+// POST /api/stall/addons  { name, price?, ruleType?, categories? }
 async function createAddon(req, res) {
   try {
     const user = await resolveStall(req, res);
     if (!user) return;
 
-    const { name, price } = req.body;
+    const { name, price, ruleType, categories } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Add-on name is required" });
     }
+
     let p = num(price);
     if (!Number.isFinite(p) || p < 0) p = 0;
 
+    if (ruleType && !["allow", "deny"].includes(ruleType)) {
+      return res.status(400).json({ error: "Invalid rule type" });
+    }
+    if (ruleType && (!Array.isArray(categories) || !categories.length)) {
+      return res
+        .status(400)
+        .json({ error: "Select at least one category for this rule" });
+    }
+
     const addonId = await menuModel.addAddon(user.StallId, {
       name: String(name).trim(),
+      label: String(name).trim(),
       price: p,
     });
+
+    await menuModel.replaceCategoryRules(
+      addonId,
+      ruleType || null,
+      categories || [],
+    );
+
     res.json({ ok: true, addonId });
   } catch (err) {
     console.error("createAddon error:", err);
@@ -288,31 +342,74 @@ async function createAddon(req, res) {
   }
 }
 
-// PATCH /api/stall/addons/:addonId  { name, price? }
+// PATCH /api/stall/addons/:addonId
 async function editAddon(req, res) {
   try {
     const user = await resolveStall(req, res);
     if (!user) return;
 
     const { addonId } = req.params;
-    const { name, price } = req.body;
+    const { name, price, ruleType, categories } = req.body;
+
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Add-on name is required" });
     }
+
     let p = num(price);
     if (!Number.isFinite(p) || p < 0) p = 0;
 
+    if (ruleType && !["allow", "deny"].includes(ruleType)) {
+      return res.status(400).json({ error: "Invalid rule type" });
+    }
+    if (ruleType && (!Array.isArray(categories) || !categories.length)) {
+      return res
+        .status(400)
+        .json({ error: "Select at least one category for this rule" });
+    }
+
     const affected = await menuModel.updateAddon(addonId, user.StallId, {
       name: String(name).trim(),
+      label: String(name).trim(),
       price: p,
     });
     if (affected === 0) {
       return res.status(404).json({ error: "Add-on not found or not yours" });
     }
+
+    await menuModel.replaceCategoryRules(
+      addonId,
+      ruleType || null,
+      categories || [],
+    );
+
     res.json({ ok: true });
   } catch (err) {
     console.error("editAddon error:", err);
     res.status(500).json({ error: "Failed to update add-on" });
+  }
+}
+
+// PATCH /api/stall/addons/:addonId/toggle  { active }
+async function toggleAddon(req, res) {
+  try {
+    const user = await resolveStall(req, res);
+    if (!user) return;
+
+    const { addonId } = req.params;
+    const { active } = req.body;
+
+    const affected = await menuModel.toggleAddonActive(
+      addonId,
+      user.StallId,
+      !!active,
+    );
+    if (affected === 0) {
+      return res.status(404).json({ error: "Add-on not found or not yours" });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("toggleAddon error:", err);
+    res.status(500).json({ error: "Failed to toggle add-on" });
   }
 }
 
@@ -323,6 +420,7 @@ async function removeAddon(req, res) {
     if (!user) return;
 
     const { addonId } = req.params;
+    // StallAddonCategories rows drop via ON DELETE CASCADE
     const affected = await menuModel.deleteAddon(addonId, user.StallId);
     if (affected === 0) {
       return res.status(404).json({ error: "Add-on not found or not yours" });
@@ -343,5 +441,6 @@ module.exports = {
   getAddons,
   createAddon,
   editAddon,
+  toggleAddon,
   removeAddon,
 };

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hawker Point — Account</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/stall-holder.css" />
+  </head>
+
+  <body class="stallHolder">
+    <!-- ================= HEADER ================= -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="stall-dashboard.html" aria-label="Hawker Point">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <div class="shStallTitle" id="stallName">—</div>
+
+        <div class="shTopRight">
+          <button class="shUserBtn" type="button">
+            <span id="ownerName">—</span>
+            <span class="shMuted">(Owner)</span>
+          </button>
+          <button id="logoutBtn" class="pill shLogout" type="button">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= PAGE ================= -->
+    <main class="shPage">
+      <div class="shLayout">
+        <!-- ===== Sidebar ===== -->
+        <aside class="shSide">
+          <div class="shSideTitle">Stall Manager</div>
+
+          <a class="shNav" href="stall-dashboard.html"
+            ><span>Dashboard</span></a
+          >
+
+          <a class="shNav" href="stall-orders.html">
+            <span>Order</span><span class="shBadge" id="orderBadge"></span>
+          </a>
+
+          <a class="shNav" href="stall-menu.html"><span>Menu</span></a>
+          <a class="shNav" href="stall-review.html"><span>Review</span></a>
+          <a class="shNav" href="stall-analytics.html"
+            ><span>Analytics</span></a
+          >
+          <a class="shNav" href="stall-hygiene.html"><span>Hygiene</span></a>
+
+          <a class="shNav active" href="stall-account.html"
+            ><span>Account</span></a
+          >
+
+          <div class="shSideDivider"></div>
+          <a class="shNav" href="rental-payment.html"
+            ><span>Manage Payment</span></a
+          >
+        </aside>
+
+        <!-- ===== Content ===== -->
+        <section class="shContent">
+          <div class="shHead">
+            <h1>Account</h1>
+            <p>Manage your profile, stall details and preferences</p>
+          </div>
+
+          <div class="acctGrid">
+            <!-- ============ PROFILE ============ -->
+            <section class="acctCard">
+              <div class="acctCardHead">
+                <h3>Profile</h3>
+                <button class="btn small primary" id="editProfileBtn">
+                  Edit
+                </button>
+              </div>
+
+              <div class="acctProfile">
+                <img
+                  id="avatar"
+                  class="acctAvatar"
+                  src="images/defaultprofile.png"
+                  alt="Profile picture"
+                  onerror="this.src = 'images/defaultprofile.png'"
+                />
+                <div class="acctProfileInfo">
+                  <div class="acctName" id="profileName">—</div>
+                  <div class="acctMeta" id="email">—</div>
+                  <div class="acctMeta" id="phone">—</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- ============ STALL STATUS ============ -->
+            <section class="acctCard">
+              <div class="acctCardHead">
+                <h3>Stall Status</h3>
+                <span class="prep" id="stallStatusPill">—</span>
+              </div>
+
+              <label class="acctToggleRow">
+                <input type="checkbox" id="stallActiveToggle" />
+                <span>
+                  <b id="stallActiveText">Offline</b>
+                  <span class="acctHint"
+                    >Customers can only order when your stall is live.</span
+                  >
+                </span>
+              </label>
+
+              <div class="acctStatRow">
+                <div>
+                  <div class="acctStatNum" id="hygieneGrade">—</div>
+                  <div class="acctStatLabel">Hygiene Grade</div>
+                </div>
+                <div>
+                  <div class="acctStatNum" id="stallRating">—</div>
+                  <div class="acctStatLabel">Rating</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- ============ STALL DETAILS ============ -->
+            <section class="acctCard acctWide">
+              <div class="acctCardHead">
+                <h3>Stall Details</h3>
+                <button class="btn small primary" id="editStallBtn">
+                  Edit
+                </button>
+              </div>
+
+              <div class="acctDetailGrid">
+                <div>
+                  <div class="acctLabel">Stall Name</div>
+                  <div id="stallName2">—</div>
+                </div>
+                <div>
+                  <div class="acctLabel">Cuisine</div>
+                  <div id="cuisine">—</div>
+                </div>
+                <div>
+                  <div class="acctLabel">Unit No</div>
+                  <div id="unitNo">—</div>
+                </div>
+                <div>
+                  <div class="acctLabel">Prep Time</div>
+                  <div id="prepTime">—</div>
+                </div>
+                <div class="acctSpan2">
+                  <div class="acctLabel">Description</div>
+                  <div id="stallDesc">—</div>
+                </div>
+              </div>
+
+              <div class="acctLabel" style="margin-top: 16px">
+                Opening Hours
+              </div>
+              <div class="acctHours" id="hoursList"></div>
+
+              <div class="acctLabel" style="margin-top: 16px">
+                Menu Features
+              </div>
+              <div class="acctFeatures">
+                <span class="acctFeature" id="featSizes">Multiple sizes</span>
+                <span class="acctFeature" id="featAddons">Add-ons</span>
+              </div>
+            </section>
+
+            <!-- ============ NOTIFICATIONS ============ -->
+            <section class="acctCard">
+              <div class="acctCardHead">
+                <h3>Notifications</h3>
+              </div>
+
+              <label class="acctCheckRow">
+                <input type="checkbox" id="prefNewOrders" />
+                <span>New orders</span>
+              </label>
+              <label class="acctCheckRow">
+                <input type="checkbox" id="prefOrderUpdates" />
+                <span>Order updates</span>
+              </label>
+              <label class="acctCheckRow">
+                <input type="checkbox" id="prefNewReview" />
+                <span>New reviews</span>
+              </label>
+              <label class="acctCheckRow">
+                <input type="checkbox" id="prefHygiene" />
+                <span>Hygiene inspections</span>
+              </label>
+
+              <button class="btn small primary" id="savePrefsBtn">
+                Save Preferences
+              </button>
+            </section>
+
+            <!-- ============ SECURITY ============ -->
+            <section class="acctCard">
+              <div class="acctCardHead">
+                <h3>Security</h3>
+              </div>
+
+              <button class="btn small" id="changePwBtn">
+                Change Password
+              </button>
+
+              <div class="acctDanger">
+                <div class="acctLabel">Danger Zone</div>
+                <p class="acctHint">
+                  Deactivating takes your stall offline and signs you out.
+                </p>
+                <button class="acctDangerBtn" id="deactivateBtn">
+                  Deactivate Account
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/stall-account.js"></script>
+  </body>
+</html>
