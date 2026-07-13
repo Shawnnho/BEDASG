@@ -2,12 +2,7 @@
    OPERATOR DASHBOARD STYLES
 ========================================= */
 
-/* Without this, any input/element with both width:100% AND padding/border
-   renders WIDER than its container (padding+border get added on top of
-   the 100% instead of eating into it) — that's what was pushing the
-   Utilities/Cleaning/Penalty/Other boxes past the edge of their cards.
-   Your customer-facing styles.css almost certainly already has this
-   reset; operator.css is a separate file and never inherited it. */
+
 *,
 *::before,
 *::after {
