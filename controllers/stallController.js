@@ -50,7 +50,7 @@ async function getStallById(req, res) {
       popular: row.IsPopular === true,
       desc: row.Desc || "",
       img: row.ImageUrl || "images/stalls/placeholder.jpg",
-      unit: row.UnitNo || "",
+      unit: row.UnitNo.replace("#",""),
       unitNo: row.UnitNo || "", // Kept both unit and unitNo in case different frontend components rely on them
       rating:
         row.RatingCount > 0

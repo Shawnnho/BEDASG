@@ -70,12 +70,27 @@ function parseTimeParts(value) {
 
   return null;
 }
+function formatTime12(value) {
+  const parts = parseTimeParts(value);
+  if (!parts) return null;
 
-function buildHours12(open, close) {
-  if (!open || !close) return "—";
-  return `${open} – ${close}`;
+  let { h, m } = parts;
+  const period = h >= 12 ? "PM" : "AM";
+
+  h = h % 12;
+  if (h === 0) h = 12;
+
+  const mm = String(m).padStart(2, "0");
+  return `${h}:${mm} ${period}`;
 }
 
+function buildHours12(open, close) {
+  const openFmt = formatTime12(open);
+  const closeFmt = formatTime12(close);
+
+  if (!openFmt || !closeFmt) return "—";
+  return `${openFmt} – ${closeFmt}`;
+}
 // OperatingHours may come back as a JSON string (per-day open/close) or null.
 // Falls back to the flat OpenTime/CloseTime columns if not present.
 function resolveTodayHours(stall) {
@@ -182,7 +197,7 @@ function fillUI() {
   );
 
   descEl.textContent = stall.desc;
-  metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit ${stall.unit}`;
+  metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit #${stall.unit}`;
 
   if (avgText) avgText.textContent = (stall.ratingTotal / stall.ratingCount).toFixed(1);
   if (countText) countText.textContent = `(${stall.ratingCount})`;
