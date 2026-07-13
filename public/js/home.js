@@ -44,6 +44,8 @@ function menuUrl(s) {
 
 function sortLabel(value) {
   switch (value) {
+    case "liked":
+      return "Liked Stalls";
     case "prepAsc":
       return "Fastest Prep";
     case "prepDesc":
@@ -170,6 +172,9 @@ function getFilteredStalls() {
 
   const sortVal = sortEl?.value || "popular";
   switch (sortVal) {
+    case "liked":
+      out.sort((a, b) => favSet.has(b.id) - favSet.has(a.id));
+      break;
     case "prepAsc":
       out.sort((a, b) => a.prepMin - b.prepMin);
       break;
