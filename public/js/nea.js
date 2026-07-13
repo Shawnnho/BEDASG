@@ -17,6 +17,17 @@ let complaintFilter = "all"; // all | new | under_review | resolved
 
 let completingInspectionId = null;
 
+function formatDateDMY(value) {
+  if (!value) return "Unknown Date";
+  const isPlainDate = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const d = new Date(isPlainDate ? `${value}T00:00:00` : value);
+  if (isNaN(d)) return "Unknown Date";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+
 /* ---------- fetch helper ---------- */
 async function api(path, options = {}) {
   const res = await AuthClient.apiFetch(`/api/nea${path}`, {
@@ -201,7 +212,7 @@ window.renderInspections = () => {
     .map((x) => {
       const st = (x.status || "scheduled").toLowerCase();
       const statusBadge = badgeForInspectionStatus(st);
-      const dateText = x.date || "Unknown Date";
+      const dateText = formatDateDMY(x.date);
 
       let extra = "";
       if (st === "completed") {
@@ -336,9 +347,7 @@ window.renderComplaints = () => {
 
   list.innerHTML = items
     .map((x) => {
-      const date = x.createdAt
-        ? new Date(x.createdAt).toLocaleDateString()
-        : "Unknown Date";
+      const date = formatDateDMY(x.createdAt);
       const imgHtml = x.imageUrl
         ? `<a href="${x.imageUrl}" target="_blank" class="evidence-link">View Evidence</a>`
         : "";
