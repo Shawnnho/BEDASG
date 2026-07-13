@@ -265,11 +265,26 @@ sortEl?.addEventListener("change", applyFilters);
 locationEl?.addEventListener("input", applyFilters);
 
 listEl?.addEventListener("click", (e) => {
+  // Favourite button: toggle favourite only, never navigate
   const favBtn = e.target.closest(".dFav");
-  if (!favBtn) return;
-  const stallId = favBtn.getAttribute("data-stall");
-  if (!stallId) return;
-  toggleFavourite(stallId);
+  if (favBtn) {
+    const stallId = favBtn.getAttribute("data-stall");
+    if (stallId) toggleFavourite(stallId);
+    return;
+  }
+
+  // View button already has its own href — let the browser handle it normally
+  if (e.target.closest(".viewBtn")) return;
+
+  // Anywhere else on the card: navigate to the stall page (same as View)
+  const card = e.target.closest(".card");
+  if (!card) return;
+
+  const stallId = card.getAttribute("data-stall-id");
+  const stall = stalls.find((s) => s.id === stallId);
+  if (stall) {
+    window.location.href = menuUrl(stall);
+  }
 });
 
 // =========================
