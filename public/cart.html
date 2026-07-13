@@ -70,11 +70,7 @@
         <div class="cartLeft">
           <section class="list" id="cartList"></section>
 
-          <div class="clearAllWrap" id="clearAllWrap" hidden>
-            <button id="clearAllBtn" class="clearAllBtn" type="button">Empty Entire Cart</button>
-          </div>
-
-          <section class="fulfillBox" id="fulfillBox">
+          <section class="fulfillBox" id="fulfillBox" hidden>
             <div class="payTitle">Pickup / Delivery</div>
 
             <label class="payOption">
@@ -128,7 +124,7 @@
             </div>
           </section>
 
-          <section class="payBox" id="payBox">
+          <section class="payBox" id="payBox" hidden>
             <div class="payTitle">Payment Methods</div>
 
             <label class="payOption">
@@ -150,9 +146,16 @@
 
         <aside class="cartRight">
           <div class="orderPanel" id="orderPanel">
+            
+            <div class="clearAllWrap" id="clearAllWrap" hidden>
+              <button id="saveFavBtn" class="saveFavBtn" type="button">★ Save as Favourite</button>
+              <button id="clearAllBtn" class="clearAllBtn" type="button">Empty Cart</button>
+            </div>
+
             <section
               id="promoBox"
               class="promoRedeemWrap promoRedeemWrap--cart"
+              hidden
             >
               <div class="promoRedeemCard promoRedeemCard--cart">
                 <div class="promoRedeemLeft">
@@ -180,7 +183,7 @@
               </div>
             </section>
 
-            <section class="cartSummary" id="cartSummary">
+            <section class="cartSummary" id="cartSummary" hidden>
               <div class="cartSumRow">
                 <span>Subtotal</span>
                 <span>$<span id="sumSubtotal">0.00</span></span>
@@ -221,6 +224,7 @@
           id="checkoutBtn"
           class="payProceedBtn isLocked"
           type="button"
+          hidden
           disabled
         >
           Proceed To Payment
@@ -236,8 +240,11 @@
           />
         </div>
         <div class="cartEmptyTitle">Your cart is empty</div>
-        <div class="cartEmptyDesc">Add some items from a stall menu.</div>
-        <a class="resetBtn" href="home.html">Browse stalls</a>
+        <div class="cartEmptyDesc">Add some items from a stall menu to get started.</div>
+        <div class="emptyBtnRow">
+          <a class="resetBtn" href="home.html">Browse stalls</a>
+          <button id="loadFavBtn" class="loadFavBtn" type="button" hidden>★ Load Favourite Order</button>
+        </div>
       </section>
     </main>
 

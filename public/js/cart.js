@@ -70,24 +70,78 @@ async function saveCart(cart) {
   await writeCloudCart(currentUser.uid, cart);
 }
 
-async function getPromoByCode(codeRaw) {
+async function fetchPromoByCode(codeRaw) {
   const code = String(codeRaw || "").trim().toUpperCase();
   if (!code) return null;
   try {
       const promos = await api('/promotions');
       if (!promos) return null;
-      return promos.find(p => p.PromoCode.toUpperCase() === code) || null;
+      return promos.find(p => String(p.PromoCode).toUpperCase() === code) || null;
   } catch (e) {
       return null;
   }
+}
+
+function validatePromoLocally(promo, cart, subtotal) {
+  if (!promo) return { ok: false, error: "Invalid promo code." };
+
+  if (promo.RedemptionsLeft != null && promo.RedemptionsLeft <= 0) {
+    return { ok: false, error: "This promo has been fully redeemed." };
+  }
+
+  if (promo.ExpiresAt && new Date(promo.ExpiresAt) < new Date()) {
+    return { ok: false, error: "This promo has expired." };
+  }
+
+  if (promo.MinSpend && subtotal < Number(promo.MinSpend)) {
+    const shortfall = Number(promo.MinSpend) - subtotal;
+    return { ok: false, error: `Add $${shortfall.toFixed(2)} more to use this promo.` };
+  }
+
+  if (promo.StallId) {
+    const hasStall = cart.some(it => (it.stallId ?? it.StallId) === promo.StallId);
+    if (!hasStall) {
+      return { ok: false, error: "This promo isn't valid for the stalls in your cart." };
+    }
+  }
+
+  if (promo.RequiredKeyword) {
+    const kw = String(promo.RequiredKeyword).toLowerCase();
+    const hasKeyword = cart.some(it => (it.name ?? it.Name ?? "").toLowerCase().includes(kw));
+    if (!hasKeyword) {
+      return { ok: false, error: `Requires "${promo.RequiredKeyword}" in your cart.` };
+    }
+  }
+
+  if (promo.ClaimOnce) {
+    if (!currentUser) {
+      return { ok: false, error: "Log in to use this promo." };
+    }
+    const claimedKey = "hp_claimedPromoIds";
+    const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
+    if (claimed.has(promo.PromotionId)) {
+      return { ok: false, error: "You have already used this promo." };
+    }
+  }
+
+  return { ok: true };
 }
 
 function calcPromoDiscount(promo, subtotal) {
   if (!promo) return 0;
   const type = String(promo.PromoType || "cash").toLowerCase();
   let discount = 0;
-  if (type === "cash") discount = 5;
-  if (type === "percent") discount = subtotal * 0.1;
+
+  const value = Number(promo.Value ?? promo.DiscountValue ?? promo.DiscountAmount ?? promo.ExactDollarAmount ?? promo.Percentage ?? promo.Discount ?? 0);
+
+  if (type === "cash") discount = value;
+  if (type === "percent") discount = subtotal * (value / 100);
+  if (type === "freebie") discount = 0;
+
+  if (Number(promo.MaxDiscount) > 0) {
+    discount = Math.min(discount, Number(promo.MaxDiscount));
+  }
+
   return Math.min(discount, subtotal);
 }
 
@@ -215,6 +269,7 @@ async function render() {
   const proceedBtn = document.getElementById("checkoutBtn");
   const fulfillBox = document.getElementById("fulfillBox");
   const clearAllWrap = document.getElementById("clearAllWrap");
+  const loadFavBtn = document.getElementById("loadFavBtn");
 
   let cart = [];
   try {
@@ -230,24 +285,31 @@ async function render() {
   if (!cart || cart.length === 0) {
     if (list) list.innerHTML = "";
     if (empty) empty.hidden = false;
-    if (promoBox) promoBox.style.display = "none";
-    if (summary) summary.style.display = "none";
-    if (payBox) payBox.style.display = "none";
-    if (proceedBtn) proceedBtn.style.display = "none";
-    if (fulfillBox) fulfillBox.style.display = "none";
-    if (clearAllWrap) clearAllWrap.style.display = "none";
+    if (promoBox) promoBox.hidden = true;
+    if (summary) summary.hidden = true;
+    if (payBox) payBox.hidden = true;
+    if (proceedBtn) proceedBtn.hidden = true;
+    if (fulfillBox) fulfillBox.hidden = true;
+    if (clearAllWrap) clearAllWrap.hidden = true;
+    
+    let hasFav = false;
+    try {
+        const fav = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
+        hasFav = fav.length > 0;
+    } catch(e) {}
+    if (loadFavBtn) loadFavBtn.hidden = !hasFav;
 
     await clearAppliedPromo();
     return;
   }
 
   if (empty) empty.hidden = true;
-  if (promoBox) promoBox.style.display = currentUser ? "" : "none";
-  if (summary) summary.style.display = "";
-  if (payBox) payBox.style.display = "";
-  if (proceedBtn) proceedBtn.style.display = "";
-  if (fulfillBox) fulfillBox.style.display = "";
-  if (clearAllWrap) clearAllWrap.style.display = "flex";
+  if (promoBox) promoBox.hidden = currentUser ? false : true;
+  if (summary) summary.hidden = false;
+  if (payBox) payBox.hidden = false;
+  if (proceedBtn) proceedBtn.hidden = false;
+  if (fulfillBox) fulfillBox.hidden = false;
+  if (clearAllWrap) clearAllWrap.hidden = false;
 
   if (!list) return;
   list.innerHTML = "";
@@ -262,7 +324,7 @@ async function render() {
     const qty = Number(it.qty ?? it.Qty ?? 1);
     const unitPrice = Number(it.unitPrice ?? it.UnitPrice ?? 0);
     const line = Number(it.totalPrice ?? it.TotalPrice) || (unitPrice * qty);
-    
+
     subtotal += line;
 
     list.innerHTML += `
@@ -282,6 +344,13 @@ async function render() {
       </article>
     `;
   });
+
+  if (appliedPromo) {
+    const check = validatePromoLocally(appliedPromo, cart, subtotal);
+    if (!check.ok) {
+      await clearAppliedPromo(check.error);
+    }
+  }
 
   let promoDiscount = calcPromoDiscount(appliedPromo, subtotal);
   const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
@@ -311,8 +380,6 @@ async function render() {
   syncProceedBtn();
 }
 
-// Normalize a cart item (either DB-cased or local-cased) into the shape
-// the backend's checkoutCardModel expects.
 function normalizeCheckoutItem(it) {
   return {
     stallId: it.stallId ?? it.StallId ?? null,
@@ -331,6 +398,26 @@ function normalizeCheckoutItem(it) {
 }
 
 document.addEventListener("click", async (e) => {
+  if (e.target.closest("#saveFavBtn")) {
+    const cart = await readCart();
+    if (cart.length > 0) {
+        localStorage.setItem("hp_favourite_cart", JSON.stringify(cart));
+        alert("Order saved as favourite!");
+    }
+    return;
+  }
+
+  if (e.target.closest("#loadFavBtn")) {
+    try {
+        const favCart = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
+        if (favCart.length > 0) {
+            await saveCart(favCart);
+            render();
+        }
+    } catch(err) {}
+    return;
+  }
+
   const actBtn = e.target.closest("[data-act]");
   if (actBtn) {
     const act = actBtn.getAttribute("data-act");
@@ -369,9 +456,14 @@ document.addEventListener("click", async (e) => {
   if (e.target.closest("#redeemBtn")) {
     const code = document.getElementById("redeemInput")?.value;
     const msg = document.getElementById("redeemMsg");
-    const promo = await getPromoByCode(code);
 
-    if (promo) {
+    const cart = await readCart();
+    const subtotal = lastPricing.subtotal;
+
+    const promo = await fetchPromoByCode(code);
+    const check = validatePromoLocally(promo, cart, subtotal);
+
+    if (check.ok) {
         appliedPromo = promo;
         if (msg) {
             msg.textContent = "Promo applied successfully!";
@@ -380,7 +472,7 @@ document.addEventListener("click", async (e) => {
         const label = document.getElementById("promoCodeLabel");
         if (label) label.textContent = promo.PromoCode;
     } else {
-        await clearAppliedPromo("Invalid or expired promo code.");
+        await clearAppliedPromo(check.error);
         if (msg) msg.style.color = "red";
     }
     render();
@@ -407,21 +499,23 @@ document.addEventListener("click", async (e) => {
     try {
         const res = await api('/checkoutCard/create', 'POST', payload);
         if (res && res.success) {
+            if (appliedPromo && appliedPromo.ClaimOnce) {
+              const claimedKey = "hp_claimedPromoIds";
+              const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
+              claimed.add(appliedPromo.PromotionId);
+              localStorage.setItem(claimedKey, JSON.stringify([...claimed]));
+            }
+
             if (paymentMethod === 'cash') {
-                // Cash is confirmed by the stall at pickup/delivery, so it's
-                // safe to clear the cart immediately.
                 await saveCart([]);
                 window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else if (paymentMethod === 'card') {
-                // Do NOT clear the cart here — payment hasn't happened yet.
-                // card.js clears it only after a real payment confirmation.
                 window.location.href = `card.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else {
-                // Same for Paynow/NETS — clear only after qr.html confirms payment.
                 window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             }
         } else {
-            alert("Order failed. Please try again.");
+            alert(res?.error || "Order failed. Please try again.");
         }
     } catch (err) {
         alert("Server error: Could not submit order. Is your backend running?");
