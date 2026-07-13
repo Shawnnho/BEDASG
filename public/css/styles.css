@@ -390,7 +390,7 @@ body {
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 10px; /* thickness of the orange bar */
+  height: 7px; /* thickness of the orange bar */
   background: #ff7c10; /* your exact colour */
 }
 
