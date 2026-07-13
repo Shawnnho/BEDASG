@@ -20,7 +20,7 @@ const resetBtn = document.getElementById("discoverReset");
 // Helpers
 // =========================
 function isExpired(p) {
-  return p.expiresAt && Date.now() > p.expiresAt;
+  return p.ExpiresAt && Date.now() > new Date(p.ExpiresAt).getTime();
 }
 
 function esc(s = "") {
@@ -182,18 +182,16 @@ function renderPromoStrip(data) {
       (p) => `
       <article class="promoCard">
         <a class="promoLink" href="promotions.html">
-          <div class="promoImg" style="background-image:url('${esc(
-            p.img || "images/stalls/feature1.jpg",
-          )}')"></div>
+          <div class="promoImg" style="background-image:url('${esc(p.ImageUrl || "images/placeholder.png")}')"></div>
         </a>
 
         <div class="promoBody">
-          <div class="promoTitle">${esc(p.title)}</div>
-          <div class="promoDesc">${esc(p.desc)}</div>
+          <div class="promoTitle">${esc(p.PromoTitle)}</div>
+          <div class="promoDesc">${esc(p.Desc)}</div>
 
           <div class="promoFooter">
-            <div class="promoCode">${esc(p.code)}</div>
-            <button class="promoClaimBtn" type="button" data-code="${esc(p.code)}">
+            <div class="promoCode">${esc(p.PromoCode)}</div>
+            <button class="promoClaimBtn" type="button" data-code="${esc(p.PromoCode)}">
               Claim
             </button>
           </div>
@@ -236,7 +234,9 @@ async function loadDiscoverPromos() {
     const validPromos = discoverPromos
       .filter((p) => !isExpired(p))
       .sort((a, b) => (b.popular === true) - (a.popular === true))
+      .sort((a, b) => (b.IsPopular === true) - (a.IsPopular === true))
       .slice(0, 6);
+
 
     renderPromoStrip(validPromos);
   } catch (err) {
