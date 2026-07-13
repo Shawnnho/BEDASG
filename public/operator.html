@@ -185,12 +185,12 @@
           </div>
 
           <p class="muted" style="margin-top: 6px">
-            Select an existing stall from Firestore (<code>stalls</code> collection).
+            Select an existing stall.
           </p>
 
           <div class="modal-grid">
             <label class="modal-field">
-              <span>Stall (from Firestore)</span>
+              <span>Stall</span>
               <select id="addRentalStallSelect" class="std-input">
                 <option value="" disabled selected>Loading stalls...</option>
               </select>
@@ -203,13 +203,37 @@
 
             <label class="modal-field">
               <span>Monthly Rent (SGD)</span>
-              <input id="addRentalMonthlyRent" class="std-input" type="number" min="0" />
+              <input id="addRentalMonthlyRent" class="std-input" type="number" min="0" oninput="recomputeAddRentalTotal()" />
             </label>
 
             <label class="modal-field">
               <span>Start Date</span>
               <input id="addRentalStartDate" class="std-input" type="date" />
             </label>
+
+            <label class="modal-field">
+              <span>Utilities (SGD)</span>
+              <input id="addRentalUtilities" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Cleaning Fee (SGD)</span>
+              <input id="addRentalCleaningFee" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Penalty (SGD)</span>
+              <input id="addRentalPenalty" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Other Charges (SGD)</span>
+              <input id="addRentalOther" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+          </div>
+
+          <div class="modal-total">
+            First Month's Total: <span id="addRentalTotal">SGD 0.00</span>
           </div>
 
           <div class="modal-actions">
@@ -222,7 +246,8 @@
       </div>
     </main>
 
+    <!-- operator.js needs AuthClient, defined here, loaded first -->
     <script src="js/authClient.js"></script>
-    <script type="module" src="js/operator.js"></script>
+    <script src="js/operator.js"></script>
   </body>
 </html>

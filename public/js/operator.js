@@ -1,8 +1,8 @@
 
+
 const API_BASE = "/api/operator";
 const LOGIN_PAGE = "signin.html"; 
 
-// State
 let CENTRES = [];
 let SELECTED_CENTRE_ID = null;
 
@@ -13,7 +13,7 @@ let currentBillMonthKey = null;
 let stallFilter = "all";
 let modalStalls = [];
 
-// Fetch helper — wraps AuthClient.apiFetch (which sends credentials:"include")
+
 async function apiFetch(path, options = {}) {
   const res = await AuthClient.apiFetch(`${API_BASE}${path}`, {
     ...options,
@@ -34,7 +34,7 @@ async function apiFetch(path, options = {}) {
       const body = await res.json();
       if (body?.error) message = body.error;
     } catch {
-      /* response wasn't JSON — keep default message */
+     
     }
     throw new Error(message);
   }
@@ -42,8 +42,6 @@ async function apiFetch(path, options = {}) {
   if (res.status === 204) return null;
   return res.json();
 }
-
-// Helpers
 
 const safeLower = (x) => String(x || "").toLowerCase();
 
@@ -107,8 +105,6 @@ function centreNameById(id) {
   const c = CENTRES.find((x) => x.CentreId === id);
   return c?.Name || id;
 }
-
-// Init / auth
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await AuthClient.getCurrentUser();
@@ -330,6 +326,7 @@ window.renderStalls = () => {
 
   let items = stallsRaw.slice();
 
+
   items = items.filter((s) => {
     const active = true;
     if (stallFilter === "active") return active;
@@ -458,30 +455,39 @@ window.renderRentals = () => {
                   <span>Rent</span>
                   <div class="bill-input-row">
                     <input id="rent-${ra.AgreementId}" type="number"
-                      value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}" />
+                      value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}"
+                      oninput="recomputeBillTotal('${ra.AgreementId}')" />
                     <small>/month</small>
                   </div>
                 </label>
 
                 <label class="bill-field">
                   <span>Utilities</span>
-                  <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}" />
+                  <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
                 </label>
 
                 <label class="bill-field">
                   <span>Cleaning</span>
-                  <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}" />
+                  <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
                 </label>
 
                 <label class="bill-field">
                   <span>Penalty</span>
-                  <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}" />
+                  <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
                 </label>
 
                 <label class="bill-field">
                   <span>Other</span>
-                  <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}" />
+                  <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
                 </label>
+              </div>
+
+              <div class="bill-total">
+                Total: <span id="total-${ra.AgreementId}">${money(bill.TotalAmount ?? ra.MonthlyRent ?? 0)}</span>
               </div>
 
               <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}')">
@@ -493,6 +499,18 @@ window.renderRentals = () => {
       `;
     })
     .join("");
+};
+
+window.recomputeBillTotal = (agreementId) => {
+  const rent = Number(document.getElementById(`rent-${agreementId}`)?.value || 0);
+  const utilities = Number(document.getElementById(`util-${agreementId}`)?.value || 0);
+  const cleaningFee = Number(document.getElementById(`clean-${agreementId}`)?.value || 0);
+  const penalty = Number(document.getElementById(`pen-${agreementId}`)?.value || 0);
+  const other = Number(document.getElementById(`other-${agreementId}`)?.value || 0);
+
+  const total = rent + utilities + cleaningFee + penalty + other;
+  const el = document.getElementById(`total-${agreementId}`);
+  if (el) el.textContent = money(total);
 };
 
 window.saveMonthlyBill = async (stallId, agreementId) => {
@@ -565,12 +583,32 @@ window.openAddRentalModal = async () => {
   const startInput = document.getElementById("addRentalStartDate");
   if (startInput) startInput.value = `${y}-${m}-${day}`;
 
+  ["addRentalUtilities", "addRentalCleaningFee", "addRentalPenalty", "addRentalOther"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = 0;
+  });
+  const rentInput = document.getElementById("addRentalMonthlyRent");
+  if (rentInput) rentInput.value = "";
+  recomputeAddRentalTotal();
+
   try {
     await loadStallsForModal();
   } catch (err) {
     console.error("loadStallsForModal failed:", err);
     alert(`Failed to load stalls: ${err.message}`);
   }
+};
+
+window.recomputeAddRentalTotal = () => {
+  const rent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
+  const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
+  const cleaningFee = Number(document.getElementById("addRentalCleaningFee")?.value || 0);
+  const penalty = Number(document.getElementById("addRentalPenalty")?.value || 0);
+  const other = Number(document.getElementById("addRentalOther")?.value || 0);
+
+  const total = rent + utilities + cleaningFee + penalty + other;
+  const el = document.getElementById("addRentalTotal");
+  if (el) el.textContent = money(total);
 };
 
 window.closeAddRentalModal = () => {
@@ -596,6 +634,7 @@ async function loadStallsForModal() {
     sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
   }
 
+
   sel.onchange = null;
 }
 
@@ -612,6 +651,10 @@ window.createRentalAgreementFromModal = async () => {
   const ownerName = document.getElementById("addRentalOwnerName")?.value?.trim() || "";
   const monthlyRent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
   const startDate = document.getElementById("addRentalStartDate")?.value || "";
+  const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
+  const cleaningFee = Number(document.getElementById("addRentalCleaningFee")?.value || 0);
+  const penalty = Number(document.getElementById("addRentalPenalty")?.value || 0);
+  const other = Number(document.getElementById("addRentalOther")?.value || 0);
 
   if (!ownerName) return alert("Owner name is required.");
   if (!startDate) return alert("Start date is required.");
@@ -628,6 +671,10 @@ window.createRentalAgreementFromModal = async () => {
         ownerName,
         monthlyRent,
         startDate,
+        utilities,
+        cleaningFee,
+        penalty,
+        other,
       }),
     });
   } catch (err) {
