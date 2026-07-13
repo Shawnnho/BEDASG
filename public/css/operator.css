@@ -1,6 +1,14 @@
 /* =========================================
    OPERATOR DASHBOARD STYLES
 ========================================= */
+
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .op-body {
   display: flex;
   background: #f4f7f6;
@@ -405,6 +413,7 @@
 }
 
 .bill-field input {
+  width: 100%;
   height: 38px;
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.12);
