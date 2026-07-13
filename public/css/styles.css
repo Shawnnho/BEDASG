@@ -615,7 +615,7 @@ body.guest .mNotif {
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1;
   padding: 0;
   opacity: 0.55;
@@ -623,7 +623,6 @@ body.guest .mNotif {
 
 .likeBtn.active {
   opacity: 1;
-  transform: scale(1.05);
 }
 
 .likeCount {

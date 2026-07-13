@@ -22,7 +22,7 @@
   --hp-ink-45: rgba(43, 27, 14, 0.45);
   --hp-line: rgba(43, 27, 14, 0.14);
   --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Manrope", -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Scope typography + text color to item/menu pages only, including
@@ -137,7 +137,7 @@ body:has(.page.menuPage) .topbar .pill.active {
   background: var(--hp-card);
   border: 1.5px dashed rgba(43, 27, 14, 0.35);
   border-radius: 12px;
-  padding: 10px 16px;
+  padding: 10px 22px;
   min-width: 108px;
   box-shadow: 0 6px 14px rgba(43, 27, 14, 0.1);
 }
@@ -284,6 +284,7 @@ body:has(.page.menuPage) .topbar .pill.active {
   font-family: var(--font-display);
   font-size: 17px;
   min-width: 20px;
+  padding: 0px 4px;
 }
 
 /* Add to cart — sticky on mobile so it's always reachable */
