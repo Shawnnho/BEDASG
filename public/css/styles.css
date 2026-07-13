@@ -390,7 +390,7 @@ body {
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 10px; /* thickness of the orange bar */
+  height: 7px; /* thickness of the orange bar */
   background: #ff7c10; /* your exact colour */
 }
 
@@ -439,7 +439,7 @@ body:has(.topbar) {
   background: #fff;
   border: none;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   color: #222;
   text-decoration: none;
   display: inline-flex;
@@ -615,7 +615,7 @@ body.guest .mNotif {
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1;
   padding: 0;
   opacity: 0.55;
@@ -623,7 +623,6 @@ body.guest .mNotif {
 
 .likeBtn.active {
   opacity: 1;
-  transform: scale(1.05);
 }
 
 .likeCount {
