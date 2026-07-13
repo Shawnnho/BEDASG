@@ -372,12 +372,18 @@ body:has(.page.menuPage) .topbar .pill.active {
   font-weight: 600;
 }
 
+#menuTitle {
+  font-size:22px;
+  border-bottom: none;
+}
+
 .menuSectionTitle {
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
   border-bottom-color: var(--hp-line);
   color: var(--hp-ink);
+  align-self: center;
 }
 
 /* Item cards */
@@ -424,6 +430,8 @@ body:has(.page.menuPage) .topbar .pill.active {
   background: var(--hp-red);
   color: #fff;
   box-shadow: 0 8px 16px rgba(226, 65, 46, 0.3);
+  margin-right:20px;
+  margin-left:auto;
 }
 .menuAddBtn:hover {
   background: var(--hp-red-dark);
