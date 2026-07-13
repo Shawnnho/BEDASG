@@ -89,16 +89,22 @@ roleButtons.forEach((btn) => {
 /* =========================
    Password show/hide
 ========================= */
-togglePasswordBtn?.addEventListener("click", () => {
-  const isHidden = password.type === "password";
-  password.type = isHidden ? "text" : "password";
-  eyeIcon.src = isHidden ? "images/show.png" : "images/hide.png";
-  eyeIcon.alt = isHidden ? "Show password" : "Hide password";
-  togglePasswordBtn.setAttribute(
-    "aria-label",
-    isHidden ? "Show password" : "Hide password",
-  );
-});
+function setupPasswordToggle(inputEl, btnEl, iconEl) {
+ btnEl?.addEventListener("click", () => {
+    const isHidden = inputEl.type === "password";
+    inputEl.type = isHidden ? "text" : "password";
+    iconEl.src = isHidden ? "images/show.png" : "images/hide.png";
+    iconEl.alt = isHidden ? "Show password" : "Hide password";
+    btnEl.setAttribute("aria-label", isHidden ? "Show password" : "Hide password");
+   });
+ }
+
+ setupPasswordToggle(password, togglePasswordBtn, eyeIcon);
+ setupPasswordToggle(
+   document.getElementById("confirmPassword"),
+   document.getElementById("toggleConfirmPassword"),
+   document.getElementById("confirmEyeIcon"),
+ );
 
 /* =========================
    Validation helpers
