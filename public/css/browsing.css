@@ -51,11 +51,8 @@ body:has(.itemPage) .topbar .pill.active,
 body:has(.page.menuPage) .topbar .pill.active {
   background: var(--hp-ink);
 } */
-body:has(.itemPage) .hc-footer,
-body:has(.page.menuPage) .hc-footer {
-  background: var(--hp-orange-pale);
-  border-top-color: var(--hp-orange);
-}
+
+
 
 /* =========================================================
    ITEM PAGE
@@ -337,13 +334,13 @@ body:has(.page.menuPage) .hc-footer {
     var(--hp-cream);
 }
 
-.menuTop {
+/* .menuTop {
   background: var(--hp-card);
   border-radius: 24px;
   padding: 22px 18px 20px;
   box-shadow: 0 14px 28px rgba(43, 27, 14, 0.08);
   border: 1px solid var(--hp-line);
-}
+} */
 
 #stallIcon {
   width: 100%;
