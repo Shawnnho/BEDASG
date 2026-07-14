@@ -233,6 +233,76 @@ async function markRefunded(orderId, stallId) {
   return result.rowsAffected[0];
 }
 
+// Dashboard stats — computed in SQL across ALL orders for the stall,
+// not just the page of 50 the table shows.
+async function getStallStats(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT
+        SUM(CASE WHEN OrderStatus = 'pending_payment' THEN 1 ELSE 0 END) AS PendingCount,
+        SUM(CASE WHEN OrderStatus = 'processing'      THEN 1 ELSE 0 END) AS InProgressCount,
+        SUM(CASE WHEN OrderStatus = 'cancelled'       THEN 1 ELSE 0 END) AS CancelledCount,
+
+        -- Only completed orders in the current calendar month count as sales
+        ISNULL(SUM(
+          CASE
+            WHEN OrderStatus = 'completed'
+             AND YEAR(CreatedAt)  = YEAR(GETDATE())
+             AND MONTH(CreatedAt) = MONTH(GETDATE())
+            THEN TotalAmount
+            ELSE 0
+          END
+        ), 0) AS SalesThisMonth,
+
+        SUM(CASE
+              WHEN OrderStatus = 'pending_payment'
+               AND LOWER(PaymentMethod) = 'cash'
+              THEN 1 ELSE 0
+            END) AS UnpaidCashCount,
+
+        SUM(CASE WHEN RefundStatus = 'pending' THEN 1 ELSE 0 END) AS PendingRefundCount
+      FROM Orders
+      WHERE StallId = @StallId;
+    `);
+
+  const r = result.recordset[0] || {};
+  return {
+    pending: r.PendingCount || 0,
+    inProgress: r.InProgressCount || 0,
+    cancelled: r.CancelledCount || 0,
+    sales: Number(r.SalesThisMonth || 0),
+    unpaidCash: r.UnpaidCashCount || 0,
+    pendingRefunds: r.PendingRefundCount || 0,
+  };
+}
+
+// Cancelled orders where the customer paid but hasn't been refunded yet.
+// The owner settles these manually (cash back / bank transfer), then marks them done.
+async function getPendingRefunds(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT
+        OrderId,
+        OrderNo,
+        CustomerName,
+        CustomerEmail,
+        PaymentMethod,
+        TotalAmount,
+        CancelReason,
+        CancelledAt,
+        RefundStatus
+      FROM Orders
+      WHERE StallId = @StallId
+        AND RefundStatus = 'pending'
+      ORDER BY CancelledAt DESC;
+    `);
+  return result.recordset;
+}
+
 module.exports = {
   getStallIdByUser,
   getUserInfo,
@@ -245,4 +315,6 @@ module.exports = {
   cancelOrder,
   markRefunded,
   confirmCashReceived,
+  getStallStats,
+  getPendingRefunds,
 };

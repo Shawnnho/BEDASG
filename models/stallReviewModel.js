@@ -169,6 +169,26 @@ async function getReviewsByStall(stallId) {
   return result.recordset;
 }
 
+// Count reviews created after a given timestamp (powers the "new reviews" badge)
+async function getReviewCountSince(stallId, sinceIso) {
+  const pool = await poolPromise;
+  const request = pool.request().input("stallId", sql.NVarChar, stallId);
+
+  let where = "WHERE StallId = @stallId";
+  if (sinceIso) {
+    request.input("since", sql.DateTime2, new Date(sinceIso));
+    where += " AND CreatedAt > @since";
+  }
+
+  const result = await request.query(`
+    SELECT COUNT(*) AS NewCount
+    FROM dbo.StallReviews
+    ${where};
+  `);
+  return result.recordset[0]?.NewCount || 0;
+}
+
+
 module.exports = {
   createReview,
   getLatestReviews,
@@ -178,4 +198,5 @@ module.exports = {
   searchReviews,
   getStallByOwnerUid,
   getReviewsByStall,
+  getReviewCountSince,
 };

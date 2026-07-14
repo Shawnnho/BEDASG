@@ -58,6 +58,18 @@ function prettyPayMethod(m) {
   return m || "—";
 }
 
+// Human-readable cancel reasons for the UI
+function prettyCancelReason(r) {
+  const map = {
+    out_of_stock: "Item out of stock",
+    stall_closed: "Stall closed",
+    customer_request: "Customer requested",
+    unable_to_fulfil: "Unable to fulfil",
+    other: "Other",
+  };
+  return map[r] || r || "—";
+}
+
 // Shape one order row + its items into the object the frontend renders
 function shapeOrder(row, items) {
   return {
@@ -140,9 +152,22 @@ async function getStallOrders(req, res) {
     );
     const completed = shaped.filter((o) => o.status === "completed");
 
+    // Cancelled orders still owing the customer money
+    const refundRows = await orderModel.getPendingRefunds(stallId);
+    const pendingRefunds = refundRows.map((r) => ({
+      orderId: r.OrderId,
+      orderNo: r.OrderNo,
+      customerName: r.CustomerName || r.CustomerEmail || "—",
+      paymentMethod: prettyPayMethod(r.PaymentMethod),
+      amount: Number(r.TotalAmount ?? 0),
+      reason: prettyCancelReason(r.CancelReason),
+      cancelledAt: r.CancelledAt,
+    }));
+
     res.json({
       stallName: stallName || "—",
       ownerName: user.Name || "Owner",
+      pendingRefunds,
       unpaidCash,
       paid,
       completed,
@@ -207,28 +232,13 @@ async function getDashboard(req, res) {
       amount: Number(r.TotalAmount ?? r.Subtotal ?? 0),
       createdAt: r.CreatedAt,
     }));
-
-    // Stats computed from all returned orders
-    const pending = orders.filter((o) => o.status === "pending").length;
-    const inProgress = orders.filter((o) => o.status === "in-progress").length;
-    const cancelled = orders.filter((o) => o.status === "cancelled").length;
-    const sales = orders
-      .filter((o) => o.status === "completed")
-      .reduce((sum, o) => sum + o.amount, 0);
-
-    const unpaidCash = rows.filter(
-      (r) =>
-        String(r.OrderStatus).toLowerCase() === "pending_payment" &&
-        String(r.PaymentMethod || "")
-          .toLowerCase()
-          .includes("cash"),
-    ).length;
+    const stats = await orderModel.getStallStats(stallId);
 
     res.json({
       stallName: stallName || "—",
       ownerName: user.Name || "Owner",
       orders,
-      stats: { pending, inProgress, cancelled, sales, unpaidCash },
+      stats,
     });
   } catch (err) {
     console.error("getDashboard error:", err);

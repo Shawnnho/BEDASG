@@ -1,10 +1,14 @@
-// stall-orders.js — MSSQL/Express version (no Firebase), cookie auth
-// Unpaid + Paid: full detail cards (owner acts on these).
-// Completed: compact rows, expand on click (reference only).
+
+// Sections on this page:
+//   Refunds Pending — cancelled orders where the customer already paid (owner owes money back)
+//   Unpaid (Cash)   — customer chose cash, hasn't handed it over yet
+//   Paid            — money received, stall should cook these
+//   Completed       — archive; compact rows that expand on click
 
 const API_BASE = "";
 const $ = (id) => document.getElementById(id);
 
+/* ===== helpers ===== */
 function setText(id, val) {
   const el = $(id);
   if (el) el.textContent = val ?? "—";
@@ -127,7 +131,7 @@ function orderDetailHtml(o) {
     </div>`;
 }
 
-// Full card — Unpaid + Paid (owner needs to act)
+// Full card — Unpaid + Paid (owner needs to act on these)
 function renderOrderCard(o, opts = {}) {
   const { showConfirmCashBtn = false, showCompleteBtn = false } = opts;
 
@@ -192,6 +196,37 @@ function renderOrderCompact(o) {
     </div>`;
 }
 
+// Refund row — cancelled order where the customer already paid and is owed money back.
+// The owner settles this in person, then marks it done here.
+function renderRefundCard(r) {
+  const displayId = esc(
+    r.orderNo || `#${String(r.orderId).slice(-6).toUpperCase()}`,
+  );
+
+  return `
+    <div class="refundCard">
+      <div class="refundTop">
+        <div>
+          <div class="refundId">Order ${displayId}</div>
+          <div class="refundMeta">
+            ${esc(r.customerName)} • Cancelled ${esc(fmtTime(r.cancelledAt))}
+          </div>
+          <div class="refundMeta">
+            Reason: <b>${esc(r.reason)}</b> • Paid by ${esc(r.paymentMethod)}
+          </div>
+        </div>
+
+        <div class="refundRight">
+          <div class="refundAmount">${money(r.amount)}</div>
+          <button class="orderActionBtn markRefund" type="button"
+                  data-refund="${esc(r.orderId)}">
+            Mark Refunded
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ===== data ===== */
 async function loadOrders() {
   const res = await fetch(`${API_BASE}/api/stall/orders`, {
@@ -210,17 +245,25 @@ function render(data) {
   setText("stallName", data.stallName || "—");
   setText("ownerName", data.ownerName || "Owner");
 
+  const refunds = data.pendingRefunds || [];
   const unpaid = data.unpaidCash || [];
   const paid = data.paid || [];
   const completed = data.completed || [];
 
+  // Section counts
+  setText("refundMeta", String(refunds.length));
   setText("unpaidMeta", String(unpaid.length));
   setText("paidMeta", String(paid.length));
   setText("completedMeta", String(completed.length));
 
+  // Empty-state messages
+  $("refundEmpty").style.display = refunds.length ? "none" : "block";
   $("unpaidEmpty").style.display = unpaid.length ? "none" : "block";
   $("paidEmpty").style.display = paid.length ? "none" : "block";
   $("completedEmpty").style.display = completed.length ? "none" : "block";
+
+  // Lists
+  $("refundList").innerHTML = refunds.map(renderRefundCard).join("");
 
   $("unpaidList").innerHTML = unpaid
     .map((o) => renderOrderCard(o, { showConfirmCashBtn: true }))
@@ -254,6 +297,8 @@ async function refresh() {
 }
 
 /* ===== events ===== */
+
+// Confirm a cash payment was received in person
 $("unpaidList")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-confirm-cash]");
   if (!btn) return;
@@ -269,17 +314,21 @@ $("unpaidList")?.addEventListener("click", async (e) => {
       credentials: "include",
       body: JSON.stringify({ orderId }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
     showToast("✅ Cash confirmed");
     await refresh();
   } catch (err) {
-    console.error(err);
-    alert("Failed to confirm cash payment.");
+    console.error("confirmCash error:", err);
+    alert(err.message || "Failed to confirm cash payment.");
     btn.disabled = false;
     btn.textContent = "Confirm Cash Received";
   }
 });
 
+// Mark a paid order as completed (food handed over)
 $("paidList")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-complete]");
   if (!btn) return;
@@ -295,14 +344,54 @@ $("paidList")?.addEventListener("click", async (e) => {
       credentials: "include",
       body: JSON.stringify({ orderId }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
     showToast("✅ Order completed");
     await refresh();
   } catch (err) {
-    console.error(err);
-    alert("Failed to complete order.");
+    console.error("completeOrder error:", err);
+    alert(err.message || "Failed to complete order.");
     btn.disabled = false;
     btn.textContent = "Mark Completed";
+  }
+});
+
+// Owner confirms they've physically refunded the customer
+$("refundList")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-refund]");
+  if (!btn) return;
+
+  const orderId = btn.getAttribute("data-refund");
+
+  if (
+    !confirm("Confirm you have refunded this customer? This cannot be undone.")
+  ) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/stall/orders/refund`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ orderId }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    showToast("✅ Refund recorded");
+    await refresh();
+  } catch (err) {
+    console.error("markRefunded error:", err);
+    alert(err.message || "Failed to record refund.");
+    btn.disabled = false;
+    btn.textContent = "Mark Refunded";
   }
 });
 

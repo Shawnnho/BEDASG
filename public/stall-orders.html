@@ -12,7 +12,7 @@
   </head>
 
   <body class="stallHolder ordPage">
-    <!-- ================= HEADER (same style as your pages) ================= -->
+    <!-- ================= HEADER ================= -->
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="stall-dashboard.html" aria-label="Hawker Point">
@@ -34,12 +34,13 @@
       </div>
     </header>
 
-    <!-- ================= PAGE LAYOUT (THIS IS THE IMPORTANT PART) ================= -->
+    <!-- ================= PAGE LAYOUT ================= -->
     <main class="shPage">
       <div class="shLayout">
-        <!-- ===== Sidebar (same as account page) ===== -->
+        <!-- ===== Sidebar ===== -->
         <aside class="shSide">
           <div class="shSideTitle">Stall Manager</div>
+
           <a class="shNav" href="stall-dashboard.html">
             <span>Dashboard</span>
           </a>
@@ -71,7 +72,9 @@
           <a class="shNav" href="stall-account.html">
             <span>Account</span>
           </a>
+
           <div class="shSideDivider"></div>
+
           <a class="shNav" href="rental-payment.html">
             <span>Manage Payment</span>
           </a>
@@ -79,13 +82,24 @@
 
         <!-- ============ CONTENT ============ -->
         <section class="shContent">
-          <!-- Header -->
+          <!-- Page header -->
           <div class="shHead">
             <h1>Orders</h1>
             <p>
               Cash orders require confirmation. Paid orders should be prepared
               immediately.
             </p>
+          </div>
+
+          <!-- ============ REFUNDS PENDING ============ -->
+          <!-- Cancelled orders where the customer already paid and is owed money back -->
+          <div class="ordersSectionHead">
+            <h2>Refunds Pending</h2>
+            <span class="ordersCount" id="refundMeta">0</span>
+          </div>
+          <div id="refundList"></div>
+          <div id="refundEmpty" class="legal-muted" style="display: none">
+            No refunds pending.
           </div>
 
           <!-- ============ UNPAID CASH ============ -->
@@ -118,9 +132,6 @@
             No completed orders yet.
           </div>
 
-            <div id="completedList" style="margin-top: 10px"></div>
-          </div>
-
           <!-- Toast -->
           <div class="toast" id="toast" aria-live="polite"></div>
         </section>
@@ -128,5 +139,6 @@
     </main>
 
     <script src="js/stall-orders.js"></script>
+    <script src="js/stall-badges.js"></script>
   </body>
 </html>

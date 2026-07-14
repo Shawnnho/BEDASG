@@ -1,6 +1,12 @@
 // stall-review.js — MSSQL / Express version
-// Loads reviews for the logged-in stall owner from GET /api/reviews/my-stall
-// Red dot on the sidebar badge only when a review is newer than last seen.
+//
+// Loads reviews for the logged-in stall owner from GET /api/reviews/my-stall.
+//
+// Badge behaviour: opening this page means the owner has SEEN every review,
+// so we stamp the newest review's timestamp into localStorage and hide the
+// sidebar badge. Other pages (via stall-badges.js) read that same timestamp
+// and ask the server how many reviews arrived after it — that's the "new
+// reviews" count. So the badge is always 0 here, by definition.
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -28,19 +34,13 @@ function stars(n) {
   return "★".repeat(r) + "☆".repeat(5 - r);
 }
 
-function setBadge(count) {
+// On this page the badge is always hidden — the owner is looking at the
+// reviews right now, so there's nothing "new" to flag.
+function hideReviewBadge() {
   const badge = $("reviewBadge");
   if (!badge) return;
-
-  const n = Number(count) || 0;
-
-  if (n <= 0) {
-    badge.style.display = "none";
-    return;
-  }
-
-  badge.style.display = "grid";
-  badge.textContent = String(n);
+  badge.textContent = "";
+  badge.style.display = "none";
 }
 
 function safeTags(tagsJson) {
@@ -99,7 +99,6 @@ function render() {
   const count = list.length;
 
   if (count === 0) {
-    setBadge(0, false);
     sumEl.innerHTML = `
       <div class="rvEmptyHero">
         <div class="rvEmptyTitle">No reviews yet</div>
@@ -122,8 +121,6 @@ function render() {
       </div>
     </div>
   `;
-
-  setBadge(count, latestMs > lastSeenMs);
 
   listEl.innerHTML = list
     .map((r) => {
@@ -210,7 +207,8 @@ async function loadReviews() {
       ? Math.max(...allReviews.map((r) => r.createdAtMs))
       : 0;
 
-    // On this page = everything is seen; clear the dot for next visit.
+    // Opening this page = the owner has now seen every review.
+    // Stamp the newest one so other pages know what counts as "new".
     if (currentUserId && latestMs) {
       lastSeenMs = Math.max(lastSeenMs, latestMs);
       saveLastSeen(currentUserId, lastSeenMs);
@@ -266,16 +264,22 @@ $("reviewsList")?.addEventListener("click", (e) => {
 
 /* ---------- init ---------- */
 (async function init() {
-  // hide badges we don't populate on this page
+  // Badges this page doesn't populate
   const a = $("analyticsBadge");
   if (a) a.style.display = "none";
   const h = $("hygieneBadge");
   if (h) h.style.display = "none";
 
-  const user = await loadSession();
-  if (!user) return;
+  // Nothing is "new" while you're on the reviews page
+  hideReviewBadge();
 
-  currentUserId = user.userId || user.UserId || user.id;
+  const payload = await loadSession();
+  if (!payload) return;
+
+  // /api/auth/me returns { user: { id, name, ... } }
+  const user = payload.user || payload;
+
+  currentUserId = user.id || user.userId || user.UserId;
   setText("ownerName", user.name || user.Name || "User");
   lastSeenMs = loadLastSeen(currentUserId);
 

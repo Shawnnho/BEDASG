@@ -144,6 +144,28 @@ async function getMyStallReviews(req, res) {
   }
 }
 
+// GET /api/reviews/my-stall/count?since=<iso>
+// How many reviews arrived after `since`. Powers the sidebar badge.
+async function getMyStallReviewCount(req, res) {
+  try {
+    const ownerUid = req.user.userId;
+
+    const stall = await stallReviewModel.getStallByOwnerUid(ownerUid);
+    if (!stall) return res.json({ newCount: 0 });
+
+    const since = req.query.since || null;
+    const newCount = await stallReviewModel.getReviewCountSince(
+      stall.StallId,
+      since,
+    );
+
+    res.json({ newCount });
+  } catch (err) {
+    console.error("getMyStallReviewCount error:", err.message);
+    res.status(500).json({ error: "Failed to count reviews." });
+  }
+}
+
 module.exports = {
   createReview,
   getLatestReviews,
@@ -153,4 +175,5 @@ module.exports = {
   getReview,
   getReviewsByStall,
   getMyStallReviews,
+  getMyStallReviewCount,
 };

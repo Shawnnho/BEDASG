@@ -213,18 +213,12 @@ function renderOrdersTable() {
       return idText.includes(qtxt) || custText.includes(qtxt);
     });
 
-  // stats from ALL orders (not filtered)
-  const pending = allOrders.filter((o) => o.status === "pending").length;
-  const inProgress = allOrders.filter((o) => o.status === "in-progress").length;
-  const cancelled = allOrders.filter((o) => o.status === "cancelled").length;
-  const sales = allOrders
-    .filter((o) => o.status === "completed")
-    .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-
-  setText("statPendingNum", pending);
-  setText("statProgressNum", inProgress);
-  setText("statCancelledNum", cancelled);
-  setText("statSalesNum", money(sales));
+  // Stats come from the server, computed in SQL across ALL orders —
+  // not just the 50 rows this table shows.
+  setText("statPendingNum", latestStats.pending ?? 0);
+  setText("statProgressNum", latestStats.inProgress ?? 0);
+  setText("statCancelledNum", latestStats.cancelled ?? 0);
+  setText("statSalesNum", money(latestStats.sales ?? 0));
   setBadge("orderBadge", latestStats.unpaidCash || 0);
 
   const body = $("ordersBody");
