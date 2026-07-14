@@ -1,5 +1,5 @@
 const stallReviewModel = require("../models/stallReviewModel");
-const { saveBase64Image } = require("../middlewares/imageStorage");
+const { validateBase64Image } = require("../middlewares/imageStorage");
 
 // POST /api/reviews  (application/json — image sent as a base64 data URL)
 async function createReview(req, res) {
@@ -9,8 +9,6 @@ async function createReview(req, res) {
 
     const { stallId, rating, reviewText, isAnonymous, image } = req.body;
 
-    // tags arrives as a plain array in JSON now (no multipart repeated-field
-    // quirks to normalise like before).
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
 
     if (!stallId) return res.status(400).json({ error: "Please select a stall." });
@@ -23,7 +21,8 @@ async function createReview(req, res) {
     let imageUrl = null;
     if (image) {
       try {
-        imageUrl = saveBase64Image({ dataUrl: image, subfolder: "reviews", uid: userId });
+        // Stored directly in the DB row — no file on disk at all.
+        imageUrl = validateBase64Image(image);
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
@@ -82,4 +81,29 @@ async function getStallRating(req, res) {
   }
 }
 
-module.exports = { createReview, getLatestReviews, getMyReviews, getStallRating };
+// GET /api/reviews/search?stallName=...&rating=... — public, feeds the General Feedback Page
+async function searchReviews(req, res) {
+  try {
+    const { stallName, rating } = req.query;
+    const reviews = await stallReviewModel.searchReviews({ stallName, rating });
+    res.json(reviews);
+  } catch (err) {
+    console.error("searchReviews error:", err.message);
+    res.status(500).json({ error: "Failed to search reviews." });
+  }
+}
+
+// GET /api/reviews/:reviewId — public, used by report.html to show what's being reported
+async function getReview(req, res) {
+  try {
+    const { reviewId } = req.params;
+    const review = await stallReviewModel.getReviewById(reviewId);
+    if (!review) return res.status(404).json({ error: "Review not found." });
+    res.json(review);
+  } catch (err) {
+    console.error("getReview error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve review." });
+  }
+}
+
+module.exports = { createReview, getLatestReviews, getMyReviews, getStallRating, searchReviews, getReview };

@@ -1,23 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
-/*
-  dbo.StallReviews columns (confirmed from SSMS):
-    ReviewId      NVARCHAR  (PK)
-    StallId       NVARCHAR
-    UserId        NVARCHAR
-    UserName      NVARCHAR
-    Rating        INT
-    ReviewText    NVARCHAR
-    IsAnonymous   BIT
-    ImageUrl      NVARCHAR  (nullable)
-    TagsJson      NVARCHAR  (nullable)   -- JSON array string, e.g. ["Service"]
-    CreatedAt     DATETIME
-
-  NOTE: this table has no StallName column, only StallId — so anywhere
-  you need the stall's display name (the carousel, feedback history),
-  the queries below LEFT JOIN dbo.Stalls to pull StallName.
-*/
 
 async function createReview({
   stallId,
@@ -42,7 +25,7 @@ async function createReview({
     .input("rating", sql.Int, rating)
     .input("reviewText", sql.NVarChar, reviewText || "")
     .input("isAnonymous", sql.Bit, isAnonymous ? 1 : 0)
-    .input("imageUrl", sql.NVarChar, imageUrl || null)
+    .input("imageUrl", sql.NVarChar(sql.MAX), imageUrl || null)
     .input("tagsJson", sql.NVarChar, tagsJson)
     .query(`
       INSERT INTO dbo.StallReviews
@@ -54,7 +37,7 @@ async function createReview({
   return { reviewId };
 }
 
-// Latest reviews across all stalls — feeds the public carousel on feedback.html.
+// Get the latest reviews across all stalls
 async function getLatestReviews(limitCount = 20) {
   const pool = await poolPromise;
   const result = await pool
@@ -72,7 +55,7 @@ async function getLatestReviews(limitCount = 20) {
   return result.recordset;
 }
 
-// A single user's reviews — feeds feedback_history.js.
+// Get a single user's reviews
 async function getReviewsByUser(userId) {
   const pool = await poolPromise;
   const result = await pool
@@ -91,9 +74,6 @@ async function getReviewsByUser(userId) {
   return result.recordset;
 }
 
-// dbo.Stalls has no ratingTotal/ratingCount columns (unlike the old Firestore
-// stall doc), so instead of a denormalized counter kept in sync via a
-// transaction, this just computes the average live from StallReviews.
 async function getStallRatingSummary(stallId) {
   const pool = await poolPromise;
   const result = await pool
@@ -110,4 +90,61 @@ async function getStallRatingSummary(stallId) {
   return { reviewCount: row.ReviewCount, averageRating: row.AverageRating };
 }
 
-module.exports = { createReview, getLatestReviews, getReviewsByUser, getStallRatingSummary };
+// Get a single review by id 
+async function getReviewById(reviewId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("reviewId", sql.NVarChar, reviewId)
+    .query(`
+      SELECT
+        r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
+        r.IsAnonymous, r.ImageUrl, r.TagsJson, r.CreatedAt,
+        s.StallName
+      FROM dbo.StallReviews r
+      LEFT JOIN dbo.Stalls s ON r.StallId = s.StallId
+      WHERE r.ReviewId = @reviewId;
+    `);
+  return result.recordset[0] || null;
+}
+
+
+async function searchReviews({ stallName, rating, limitCount = 50 }) {
+  const pool = await poolPromise;
+  const request = pool.request().input("limitCount", sql.Int, limitCount);
+
+  const conditions = [];
+
+  if (stallName) {
+    request.input("stallName", sql.NVarChar, `%${stallName}%`);
+    conditions.push("s.StallName LIKE @stallName");
+  }
+
+  if (rating) {
+    request.input("rating", sql.Int, Number(rating));
+    conditions.push("r.Rating = @rating");
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const result = await request.query(`
+    SELECT TOP (@limitCount)
+      r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
+      r.IsAnonymous, r.ImageUrl, r.TagsJson, r.CreatedAt,
+      s.StallName
+    FROM dbo.StallReviews r
+    LEFT JOIN dbo.Stalls s ON r.StallId = s.StallId
+    ${whereClause}
+    ORDER BY r.CreatedAt DESC;
+  `);
+  return result.recordset;
+}
+
+module.exports = {
+  createReview,
+  getLatestReviews,
+  getReviewsByUser,
+  getStallRatingSummary,
+  getReviewById,
+  searchReviews,
+};

@@ -4,14 +4,18 @@ const router = express.Router();
 const stallReviewController = require("../controllers/stallReviewController");
 const { verifyToken } = require("../middlewares/auth");
 
-// Public — feeds the feedback.html carousel, no login required to view
+router.use(express.json({ limit: "8mb" }));
+
 router.get("/latest", stallReviewController.getLatestReviews);
 
-// Public — average rating + count for a single stall, e.g. a stall page badge
 router.get("/summary/:stallId", stallReviewController.getStallRating);
+
+router.get("/search", stallReviewController.searchReviews);
 
 router.post("/", verifyToken, stallReviewController.createReview);
 router.get("/mine", verifyToken, stallReviewController.getMyReviews);
 
-module.exports = router;
 
+router.get("/:reviewId", stallReviewController.getReview);
+
+module.exports = router;

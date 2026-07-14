@@ -301,3 +301,35 @@
     padding: 28px 22px 24px;
   }
 }
+
+.fbViewAllLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1.5px solid #000;
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+ 
+.fbViewAllLink:hover {
+  background: #000;
+  color: #fff;
+  transform: translateY(-1px);
+}
+ 
+.fbViewAllLink:visited {
+  color: #000;
+}
+.fbViewAllLink:visited:hover {
+  color: #fff;
+}
