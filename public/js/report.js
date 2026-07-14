@@ -1,4 +1,3 @@
-
 const params = new URLSearchParams(window.location.search);
 const reviewId = params.get("reviewId");
 
@@ -108,6 +107,10 @@ window.submitReport = async function () {
 
     successEl.style.display = "block";
     setSubmitState("success");
+
+    setTimeout(() => {
+      window.location.href = "general-feedback.html";
+    }, 1500);
   } catch (err) {
     console.error(err);
     errorEl.textContent = err.message || "Failed to submit report.";

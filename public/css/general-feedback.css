@@ -1,5 +1,4 @@
-/* GENERAL FEEDBACK PAGE + REPORT PAGE */
-
+/* This is the General Feedback Page, Not the Feedback dashboard. */
 
 .gfContainer {
   max-width: 1180px;
@@ -122,7 +121,7 @@
   font-size: 13px;
   color: #374151;
   line-height: 1.5;
-  /* Clamp long reviews to keep tiles a consistent, scannable height */
+
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -149,7 +148,6 @@
 .gfReportLink:hover {
   text-decoration: underline;
 }
-
 
 .gfCommentsToggle {
   margin-top: 12px;
@@ -250,8 +248,6 @@
   font-weight: 600;
 }
 
-/* Tha Report Page */
-
 .reportReviewPreview {
   margin-bottom: 20px;
 }
@@ -312,5 +308,18 @@
   white-space: nowrap;
 }
 .fbViewAllLink:hover {
+  text-decoration: underline;
+}
+
+.gfBackLink {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+}
+.gfBackLink:hover {
+  color: var(--chili, #d84315);
   text-decoration: underline;
 }
