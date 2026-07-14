@@ -15,6 +15,11 @@ router.get("/search", stallReviewController.searchReviews);
 router.post("/", verifyToken, stallReviewController.createReview);
 router.get("/mine", verifyToken, stallReviewController.getMyReviews);
 
+// Owner dashboard: reviews for the stall this user owns
+router.get("/my-stall", verifyToken, stallReviewController.getMyStallReviews);
+
+// Public: all reviews for one stall
+router.get("/stall/:stallId", stallReviewController.getReviewsByStall);
 
 router.get("/:reviewId", stallReviewController.getReview);
 

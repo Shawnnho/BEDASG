@@ -11,7 +11,8 @@ async function createReview(req, res) {
 
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
 
-    if (!stallId) return res.status(400).json({ error: "Please select a stall." });
+    if (!stallId)
+      return res.status(400).json({ error: "Please select a stall." });
 
     const ratingNum = Number(rating);
     if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
@@ -106,4 +107,50 @@ async function getReview(req, res) {
   }
 }
 
-module.exports = { createReview, getLatestReviews, getMyReviews, getStallRating, searchReviews, getReview };
+// GET /api/reviews/stall/:stallId — public, all reviews for one stall
+async function getReviewsByStall(req, res) {
+  try {
+    const { stallId } = req.params;
+    const reviews = await stallReviewModel.getReviewsByStall(stallId);
+    res.json(reviews);
+  } catch (err) {
+    console.error("getReviewsByStall error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve reviews." });
+  }
+}
+
+// GET /api/reviews/my-stall — owner-only, reviews for the stall this user owns
+async function getMyStallReviews(req, res) {
+  try {
+    const ownerUid = req.user.userId;
+
+    const stall = await stallReviewModel.getStallByOwnerUid(ownerUid);
+    if (!stall) {
+      return res.status(404).json({ error: "No stall found for this owner." });
+    }
+
+    const reviews = await stallReviewModel.getReviewsByStall(stall.StallId);
+    const summary = await stallReviewModel.getStallRatingSummary(stall.StallId);
+
+    res.json({
+      stallId: stall.StallId,
+      stallName: stall.StallName,
+      summary,
+      reviews,
+    });
+  } catch (err) {
+    console.error("getMyStallReviews error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve reviews." });
+  }
+}
+
+module.exports = {
+  createReview,
+  getLatestReviews,
+  getMyReviews,
+  getStallRating,
+  searchReviews,
+  getReview,
+  getReviewsByStall,
+  getMyStallReviews,
+};

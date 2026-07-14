@@ -118,12 +118,13 @@ function orderDetailHtml(o) {
     </div>
     ${addrLine}
 
-    <div style="margin-top:10px;">
-      <div style="font-weight:900; margin-bottom:4px; font-size:14px;">Items</div>
-      <ul class="orderItemsSh">${itemsHtml}</ul>
-    </div>
-
-    ${pricingHtml(o)}`;
+    <div class="orderBodySh">
+      <div class="orderItemsCol">
+        <div class="orderItemsTitle">Items</div>
+        <ul class="orderItemsSh">${itemsHtml}</ul>
+      </div>
+      ${pricingHtml(o)}
+    </div>`;
 }
 
 // Full card — Unpaid + Paid (owner needs to act)
