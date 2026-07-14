@@ -4,7 +4,7 @@ const orderModel = require("../models/orderModel");
 function normStatus(raw) {
   const v = String(raw || "").toLowerCase();
   if (v === "pending_payment") return "pending";
-  if (v === "paid" || v === "processing") return "in-progress";
+  if (v === "processing") return "in-progress";
   if (v === "completed") return "completed";
   if (v === "cancelled") return "cancelled";
   return v;
@@ -136,7 +136,7 @@ async function getStallOrders(req, res) {
       (o) => o.paymentMethodKey === "cash" && o.status === "pending_payment",
     );
     const paid = shaped.filter((o) =>
-      ["paid", "processing", "preparing", "ready"].includes(o.status),
+      ["processing", "preparing", "ready"].includes(o.status),
     );
     const completed = shaped.filter((o) => o.status === "completed");
 
@@ -296,10 +296,82 @@ async function completeOrder(req, res) {
   }
 }
 
-// PATCH /api/stall/orders/cancel  { orderId }
+// Reasons a stall owner can give when cancelling. Whitelisted so the client
+// can't write arbitrary text into the DB.
+const CANCEL_REASONS = [
+  "out_of_stock",
+  "stall_closed",
+  "customer_request",
+  "unable_to_fulfil",
+  "other",
+];
+
+// PATCH /api/stall/orders/cancel  { orderId, reason }
+// Unpaid  -> just cancel, nothing to refund.
+// Paid    -> cancel AND flag a refund as pending, so the owner settles it later.
 async function cancelOrder(req, res) {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const user = await orderModel.getUserInfo(userId);
+    if (!user?.StallId) {
+      return res.status(404).json({ error: "No stall linked to this user" });
+    }
+
+    const { orderId, reason } = req.body;
+    if (!orderId) return res.status(400).json({ error: "Missing orderId" });
+
+    if (!CANCEL_REASONS.includes(reason)) {
+      return res.status(400).json({ error: "Please choose a valid reason." });
+    }
+
+    // Read the order first so we know whether money changed hands
+    const order = await orderModel.getOrderForCancel(orderId, user.StallId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found, or not yours." });
+    }
+
+    if (order.OrderStatus === "cancelled") {
+      return res
+        .status(409)
+        .json({ error: "This order is already cancelled." });
+    }
+    if (order.OrderStatus === "completed") {
+      return res
+        .status(409)
+        .json({ error: "Completed orders cannot be cancelled." });
+    }
+
+    const isPaid = String(order.PaymentStatus || "").toLowerCase() === "paid";
+
+    const affected = await orderModel.cancelOrder(
+      orderId,
+      user.StallId,
+      reason,
+      isPaid, // needsRefund
+    );
+
+    if (affected === 0) {
+      return res.status(409).json({ error: "Order could not be cancelled." });
+    }
+
+    res.json({
+      ok: true,
+      refundRequired: isPaid,
+      refundAmount: isPaid ? Number(order.TotalAmount ?? 0) : 0,
+    });
+  } catch (err) {
+    console.error("cancelOrder error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+}
+
+// PATCH /api/stall/orders/refund  { orderId }
+// Owner confirms they've physically refunded the customer.
+async function markRefunded(req, res) {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const user = await orderModel.getUserInfo(userId);
@@ -310,16 +382,17 @@ async function cancelOrder(req, res) {
     const { orderId } = req.body;
     if (!orderId) return res.status(400).json({ error: "Missing orderId" });
 
-    const affected = await orderModel.cancelOrder(orderId, user.StallId);
+    const affected = await orderModel.markRefunded(orderId, user.StallId);
     if (affected === 0) {
-      return res.status(409).json({
-        error: "Only unpaid orders can be cancelled",
-      });
+      return res
+        .status(409)
+        .json({ error: "No pending refund found for this order." });
     }
+
     res.json({ ok: true });
   } catch (err) {
-    console.error("cancelOrder error:", err);
-    res.status(500).json({ error: "Failed to cancel order" });
+    console.error("markRefunded error:", err);
+    res.status(500).json({ error: "Failed to mark refund" });
   }
 }
 
@@ -329,5 +402,6 @@ module.exports = {
   getStallOrders,
   confirmCash,
   cancelOrder,
+  markRefunded,
   completeOrder,
 };
