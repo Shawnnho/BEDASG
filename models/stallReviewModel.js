@@ -1,7 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
-
 async function createReview({
   stallId,
   userId,
@@ -26,8 +25,7 @@ async function createReview({
     .input("reviewText", sql.NVarChar, reviewText || "")
     .input("isAnonymous", sql.Bit, isAnonymous ? 1 : 0)
     .input("imageUrl", sql.NVarChar(sql.MAX), imageUrl || null)
-    .input("tagsJson", sql.NVarChar, tagsJson)
-    .query(`
+    .input("tagsJson", sql.NVarChar, tagsJson).query(`
       INSERT INTO dbo.StallReviews
         (ReviewId, StallId, UserId, UserName, Rating, ReviewText, IsAnonymous, ImageUrl, TagsJson, CreatedAt)
       VALUES
@@ -40,9 +38,7 @@ async function createReview({
 // Get the latest reviews across all stalls
 async function getLatestReviews(limitCount = 20) {
   const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("limitCount", sql.Int, limitCount)
+  const result = await pool.request().input("limitCount", sql.Int, limitCount)
     .query(`
       SELECT TOP (@limitCount)
         r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
@@ -58,9 +54,7 @@ async function getLatestReviews(limitCount = 20) {
 // Get a single user's reviews
 async function getReviewsByUser(userId) {
   const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("userId", sql.NVarChar, userId)
+  const result = await pool.request().input("userId", sql.NVarChar, userId)
     .query(`
       SELECT
         r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
@@ -76,9 +70,7 @@ async function getReviewsByUser(userId) {
 
 async function getStallRatingSummary(stallId) {
   const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("stallId", sql.NVarChar, stallId)
+  const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
         COUNT(*) AS ReviewCount,
@@ -90,12 +82,10 @@ async function getStallRatingSummary(stallId) {
   return { reviewCount: row.ReviewCount, averageRating: row.AverageRating };
 }
 
-// Get a single review by id 
+// Get a single review by id
 async function getReviewById(reviewId) {
   const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("reviewId", sql.NVarChar, reviewId)
+  const result = await pool.request().input("reviewId", sql.NVarChar, reviewId)
     .query(`
       SELECT
         r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
@@ -107,7 +97,6 @@ async function getReviewById(reviewId) {
     `);
   return result.recordset[0] || null;
 }
-
 
 async function searchReviews({ stallName, rating, limitCount = 50 }) {
   const pool = await poolPromise;
@@ -125,7 +114,9 @@ async function searchReviews({ stallName, rating, limitCount = 50 }) {
     conditions.push("r.Rating = @rating");
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length
+    ? `WHERE ${conditions.join(" AND ")}`
+    : "";
 
   const result = await request.query(`
     SELECT TOP (@limitCount)
@@ -140,6 +131,64 @@ async function searchReviews({ stallName, rating, limitCount = 50 }) {
   return result.recordset;
 }
 
+// Get the stall owned by a given user (Stalls.OwnerUid)
+// Owners can have duplicate stall rows from the Firebase export
+// (a slug row + a UID row). Prefer the row that actually has reviews.
+async function getStallByOwnerUid(ownerUid) {
+  const pool = await poolPromise;
+  const result = await pool.request().input("ownerUid", sql.NVarChar, ownerUid)
+    .query(`
+      SELECT TOP 1
+        s.StallId,
+        s.StallName,
+        s.PublicStallId,
+        s.OwnerUid,
+        s.CentreId,
+        (SELECT COUNT(*) FROM dbo.StallReviews r WHERE r.StallId = s.StallId) AS ReviewCount
+      FROM dbo.Stalls s
+      WHERE s.OwnerUid = @ownerUid
+      ORDER BY ReviewCount DESC, s.StallId ASC;
+    `);
+  return result.recordset[0] || null;
+}
+
+// Get all reviews for one stall
+async function getReviewsByStall(stallId) {
+  const pool = await poolPromise;
+  const result = await pool.request().input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT
+        r.ReviewId, r.StallId, r.UserId, r.UserName, r.Rating, r.ReviewText,
+        r.IsAnonymous, r.ImageUrl, r.TagsJson, r.CreatedAt,
+        s.StallName
+      FROM dbo.StallReviews r
+      LEFT JOIN dbo.Stalls s ON r.StallId = s.StallId
+      WHERE r.StallId = @stallId
+      ORDER BY r.CreatedAt DESC;
+    `);
+  return result.recordset;
+}
+
+// Count reviews created after a given timestamp (powers the "new reviews" badge)
+async function getReviewCountSince(stallId, sinceIso) {
+  const pool = await poolPromise;
+  const request = pool.request().input("stallId", sql.NVarChar, stallId);
+
+  let where = "WHERE StallId = @stallId";
+  if (sinceIso) {
+    request.input("since", sql.DateTime2, new Date(sinceIso));
+    where += " AND CreatedAt > @since";
+  }
+
+  const result = await request.query(`
+    SELECT COUNT(*) AS NewCount
+    FROM dbo.StallReviews
+    ${where};
+  `);
+  return result.recordset[0]?.NewCount || 0;
+}
+
+
 module.exports = {
   createReview,
   getLatestReviews,
@@ -147,4 +196,7 @@ module.exports = {
   getStallRatingSummary,
   getReviewById,
   searchReviews,
+  getStallByOwnerUid,
+  getReviewsByStall,
+  getReviewCountSince,
 };

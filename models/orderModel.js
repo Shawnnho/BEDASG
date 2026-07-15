@@ -156,8 +156,8 @@ async function getItemsForOrders(orderIds) {
   return result.recordset;
 }
 
-// Confirm a cash order as paid (scoped to stall). Cash orders keep PaymentStatus NULL,
-// so we only flip OrderStatus -> paid and stamp PaidAt.
+// Confirm a cash order as paid (scoped to stall).
+// Sets PaymentStatus so the money column agrees with the fulfilment column.
 async function confirmCashReceived(orderId, stallId) {
   const pool = await poolPromise;
   const result = await pool
@@ -165,9 +165,10 @@ async function confirmCashReceived(orderId, stallId) {
     .input("OrderId", sql.NVarChar(255), orderId)
     .input("StallId", sql.NVarChar(255), stallId).query(`
       UPDATE Orders
-      SET OrderStatus = 'paid',
-          PaidAt = SYSUTCDATETIME(),
-          UpdatedAt = SYSUTCDATETIME()
+      SET OrderStatus   = 'processing',
+          PaymentStatus = 'paid',
+          PaidAt        = SYSUTCDATETIME(),
+          UpdatedAt     = SYSUTCDATETIME()
       WHERE OrderId = @OrderId
         AND StallId = @StallId
         AND OrderStatus = 'pending_payment';
@@ -175,21 +176,131 @@ async function confirmCashReceived(orderId, stallId) {
   return result.rowsAffected[0]; // 1 = confirmed, 0 = not found / already paid
 }
 
-// Cancel an order — only allowed while it's still pending_payment (nothing to refund)
-async function cancelOrder(orderId, stallId) {
+// Read an order's current state so the controller can decide if a refund is owed
+async function getOrderForCancel(orderId, stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("OrderId", sql.NVarChar(255), orderId)
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT OrderId, OrderStatus, PaymentStatus, PaymentMethod, TotalAmount
+      FROM Orders
+      WHERE OrderId = @OrderId AND StallId = @StallId;
+    `);
+  return result.recordset[0] || null;
+}
+
+// Cancel an order.
+// If the customer already paid, flag a refund as pending so the owner can settle it.
+// Completed orders can't be cancelled — the food is already gone.
+async function cancelOrder(orderId, stallId, reason, needsRefund) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("OrderId", sql.NVarChar(255), orderId)
+    .input("StallId", sql.NVarChar(255), stallId)
+    .input("Reason", sql.NVarChar(255), reason)
+    .input("RefundStatus", sql.NVarChar(20), needsRefund ? "pending" : null)
+    .query(`
+      UPDATE Orders
+      SET OrderStatus  = 'cancelled',
+          CancelReason = @Reason,
+          CancelledAt  = SYSUTCDATETIME(),
+          RefundStatus = @RefundStatus,
+          UpdatedAt    = SYSUTCDATETIME()
+      WHERE OrderId = @OrderId
+        AND StallId = @StallId
+        AND OrderStatus IN ('pending_payment', 'processing');
+    `);
+  return result.rowsAffected[0]; // 0 = not found / already completed or cancelled
+}
+
+// Mark a pending refund as settled (owner has physically refunded the customer)
+async function markRefunded(orderId, stallId) {
   const pool = await poolPromise;
   const result = await pool
     .request()
     .input("OrderId", sql.NVarChar(255), orderId)
     .input("StallId", sql.NVarChar(255), stallId).query(`
       UPDATE Orders
-      SET OrderStatus = 'cancelled',
-          UpdatedAt = SYSUTCDATETIME()
+      SET RefundStatus = 'refunded',
+          RefundedAt   = SYSUTCDATETIME(),
+          UpdatedAt    = SYSUTCDATETIME()
       WHERE OrderId = @OrderId
         AND StallId = @StallId
-        AND OrderStatus = 'pending_payment';
+        AND RefundStatus = 'pending';
     `);
-  return result.rowsAffected[0]; // 0 = not found / not yours / already paid
+  return result.rowsAffected[0];
+}
+
+// Dashboard stats — computed in SQL across ALL orders for the stall,
+// not just the page of 50 the table shows.
+async function getStallStats(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT
+        SUM(CASE WHEN OrderStatus = 'pending_payment' THEN 1 ELSE 0 END) AS PendingCount,
+        SUM(CASE WHEN OrderStatus = 'processing'      THEN 1 ELSE 0 END) AS InProgressCount,
+        SUM(CASE WHEN OrderStatus = 'cancelled'       THEN 1 ELSE 0 END) AS CancelledCount,
+
+        -- Only completed orders in the current calendar month count as sales
+        ISNULL(SUM(
+          CASE
+            WHEN OrderStatus = 'completed'
+             AND YEAR(CreatedAt)  = YEAR(GETDATE())
+             AND MONTH(CreatedAt) = MONTH(GETDATE())
+            THEN TotalAmount
+            ELSE 0
+          END
+        ), 0) AS SalesThisMonth,
+
+        SUM(CASE
+              WHEN OrderStatus = 'pending_payment'
+               AND LOWER(PaymentMethod) = 'cash'
+              THEN 1 ELSE 0
+            END) AS UnpaidCashCount,
+
+        SUM(CASE WHEN RefundStatus = 'pending' THEN 1 ELSE 0 END) AS PendingRefundCount
+      FROM Orders
+      WHERE StallId = @StallId;
+    `);
+
+  const r = result.recordset[0] || {};
+  return {
+    pending: r.PendingCount || 0,
+    inProgress: r.InProgressCount || 0,
+    cancelled: r.CancelledCount || 0,
+    sales: Number(r.SalesThisMonth || 0),
+    unpaidCash: r.UnpaidCashCount || 0,
+    pendingRefunds: r.PendingRefundCount || 0,
+  };
+}
+
+// Cancelled orders where the customer paid but hasn't been refunded yet.
+// The owner settles these manually (cash back / bank transfer), then marks them done.
+async function getPendingRefunds(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("StallId", sql.NVarChar(255), stallId).query(`
+      SELECT
+        OrderId,
+        OrderNo,
+        CustomerName,
+        CustomerEmail,
+        PaymentMethod,
+        TotalAmount,
+        CancelReason,
+        CancelledAt,
+        RefundStatus
+      FROM Orders
+      WHERE StallId = @StallId
+        AND RefundStatus = 'pending'
+      ORDER BY CancelledAt DESC;
+    `);
+  return result.recordset;
 }
 
 module.exports = {
@@ -200,6 +311,10 @@ module.exports = {
   updateOrderStatus,
   getStallOrdersForPage,
   getItemsForOrders,
+  getOrderForCancel,
   cancelOrder,
+  markRefunded,
   confirmCashReceived,
+  getStallStats,
+  getPendingRefunds,
 };
