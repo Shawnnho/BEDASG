@@ -12,6 +12,8 @@ router.get("/search", stallReviewController.searchReviews);
 
 router.post("/", verifyToken, stallReviewController.createReview);
 router.get("/mine", verifyToken, stallReviewController.getMyReviews);
+router.put("/:reviewId", verifyToken, stallReviewController.updateReview);
+router.delete("/:reviewId", verifyToken, stallReviewController.deleteReview);
 
 // Owner dashboard
 router.get("/my-stall", verifyToken, stallReviewController.getMyStallReviews);
@@ -24,7 +26,7 @@ router.get(
 // Public: all reviews for one stall
 router.get("/stall/:stallId", stallReviewController.getReviewsByStall);
 
-// Must stay last — it matches any single segment
+ 
 router.get("/:reviewId", stallReviewController.getReview);
 
 module.exports = router;

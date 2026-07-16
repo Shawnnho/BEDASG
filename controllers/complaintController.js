@@ -55,4 +55,50 @@ async function getMyComplaints(req, res) {
   }
 }
 
-module.exports = { createComplaint, getMyComplaints };
+// Edit your own complaint 
+async function updateComplaint(req, res) {
+  try {
+    const { complaintId } = req.params;
+    const uid = req.user.userId;
+ 
+    const complaint = await complaintModel.getComplaintById(complaintId);
+    if (!complaint) return res.status(404).json({ error: "Complaint not found." });
+    if (complaint.Uid !== uid) {
+      return res.status(403).json({ error: "You can only edit your own complaint." });
+    }
+ 
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: "Message cannot be empty." });
+    }
+ 
+    await complaintModel.updateComplaint(complaintId, { message: message.trim() });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("updateComplaint error:", err.message);
+    res.status(500).json({ error: "Failed to update complaint." });
+  }
+}
+ 
+// Delete your own complaint 
+async function deleteComplaint(req, res) {
+  try {
+    const { complaintId } = req.params;
+    const uid = req.user.userId;
+ 
+    const complaint = await complaintModel.getComplaintById(complaintId);
+    if (!complaint) return res.status(404).json({ error: "Complaint not found." });
+    if (complaint.Uid !== uid) {
+      return res.status(403).json({ error: "You can only delete your own complaint." });
+    }
+ 
+    await complaintModel.deleteComplaint(complaintId);
+    res.status(204).send();
+  } catch (err) {
+    console.error("deleteComplaint error:", err.message);
+    res.status(500).json({ error: "Failed to delete complaint." });
+  }
+}
+module.exports = { 
+  createComplaint, getMyComplaints, updateComplaint, deleteComplaint,
+};
