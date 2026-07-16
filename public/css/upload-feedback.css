@@ -408,6 +408,112 @@ body.feedbackFormPage .ratingHalf::before {
   color: #f5b301;
 }
 
+/* =========================================
+   Edit / Delete actions on feedback_history.html
+   Paste into css/upload-feedback.css — that's the stylesheet
+   feedback_history.html actually loads (confirmed from its <link> tags:
+   css/styles.css + css/upload-feedback.css, NOT general-feedback.css).
+========================================= */
+
+.historyActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.historyEditBtn,
+.historyDeleteBtn {
+  border: 1px solid #e2e2e6;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.historyEditBtn {
+  color: #374151;
+}
+.historyEditBtn:hover {
+  background: #f3f4f6;
+}
+
+.historyDeleteBtn {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.historyDeleteBtn:hover {
+  background: #fef2f2;
+}
+
+.historyEditForm {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e2e6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.historyEditForm[hidden] {
+  display: none;
+}
+
+.historyEditStars {
+  display: flex;
+  gap: 4px;
+  font-size: 22px;
+}
+.historyEditStars .editStar {
+  color: #d6d6d6;
+  cursor: pointer;
+  transition: color 0.1s ease;
+}
+.historyEditStars .editStar.active {
+  color: #ffc107;
+}
+
+.historyEditTextarea {
+  min-height: 90px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.historyEditBtns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.historySaveBtn {
+  border: none;
+  background: #f4a261;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.historySaveBtn:hover {
+  filter: brightness(0.95);
+}
+
+.historyCancelBtn {
+  border: 1px solid #e2e2e6;
+  background: #fff;
+  color: #374151;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.historyCancelBtn:hover {
+  background: #f3f4f6;
+}
+
 @media (max-width: 720px) {
   body.feedbackFormPage .review-card {
     padding: 28px 22px;

@@ -165,6 +165,61 @@ async function getMyStallReviewCount(req, res) {
     res.status(500).json({ error: "Failed to count reviews." });
   }
 }
+// PUT /api/reviews/:reviewId — edit your own review (SA2PG-100)
+async function updateReview(req, res) {
+  try {
+    const { reviewId } = req.params;
+    const userId = req.user.userId;
+ 
+    const review = await stallReviewModel.getReviewById(reviewId);
+    if (!review) return res.status(404).json({ error: "Review not found." });
+    if (review.UserId !== userId) {
+      return res.status(403).json({ error: "You can only edit your own review." });
+    }
+ 
+    const { rating, reviewText, isAnonymous, tags } = req.body;
+    const ratingNum = Number(rating);
+ 
+    if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5." });
+    }
+    if (!reviewText || !reviewText.trim()) {
+      return res.status(400).json({ error: "Review text cannot be empty." });
+    }
+ 
+    await stallReviewModel.updateReview(reviewId, {
+      rating: ratingNum,
+      reviewText: reviewText.trim(),
+      isAnonymous: isAnonymous === true || isAnonymous === "true",
+      tags: Array.isArray(tags) ? tags.slice(0, 3) : [],
+    });
+ 
+    res.json({ success: true });
+  } catch (err) {
+    console.error("updateReview error:", err.message);
+    res.status(500).json({ error: "Failed to update review." });
+  }
+}
+ 
+// DELETE /api/reviews/:reviewId — delete your own review (SA2PG-101)
+async function deleteReview(req, res) {
+  try {
+    const { reviewId } = req.params;
+    const userId = req.user.userId;
+ 
+    const review = await stallReviewModel.getReviewById(reviewId);
+    if (!review) return res.status(404).json({ error: "Review not found." });
+    if (review.UserId !== userId) {
+      return res.status(403).json({ error: "You can only delete your own review." });
+    }
+ 
+    await stallReviewModel.deleteReview(reviewId);
+    res.status(204).send();
+  } catch (err) {
+    console.error("deleteReview error:", err.message);
+    res.status(500).json({ error: "Failed to delete review." });
+  }
+}
 
 module.exports = {
   createReview,
@@ -176,4 +231,6 @@ module.exports = {
   getReviewsByStall,
   getMyStallReviews,
   getMyStallReviewCount,
+  updateReview,
+  deleteReview,
 };

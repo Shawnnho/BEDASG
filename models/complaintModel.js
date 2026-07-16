@@ -1,25 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
-/*
-  dbo.Complaints columns (confirmed from SSMS):
-    ComplaintId    NVARCHAR  (PK)
-    Uid            NVARCHAR
-    FirstName      NVARCHAR
-    LastName       NVARCHAR
-    UserName       NVARCHAR
-    Email          NVARCHAR
-    Stall          NVARCHAR   -- StallId
-    StallName      NVARCHAR
-    ComplaintType  NVARCHAR  (nullable)
-    Message        NVARCHAR
-    ImagePath      NVARCHAR  (nullable)
-    ImageUrl       NVARCHAR  (nullable)
-    Status         NVARCHAR   -- "under_review" | "resolved"
-    CreatedAt      DATETIME
-    UpdatedAt      DATETIME  (nullable)
-*/
-
 async function createComplaint({
   uid,
   firstName,
@@ -46,8 +27,8 @@ async function createComplaint({
     .input("stall", sql.NVarChar, stall)
     .input("stallName", sql.NVarChar, stallName)
     .input("message", sql.NVarChar, message)
-    .input("imagePath", sql.NVarChar, imagePath || null)
-    .input("imageUrl", sql.NVarChar, imageUrl || null)
+    .input("imagePath", sql.NVarChar(sql.MAX), imagePath || null)
+    .input("imageUrl", sql.NVarChar(sql.MAX), imageUrl || null)
     .query(`
       INSERT INTO dbo.Complaints
         (ComplaintId, Uid, FirstName, LastName, UserName, Email, Stall, StallName,
@@ -85,4 +66,35 @@ async function getComplaintById(complaintId) {
   return result.recordset[0] || null;
 }
 
-module.exports = { createComplaint, getComplaintsByUser, getComplaintById };
+// Edit a complaint that a customer already submitted (SA2PG-102).
+
+async function updateComplaint(complaintId, { message }) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("complaintId", sql.NVarChar, complaintId)
+    .input("message", sql.NVarChar, message)
+    .query(`
+      UPDATE dbo.Complaints
+      SET Message = @message, UpdatedAt = GETDATE()
+      WHERE ComplaintId = @complaintId;
+    `);
+}
+
+// Delete a complaint that a customer already submitted 
+async function deleteComplaint(complaintId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("complaintId", sql.NVarChar, complaintId)
+    .query("DELETE FROM dbo.Complaints WHERE ComplaintId = @complaintId");
+  return result.rowsAffected[0] > 0;
+}
+
+module.exports = {
+  createComplaint,
+  getComplaintsByUser,
+  getComplaintById,
+  updateComplaint,
+  deleteComplaint,
+};
