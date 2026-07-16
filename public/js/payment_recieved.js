@@ -180,11 +180,11 @@ async function loadSummary(id) {
 
   if (!orders || !orders.length) throw new Error("Order not found.");
 
-  // Order No. display
+  // Order No. display — just show one, the same way orders.html does
   const orderIdEl = document.getElementById("prOrderId");
   if (orderIdEl) {
     const nos = orders.map((o) => o.OrderNo || o.OrderId);
-    orderIdEl.textContent = nos.length === 1 ? nos[0] : nos.join(", ");
+    orderIdEl.textContent = nos[0] || "—";
   }
 
   const fulfillmentType = checkout?.FulfillmentType || orders[0].FulfillmentType;
@@ -203,7 +203,16 @@ async function loadSummary(id) {
 
   const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
   const stallsEl = document.getElementById("prStalls");
-  if (stallsEl) stallsEl.textContent = stallNames.length ? stallNames.join(", ") : "—";
+  if (stallsEl) {
+    if (!stallNames.length) {
+      stallsEl.textContent = "—";
+    } else if (stallNames.length <= 2) {
+      stallsEl.textContent = stallNames.join(", ");
+    } else {
+      stallsEl.textContent = `${stallNames.slice(0, 2).join(", ")} +${stallNames.length - 2} more`;
+      stallsEl.title = stallNames.join(", ");
+    }
+  }
 
   const payMethodEl = document.getElementById("prPayMethod");
   if (payMethodEl) {

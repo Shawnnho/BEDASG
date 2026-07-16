@@ -6611,3 +6611,17 @@ body.storePage #stallGrade.gradeD {
 .orderActions a.orderBtn:hover {
   background-color: #e67e00;
 }
+
+.orderCard .orderTopRow {
+  justify-content: flex-start !important;
+  gap: 10px !important;
+}
+
+.orderActions button.orderBtn.deleteBtn {
+  background-color: #ffe0e0;
+  color: #cc2b2b;
+}
+
+.orderActions button.orderBtn.deleteBtn:hover {
+  background-color: #ffcccc;
+}
