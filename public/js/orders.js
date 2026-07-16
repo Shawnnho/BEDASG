@@ -162,6 +162,36 @@ function combineOrdersByCheckout(orders) {
   return merged;
 }
 
+// Combine two cart arrays, merging quantities for items that match on
+// stall + item + variant instead of creating duplicate line entries.
+function mergeCartItems(existing, incoming) {
+  const merged = existing.map((it) => ({ ...it }));
+
+  const keyOf = (it) =>
+    `${it.stallId ?? it.StallId ?? ""}|${it.itemId ?? it.ItemId ?? ""}|${it.variantKey ?? it.VariantKey ?? ""}`;
+
+  for (const inItem of incoming) {
+    const idx = merged.findIndex((it) => keyOf(it) === keyOf(inItem));
+    if (idx >= 0) {
+      const currentQty = Number(merged[idx].qty ?? merged[idx].Qty ?? 0);
+      const addQty = Number(inItem.qty ?? inItem.Qty ?? 0);
+      const newQty = currentQty + addQty;
+      const unitPrice = Number(
+        merged[idx].unitPrice ?? merged[idx].UnitPrice ?? inItem.unitPrice ?? 0,
+      );
+
+      merged[idx].qty = newQty;
+      merged[idx].Qty = newQty;
+      merged[idx].totalPrice = newQty * unitPrice;
+      merged[idx].TotalPrice = newQty * unitPrice;
+    } else {
+      merged.push({ ...inItem });
+    }
+  }
+
+  return merged;
+}
+
 window.deleteOrder = async function (orderId, checkoutId) {
   if (!confirm("Delete this order from your history? This cannot be undone.")) {
     return;
@@ -218,7 +248,7 @@ window.reorderOrder = async function (orderId) {
       } catch {
         cart = [];
       }
-      localStorage.setItem(CART_KEY, JSON.stringify(cart.concat(items)));
+      localStorage.setItem(CART_KEY, JSON.stringify(mergeCartItems(cart, items)));
     } else {
       const existingRes = await fetch(`/api/cart/${user.uid}`);
       let existing = [];
@@ -230,7 +260,7 @@ window.reorderOrder = async function (orderId) {
       await fetch(`/api/cart/${user.uid}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: existing.concat(items) }),
+        body: JSON.stringify({ items: mergeCartItems(existing, items) }),
       });
     }
 
