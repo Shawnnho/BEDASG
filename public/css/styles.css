@@ -6572,3 +6572,42 @@ body.storePage #stallGrade.gradeD {
     background: #000000;
     box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
 }
+
+.orderActions {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.orderActions .orderBtn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.orderActions button.orderBtn {
+  background-color: #ffe6cc;
+  color: #cc7000;
+}
+
+.orderActions button.orderBtn:hover {
+  background-color: #ffd9b3;
+}
+
+.orderActions a.orderBtn {
+  background-color: #ff8c00;
+  color: #ffffff;
+}
+
+.orderActions a.orderBtn:hover {
+  background-color: #e67e00;
+}

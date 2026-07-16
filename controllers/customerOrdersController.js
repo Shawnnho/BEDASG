@@ -1,5 +1,15 @@
 const customerOrdersModel = require("../models/customerOrdersModel");
 
+function safeParseArray(str) {
+  if (!str) return [];
+  try {
+    const v = JSON.parse(str);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
 function shapeOrder(row, items) {
   return {
     id: row.OrderId,
@@ -14,8 +24,18 @@ function shapeOrder(row, items) {
     items: items
       .filter((it) => it.OrderId === row.OrderId)
       .map((it) => ({
+        stallId: it.StallId,
+        itemId: it.ItemId,
         name: it.ItemName,
+        img: it.ImageUrl,
         qty: Number(it.Quantity ?? 1),
+        unitPrice: Number(it.UnitPrice ?? 0),
+        totalPrice: Number(it.LineTotal ?? 0),
+        variantKey: it.VariantKey || null,
+        variantLabel: it.VariantLabel || null,
+        note: it.ItemNote || null,
+        addons: safeParseArray(it.AddonsJson),
+        required: safeParseArray(it.RequiredModifiersJson),
       })),
   };
 }
