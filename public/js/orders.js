@@ -134,6 +134,11 @@ function combineOrdersByCheckout(orders) {
     }
 
     const stallNames = Array.from(new Set(list.map((o) => o.stallName).filter(Boolean)));
+    const stallNameDisplay =
+      stallNames.length > 2
+        ? `${stallNames.slice(0, 2).join(", ")} +${stallNames.length - 2} more`
+        : stallNames.join(", ");
+
     const orderNos = list.map((o) => o.orderNo).filter(Boolean);
     const allItems = list.flatMap((o) => o.items || []);
     const total = list.reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
@@ -142,7 +147,8 @@ function combineOrdersByCheckout(orders) {
     merged.push({
       id: list[0].id,
       orderNo: orderNos[0] || null,
-      stallName: stallNames.join(", "),
+      stallName: stallNameDisplay,
+      stallNameFull: stallNames.join(", "),
       status: allCompleted ? "completed" : leastAdvancedStatus(list),
       checkoutId: list[0].checkoutId,
       payment: list[0].payment,
@@ -296,6 +302,7 @@ function renderOrders(orders, checkoutIdFilter) {
 
   function cardHtml(o) {
     const stallName = String(o.stallName || "").trim() || "Unknown Stall";
+    const stallTitle = o.stallNameFull ? ` title="${o.stallNameFull}"` : "";
     const paymentType = prettyPayMethod(o.payment?.method);
     const total = o.pricing?.total ?? 0;
     const fulfill = o.fulfillment?.type === "delivery" ? "Delivery" : "Pickup";
@@ -315,7 +322,7 @@ function renderOrders(orders, checkoutIdFilter) {
             <span class="orderStatusPill ${statusClass(o.status)}">${statusText || "pending"}</span>
           </div>
 
-          <div class="orderMainTitle">${stallName}</div>
+          <div class="orderMainTitle"${stallTitle}>${stallName}</div>
 
           <div class="orderMetaRow">
             <span class="chip">${fulfill}</span>
