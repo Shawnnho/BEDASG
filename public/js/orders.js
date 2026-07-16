@@ -141,7 +141,7 @@ function combineOrdersByCheckout(orders) {
 
     merged.push({
       id: list[0].id,
-      orderNo: orderNos.join(", "),
+      orderNo: orderNos[0] || null,
       stallName: stallNames.join(", "),
       status: allCompleted ? "completed" : leastAdvancedStatus(list),
       checkoutId: list[0].checkoutId,
