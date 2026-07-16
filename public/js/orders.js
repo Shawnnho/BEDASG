@@ -156,6 +156,35 @@ function combineOrdersByCheckout(orders) {
   return merged;
 }
 
+window.deleteOrder = async function (orderId, checkoutId) {
+  if (!confirm("Delete this order from your history? This cannot be undone.")) {
+    return;
+  }
+
+  try {
+    const idToDelete = checkoutId || orderId;
+    const res = await fetch(`/api/orders/${encodeURIComponent(idToDelete)}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Delete failed");
+    }
+
+    // Remove the deleted order(s) from the in-memory list and re-render
+    // without needing a full page reload.
+    window.__ALL_ORDERS = (window.__ALL_ORDERS || []).filter((o) => {
+      if (checkoutId) return o.checkoutId !== checkoutId;
+      return String(o.id) !== String(orderId);
+    });
+
+    renderOrders(window.__ALL_ORDERS, window.__CHECKOUT_FILTER || null);
+  } catch (err) {
+    console.error(err);
+    alert("Could not delete this order. Please try again.");
+  }
+};
+
 window.reorderOrder = async function (orderId) {
   try {
     const orders = window.__ALL_ORDERS || [];
@@ -297,6 +326,7 @@ function renderOrders(orders, checkoutIdFilter) {
 
         <div class="orderActions">
           <button type="button" class="orderBtn" onclick="reorderOrder('${o.id}')">Reorder</button>
+          <button type="button" class="orderBtn deleteBtn" onclick="deleteOrder('${o.id}', '${o.checkoutId || ""}')">Delete</button>
           <a class="orderBtn" href="${href}">View</a>
         </div>
       </div>
@@ -328,6 +358,7 @@ function wireFilters(latestOrdersRef) {
   }
 
   const checkoutIdFilter = getQueryParam("checkoutId");
+  window.__CHECKOUT_FILTER = checkoutIdFilter;
 
   try {
     const orders = await loadOrdersForOwner(checkoutIdFilter);

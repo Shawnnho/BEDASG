@@ -62,4 +62,26 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-module.exports = { getMyOrders };
+const deleteMyOrder = async (req, res) => {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const id = req.params.id;
+    const deletedCount = await customerOrdersModel.deleteOrdersForCustomer(
+      userId,
+      id,
+    );
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json({ success: true, deletedCount });
+  } catch (err) {
+    console.error("deleteMyOrder error:", err);
+    res.status(500).json({ error: "Failed to delete order" });
+  }
+};
+
+module.exports = { getMyOrders, deleteMyOrder };

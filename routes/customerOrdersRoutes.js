@@ -4,5 +4,6 @@ const { verifyToken } = require("../middlewares/auth");
 const customerOrdersController = require("../controllers/customerOrdersController");
 
 router.get("/", verifyToken, customerOrdersController.getMyOrders);
+router.delete("/:id", verifyToken, customerOrdersController.deleteMyOrder);
 
 module.exports = router;

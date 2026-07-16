@@ -36,4 +36,80 @@ async function getItemsForOrderIds(orderIds) {
   return result.recordset;
 }
 
-module.exports = { getOrdersForCustomer, getItemsForOrderIds };
+async function deleteOrdersForCustomer(userId, id) {
+  const pool = await poolPromise;
+
+  // Is `id` a CheckoutId belonging to this user?
+  const cRes = await pool
+    .request()
+    .input("Id", sql.NVarChar(255), id)
+    .input("UserId", sql.NVarChar(255), userId)
+    .query(
+      "SELECT CheckoutId FROM dbo.Checkouts WHERE CheckoutId = @Id AND UserId = @UserId",
+    );
+  const checkoutId = cRes.recordset[0]?.CheckoutId || null;
+
+  const request = pool.request().input("UserId", sql.NVarChar(255), userId);
+
+  // Find every OrderId to delete: either every order under this checkout,
+  // or just the single bare order if no matching checkout was found.
+  let orderIdsRes;
+  if (checkoutId) {
+    orderIdsRes = await request
+      .input("CheckoutId", sql.NVarChar(255), checkoutId)
+      .query(
+        "SELECT OrderId FROM dbo.Orders WHERE CheckoutId = @CheckoutId AND CustomerId = @UserId",
+      );
+  } else {
+    orderIdsRes = await request
+      .input("OrderId", sql.NVarChar(255), id)
+      .query(
+        "SELECT OrderId FROM dbo.Orders WHERE OrderId = @OrderId AND CustomerId = @UserId",
+      );
+  }
+
+  const orderIds = orderIdsRes.recordset.map((r) => r.OrderId);
+  if (!orderIds.length) return 0;
+
+  const transaction = pool.transaction();
+  await transaction.begin();
+  try {
+    const itemsReq = transaction.request();
+    const params = orderIds.map((oid, i) => {
+      itemsReq.input(`o${i}`, sql.NVarChar(255), oid);
+      return `@o${i}`;
+    });
+
+    await itemsReq.query(
+      `DELETE FROM dbo.OrderItems WHERE OrderId IN (${params.join(",")})`,
+    );
+
+    const ordersReq = transaction.request();
+    const params2 = orderIds.map((oid, i) => {
+      ordersReq.input(`o${i}`, sql.NVarChar(255), oid);
+      return `@o${i}`;
+    });
+    await ordersReq.query(
+      `DELETE FROM dbo.Orders WHERE OrderId IN (${params2.join(",")})`,
+    );
+
+    if (checkoutId) {
+      await transaction
+        .request()
+        .input("CheckoutId", sql.NVarChar(255), checkoutId)
+        .input("UserId", sql.NVarChar(255), userId)
+        .query(
+          "DELETE FROM dbo.Checkouts WHERE CheckoutId = @CheckoutId AND UserId = @UserId",
+        );
+    }
+
+    await transaction.commit();
+  } catch (err) {
+    await transaction.rollback();
+    throw err;
+  }
+
+  return orderIds.length;
+}
+
+module.exports = { getOrdersForCustomer, getItemsForOrderIds, deleteOrdersForCustomer };
