@@ -1,8 +1,7 @@
-
-
 const API_BASE = "/api/operator";
 const LOGIN_PAGE = "signin.html"; 
 
+// State
 let CENTRES = [];
 let SELECTED_CENTRE_ID = null;
 
@@ -34,7 +33,7 @@ async function apiFetch(path, options = {}) {
       const body = await res.json();
       if (body?.error) message = body.error;
     } catch {
-     
+      
     }
     throw new Error(message);
   }
@@ -42,6 +41,8 @@ async function apiFetch(path, options = {}) {
   if (res.status === 204) return null;
   return res.json();
 }
+
+// Helpers
 
 const safeLower = (x) => String(x || "").toLowerCase();
 
@@ -94,7 +95,6 @@ function money(n) {
   return num.toLocaleString(undefined, { style: "currency", currency: "SGD" });
 }
 
-
 function badgeForStallActive(active) {
   return active !== false
     ? `<span class="badge green">Active</span>`
@@ -105,6 +105,8 @@ function centreNameById(id) {
   const c = CENTRES.find((x) => x.CentreId === id);
   return c?.Name || id;
 }
+
+// Init / auth
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await AuthClient.getCurrentUser();
@@ -144,7 +146,7 @@ async function loadCentres() {
     return;
   }
 
-  let options = `<option value="" disabled selected>Select Centre</option>`;
+  let options = `<option value="">All Centres</option>`;
   for (const c of CENTRES) {
     options += `<option value="${c.CentreId}">${c.Name || c.CentreId}</option>`;
   }
@@ -161,7 +163,7 @@ window.onCentreChange = async () => {
   if (title) {
     title.textContent = SELECTED_CENTRE_ID
       ? `Centre — ${centreNameById(SELECTED_CENTRE_ID)}`
-      : "Operator Dashboard";
+      : "Operator Dashboard — All Centres";
   }
 
   try {
@@ -191,8 +193,6 @@ window.switchTab = async (tabName) => {
     updateOverview();
     return;
   }
-
-  if (!SELECTED_CENTRE_ID) return;
 
   try {
     if (tabName === "stalls") await loadStalls();
@@ -286,7 +286,7 @@ async function updateOverview() {
   setText("ovCentres", overview.centres);
   setText("ovRevenue", money(overview.totalRevenue));
   setText("ovStalls", overview.totalStalls);
-  // No IsActive column on dbo.Stalls yet, so "active" == total for now.
+  
   setText("ovActiveStalls", overview.totalStalls);
   setText("ovRentals", overview.totalRentals);
 
@@ -298,13 +298,12 @@ async function updateOverview() {
 
 async function loadStalls() {
   const list = document.getElementById("stallList");
-  if (!SELECTED_CENTRE_ID) {
-    if (list) list.innerHTML = "<p>Select a centre first.</p>";
-    return;
-  }
   if (list) list.innerHTML = "<p>Loading stalls...</p>";
 
-  stallsRaw = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  stallsRaw = SELECTED_CENTRE_ID
+    ? await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`)
+    : await apiFetch(`/stalls`);
+
   renderStalls();
 }
 
@@ -325,7 +324,6 @@ window.renderStalls = () => {
   const sortMode = document.getElementById("stallSort")?.value || "az";
 
   let items = stallsRaw.slice();
-
 
   items = items.filter((s) => {
     const active = true;
@@ -353,6 +351,10 @@ window.renderStalls = () => {
 
   list.innerHTML = items
     .map((s) => {
+      const centreLine = !SELECTED_CENTRE_ID
+        ? `<span>Centre: <b>${s.CentreName || s.CentreId || "-"}</b></span>`
+        : "";
+
       return `
         <div class="op-item">
           <div class="item-main">
@@ -362,6 +364,7 @@ window.renderStalls = () => {
           <p>Cuisine: ${s.Cuisine || "-"}</p>
           <div class="item-meta">
             <span>Location: <b>${s.Location || "—"}</b></span>
+            ${centreLine}
           </div>
         </div>
       `;
@@ -372,13 +375,12 @@ window.renderStalls = () => {
 
 async function loadRentals() {
   const list = document.getElementById("rentalList");
-  if (!SELECTED_CENTRE_ID) {
-    if (list) list.innerHTML = "<p>Select a centre first.</p>";
-    return;
-  }
   if (list) list.innerHTML = "<p>Loading agreements...</p>";
 
-  const data = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/rentals`);
+  const data = SELECTED_CENTRE_ID
+    ? await apiFetch(`/centres/${SELECTED_CENTRE_ID}/rentals`)
+    : await apiFetch(`/rentals`);
+
   currentBillMonthKey = data.monthKey;
   rentalsRaw = data.agreements;
 
@@ -433,6 +435,7 @@ window.renderRentals = () => {
             <p>Unit No: <b>${ra.UnitNo || "-"}</b></p>
             <p class="muted">Stall ID: <b>${ra.StallId || "-"}</b></p>
             <p class="muted">Owner: <b>${ra.OwnerName || "-"}</b></p>
+            ${!SELECTED_CENTRE_ID ? `<p class="muted">Centre: <b>${ra.CentreName || ra.CentreId || "-"}</b></p>` : ""}
 
             <div class="item-meta">
               <span>Start: ${start}</span>
@@ -490,7 +493,7 @@ window.renderRentals = () => {
                 Total: <span id="total-${ra.AgreementId}">${money(bill.TotalAmount ?? ra.MonthlyRent ?? 0)}</span>
               </div>
 
-              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}')">
+              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')">
                 Save Monthly Bill
               </button>
             </div>
@@ -513,7 +516,7 @@ window.recomputeBillTotal = (agreementId) => {
   if (el) el.textContent = money(total);
 };
 
-window.saveMonthlyBill = async (stallId, agreementId) => {
+window.saveMonthlyBill = async (stallId, agreementId, centreId) => {
   try {
     const rent = Number(document.getElementById(`rent-${agreementId}`)?.value || 0);
     const utilities = Number(document.getElementById(`util-${agreementId}`)?.value || 0);
@@ -524,7 +527,7 @@ window.saveMonthlyBill = async (stallId, agreementId) => {
     await apiFetch(`/bills/${stallId}/${currentBillMonthKey}`, {
       method: "PUT",
       body: JSON.stringify({
-        centreId: SELECTED_CENTRE_ID,
+        centreId: centreId || SELECTED_CENTRE_ID,
         rent,
         utilities,
         cleaningFee,
@@ -569,7 +572,7 @@ window.deleteRentalAgreement = async (agreementId) => {
 
 window.openAddRentalModal = async () => {
   if (!SELECTED_CENTRE_ID) {
-    alert("Select a centre first.");
+    alert("Pick a specific centre from the dropdown first (not \"All Centres\") to add a rental agreement.");
     return;
   }
 
@@ -622,7 +625,16 @@ async function loadStallsForModal() {
 
   sel.innerHTML = `<option value="" disabled selected>Loading stalls...</option>`;
 
-  modalStalls = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  const rawStalls = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+
+  const seen = new Set();
+  modalStalls = [];
+  for (const s of rawStalls) {
+    const key = (s.StallName || s.StallId || "").trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    modalStalls.push(s);
+  }
 
   if (modalStalls.length === 0) {
     sel.innerHTML = `<option value="" disabled selected>No stalls found for this centre</option>`;
@@ -634,7 +646,8 @@ async function loadStallsForModal() {
     sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
   }
 
-
+  // dbo.Stalls has no ownerName column — only OwnerUid — so there's nothing
+  // to auto-fill the owner name field with. Left as a manual entry.
   sel.onchange = null;
 }
 
