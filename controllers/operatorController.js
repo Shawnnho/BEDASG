@@ -9,6 +9,7 @@ function getCurrentMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// GET /api/operator/centres
 
 async function getMyCentres(req, res) {
   try {
@@ -30,7 +31,7 @@ async function getMyCentres(req, res) {
   }
 }
 
-
+// GET /api/operator/overview
 async function getOverview(req, res) {
   try {
     const operatorId = req.user.userId;
@@ -63,6 +64,7 @@ async function getOverview(req, res) {
   }
 }
 
+// GET /api/operator/centres/:centreId/stalls
 
 async function getStallsForCentre(req, res) {
   try {
@@ -74,6 +76,8 @@ async function getStallsForCentre(req, res) {
     res.status(500).json({ error: "Failed to retrieve stalls." });
   }
 }
+
+// GET /api/operator/centres/:centreId/rentals
 
 async function getRentalsForCentre(req, res) {
   try {
@@ -100,6 +104,52 @@ async function getRentalsForCentre(req, res) {
   }
 }
 
+// GET /api/operator/stalls 
+async function getAllStallsForOperator(req, res) {
+  try {
+    const operatorId = req.user.userId;
+    const centres = await centreModel.getCentresByOperator(operatorId);
+
+    const allStalls = [];
+    for (const c of centres) {
+      const stalls = await stallModel.getStallsByCentre(c.CentreId);
+      for (const s of stalls) {
+        allStalls.push({ ...s, CentreName: c.Name });
+      }
+    }
+
+    allStalls.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
+    res.json(allStalls);
+  } catch (err) {
+    console.error("getAllStallsForOperator error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve stalls." });
+  }
+}
+
+// GET /api/operator/rentals
+async function getAllRentalsForOperator(req, res) {
+  try {
+    const operatorId = req.user.userId;
+    const centres = await centreModel.getCentresByOperator(operatorId);
+    const monthKey = getCurrentMonthKey();
+
+    const allAgreements = [];
+    for (const c of centres) {
+      const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(c.CentreId);
+      for (const ra of agreements) {
+        const bill = await operatorBillModel.ensureBill(ra.StallId, c.CentreId, monthKey, ra.MonthlyRent);
+        allAgreements.push({ ...ra, CentreName: c.Name, bill });
+      }
+    }
+
+    res.json({ monthKey, agreements: allAgreements });
+  } catch (err) {
+    console.error("getAllRentalsForOperator error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve rental agreements." });
+  }
+}
+
+// POST /api/operator/rentals
 
 async function createRental(req, res) {
   try {
@@ -156,7 +206,7 @@ async function createRental(req, res) {
   }
 }
 
-// DELETE 
+// DELETE /api/operator/rentals/:agreementId
 async function deleteRental(req, res) {
   try {
     const { agreementId } = req.params;
@@ -173,7 +223,8 @@ async function deleteRental(req, res) {
   }
 }
 
-// PUT 
+// PUT /api/operator/bills/:stallId/:billMonth
+
 async function saveBill(req, res) {
   try {
     const { stallId, billMonth } = req.params;
@@ -201,6 +252,8 @@ module.exports = {
   getOverview,
   getStallsForCentre,
   getRentalsForCentre,
+  getAllStallsForOperator,
+  getAllRentalsForOperator,
   createRental,
   deleteRental,
   saveBill,
