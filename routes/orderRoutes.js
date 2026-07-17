@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken } = require("../middlewares/auth");
+const { enforceRentPaywall } = require("../middlewares/rentPaywall"); 
 const orderController = require("../controllers/orderController");
+
+
+router.use(verifyToken, enforceRentPaywall()); // ADD
 
 // All routes below require a valid JWT
 router.get("/dashboard", verifyToken, orderController.getDashboard);
