@@ -11,7 +11,7 @@ let currentBillMonthKey = null;
 let stallFilter = "all";
 let modalStalls = [];
 
-// Fetch helper — wraps AuthClient.apiFetch (which sends credentials:"include")
+
 async function apiFetch(path, options = {}) {
   const res = await AuthClient.apiFetch(`${API_BASE}${path}`, {
     ...options,
@@ -285,6 +285,7 @@ async function updateOverview() {
   setText("ovCentres", overview.centres);
   setText("ovRevenue", money(overview.totalRevenue));
   setText("ovStalls", overview.totalStalls);
+  // No IsActive column on dbo.Stalls yet, so "active" == total for now.
   setText("ovActiveStalls", overview.totalStalls);
   setText("ovRentals", overview.totalRentals);
 
@@ -566,8 +567,6 @@ window.deleteRentalAgreement = async (agreementId) => {
   }
 };
 
-// Add Rental Agreement (Modal)
-
 window.openAddRentalModal = async () => {
   const modal = document.getElementById("addRentalModal");
   if (modal) modal.style.display = "grid";
@@ -585,6 +584,8 @@ window.openAddRentalModal = async () => {
   });
   const rentInput = document.getElementById("addRentalMonthlyRent");
   if (rentInput) rentInput.value = "";
+  const unitNoInput = document.getElementById("addRentalUnitNo");
+  if (unitNoInput) unitNoInput.value = "";
   recomputeAddRentalTotal();
 
   populateModalCentreSelect();
@@ -673,7 +674,11 @@ async function loadStallsForModal(centreId) {
     sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
   }
 
-  sel.onchange = null;
+  sel.onchange = () => {
+    const picked = modalStalls.find((s) => s.StallId === sel.value);
+    const unitNoInput = document.getElementById("addRentalUnitNo");
+    if (unitNoInput) unitNoInput.value = picked?.UnitNo || "";
+  };
 }
 
 window.createRentalAgreementFromModal = async () => {
@@ -692,6 +697,8 @@ window.createRentalAgreementFromModal = async () => {
   }
 
   const ownerName = document.getElementById("addRentalOwnerName")?.value?.trim() || "";
+  const pickedStall = modalStalls.find((s) => s.StallId === stallId);
+  const unitNo = pickedStall?.UnitNo || "";
   const monthlyRent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
   const startDate = document.getElementById("addRentalStartDate")?.value || "";
   const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
@@ -712,6 +719,7 @@ window.createRentalAgreementFromModal = async () => {
         centreId,
         stallId,
         ownerName,
+        unitNo,
         monthlyRent,
         startDate,
         utilities,

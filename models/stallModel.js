@@ -120,8 +120,7 @@ async function getStallsByCentre(centreId) {
     .input("centreId", sql.NVarChar, centreId)
     .query(`
       SELECT
-        StallId, PublicStallId, OwnerUid, CentreId,
-        StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location
+        StallId, PublicStallId, OwnerUid, CentreId, StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location, UnitNo
       FROM dbo.Stalls
       WHERE CentreId = @centreId
         AND IsActive = 1
