@@ -1,6 +1,5 @@
 const API_BASE = "/api/operator";
 const LOGIN_PAGE = "signin.html"; 
-
 // State
 let CENTRES = [];
 let SELECTED_CENTRE_ID = null;
@@ -33,7 +32,6 @@ async function apiFetch(path, options = {}) {
       const body = await res.json();
       if (body?.error) message = body.error;
     } catch {
-      
     }
     throw new Error(message);
   }
@@ -94,6 +92,7 @@ function money(n) {
   const num = Number(n || 0);
   return num.toLocaleString(undefined, { style: "currency", currency: "SGD" });
 }
+
 
 function badgeForStallActive(active) {
   return active !== false
@@ -286,7 +285,7 @@ async function updateOverview() {
   setText("ovCentres", overview.centres);
   setText("ovRevenue", money(overview.totalRevenue));
   setText("ovStalls", overview.totalStalls);
-  
+  // No IsActive column on dbo.Stalls yet, so "active" == total for now.
   setText("ovActiveStalls", overview.totalStalls);
   setText("ovRentals", overview.totalRentals);
 
@@ -371,7 +370,6 @@ window.renderStalls = () => {
     })
     .join("");
 };
-
 
 async function loadRentals() {
   const list = document.getElementById("rentalList");
@@ -528,6 +526,7 @@ window.saveMonthlyBill = async (stallId, agreementId, centreId) => {
       method: "PUT",
       body: JSON.stringify({
         centreId: centreId || SELECTED_CENTRE_ID,
+        agreementId,
         rent,
         utilities,
         cleaningFee,
@@ -568,14 +567,7 @@ window.deleteRentalAgreement = async (agreementId) => {
   }
 };
 
-// Add Rental Agreement (Modal)
-
 window.openAddRentalModal = async () => {
-  if (!SELECTED_CENTRE_ID) {
-    alert("Pick a specific centre from the dropdown first (not \"All Centres\") to add a rental agreement.");
-    return;
-  }
-
   const modal = document.getElementById("addRentalModal");
   if (modal) modal.style.display = "grid";
 
@@ -592,10 +584,46 @@ window.openAddRentalModal = async () => {
   });
   const rentInput = document.getElementById("addRentalMonthlyRent");
   if (rentInput) rentInput.value = "";
+  const unitNoInput = document.getElementById("addRentalUnitNo");
+  if (unitNoInput) unitNoInput.value = "";
   recomputeAddRentalTotal();
 
+  populateModalCentreSelect();
+
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const stallSel = document.getElementById("addRentalStallSelect");
+
+  if (centreSel && centreSel.value) {
+    try {
+      await loadStallsForModal(centreSel.value);
+    } catch (err) {
+      console.error("loadStallsForModal failed:", err);
+      alert(`Failed to load stalls: ${err.message}`);
+    }
+  } else if (stallSel) {
+    stallSel.innerHTML = `<option value="" disabled selected>Select a centre first...</option>`;
+  }
+};
+
+function populateModalCentreSelect() {
+  const sel = document.getElementById("addRentalCentreSelect");
+  if (!sel) return;
+
+  let options = `<option value="" disabled ${SELECTED_CENTRE_ID ? "" : "selected"}>Select centre...</option>`;
+  for (const c of CENTRES) {
+    const isSelected = c.CentreId === SELECTED_CENTRE_ID ? "selected" : "";
+    options += `<option value="${c.CentreId}" ${isSelected}>${c.Name || c.CentreId}</option>`;
+  }
+  sel.innerHTML = options;
+}
+
+window.onModalCentreChange = async () => {
+  const sel = document.getElementById("addRentalCentreSelect");
+  const centreId = sel?.value;
+  if (!centreId) return;
+
   try {
-    await loadStallsForModal();
+    await loadStallsForModal(centreId);
   } catch (err) {
     console.error("loadStallsForModal failed:", err);
     alert(`Failed to load stalls: ${err.message}`);
@@ -619,13 +647,13 @@ window.closeAddRentalModal = () => {
   if (modal) modal.style.display = "none";
 };
 
-async function loadStallsForModal() {
+async function loadStallsForModal(centreId) {
   const sel = document.getElementById("addRentalStallSelect");
   if (!sel) return;
 
   sel.innerHTML = `<option value="" disabled selected>Loading stalls...</option>`;
 
-  const rawStalls = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  const rawStalls = await apiFetch(`/centres/${centreId}/stalls`);
 
   const seen = new Set();
   modalStalls = [];
@@ -646,13 +674,20 @@ async function loadStallsForModal() {
     sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
   }
 
-  // dbo.Stalls has no ownerName column — only OwnerUid — so there's nothing
-  // to auto-fill the owner name field with. Left as a manual entry.
-  sel.onchange = null;
+  sel.onchange = () => {
+    const picked = modalStalls.find((s) => s.StallId === sel.value);
+    const unitNoInput = document.getElementById("addRentalUnitNo");
+    if (unitNoInput) unitNoInput.value = picked?.UnitNo || "";
+  };
 }
 
 window.createRentalAgreementFromModal = async () => {
-  if (!SELECTED_CENTRE_ID) return;
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const centreId = centreSel?.value;
+  if (!centreId) {
+    alert("Please select a centre.");
+    return;
+  }
 
   const sel = document.getElementById("addRentalStallSelect");
   const stallId = sel?.value;
@@ -662,6 +697,8 @@ window.createRentalAgreementFromModal = async () => {
   }
 
   const ownerName = document.getElementById("addRentalOwnerName")?.value?.trim() || "";
+  const pickedStall = modalStalls.find((s) => s.StallId === stallId);
+  const unitNo = pickedStall?.UnitNo || "";
   const monthlyRent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
   const startDate = document.getElementById("addRentalStartDate")?.value || "";
   const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
@@ -679,9 +716,10 @@ window.createRentalAgreementFromModal = async () => {
     await apiFetch("/rentals", {
       method: "POST",
       body: JSON.stringify({
-        centreId: SELECTED_CENTRE_ID,
+        centreId,
         stallId,
         ownerName,
+        unitNo,
         monthlyRent,
         startDate,
         utilities,
