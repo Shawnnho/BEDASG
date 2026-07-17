@@ -124,6 +124,8 @@ async function getStallsByCentre(centreId) {
         StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location
       FROM dbo.Stalls
       WHERE CentreId = @centreId
+        AND IsActive = 1
+        AND IsCanonical = 1
       ORDER BY StallName;
     `);
   return result.recordset;
@@ -131,4 +133,3 @@ async function getStallsByCentre(centreId) {
 
 
 module.exports = { getAllStalls, createStall, getStallById, getStallsByCentre};
-
