@@ -17,7 +17,7 @@ async function getAccount(userId) {
         s.SupportsAddons, s.SupportsSizePricing,
         s.RatingCount, s.RatingTotal
       FROM Users u
-      LEFT JOIN Stalls s ON s.SmtallId = u.StallIdnp
+      LEFT JOIN Stalls s ON s.StallId = u.StallId
       WHERE u.UserId = @UserId;
     `);
   return result.recordset[0] || null;
