@@ -29,6 +29,7 @@ const addonRoutes = require("./routes/addonRoutes");
 const stallAnalyticsRoutes = require("./routes/stallAnalyticsRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const favItemRoutes = require("./routes/favItemRoutes")
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -63,6 +64,7 @@ app.use("/api/addons", addonRoutes); // This is for stall order management, not 
 app.use("/api/stall", stallAnalyticsRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/favitems", favItemRoutes)
 
 // Stall-specific routes
 app.use("/api/stall", orderRoutes);
