@@ -236,7 +236,7 @@ async function deleteRental(req, res) {
 async function saveBill(req, res) {
   try {
     const { stallId, billMonth } = req.params;
-    const { centreId, rent, utilities, cleaningFee, penalty, other } = req.body;
+    const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
 
     if (!centreId) return res.status(400).json({ error: "centreId is required." });
 
@@ -247,6 +247,10 @@ async function saveBill(req, res) {
       penalty: Number(penalty || 0),
       other: Number(other || 0),
     });
+
+    if (agreementId) {
+      await rentalAgreementModel.updateMonthlyRent(agreementId, bill.TotalAmount);
+    }
 
     res.json(bill);
   } catch (err) {

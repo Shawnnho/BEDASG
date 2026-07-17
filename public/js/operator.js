@@ -525,6 +525,7 @@ window.saveMonthlyBill = async (stallId, agreementId, centreId) => {
       method: "PUT",
       body: JSON.stringify({
         centreId: centreId || SELECTED_CENTRE_ID,
+        agreementId,
         rent,
         utilities,
         cleaningFee,
@@ -672,8 +673,6 @@ async function loadStallsForModal(centreId) {
     sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
   }
 
-  // dbo.Stalls has no ownerName column — only OwnerUid — so there's nothing
-  // to auto-fill the owner name field with. Left as a manual entry.
   sel.onchange = null;
 }
 

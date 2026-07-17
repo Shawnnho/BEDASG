@@ -75,6 +75,23 @@ async function deleteRentalAgreement(agreementId) {
   return result.rowsAffected[0] > 0;
 }
 
-module.exports = { 
-    getRentalAgreementsByCentre, getRentalAgreementById, createRentalAgreement, deleteRentalAgreement
+async function updateMonthlyRent(agreementId, monthlyRent) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("agreementId", sql.NVarChar, agreementId)
+    .input("monthlyRent", sql.Decimal(10, 2), monthlyRent)
+    .query(`
+      UPDATE dbo.RentalAgreements
+      SET MonthlyRent = @monthlyRent, UpdatedAt = GETDATE()
+      WHERE AgreementId = @agreementId;
+    `);
+}
+
+module.exports = {
+  getRentalAgreementsByCentre,
+  getRentalAgreementById,
+  createRentalAgreement,
+  deleteRentalAgreement,
+  updateMonthlyRent,
 };
