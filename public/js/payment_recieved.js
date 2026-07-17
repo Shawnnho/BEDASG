@@ -174,6 +174,58 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
+function prettyCancelReason(reason) {
+  const x = String(reason || "").trim();
+  if (!x) return "";
+  // "out_of_stock" -> "Out of stock"
+  const spaced = x.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function applyRefundState(orders) {
+  const refundedOrder = orders.find(
+    (o) => String(o.RefundStatus || "").toLowerCase() === "refunded",
+  );
+  const cancelledOrder = orders.find((o) => !!o.CancelledAt);
+
+  // Refund takes priority if somehow both are set on the same order.
+  const target = refundedOrder || cancelledOrder;
+  if (!target) return;
+
+  const isRefund = !!refundedOrder;
+
+  const iconWrap = document.querySelector(".pr-check");
+  if (iconWrap) {
+    iconWrap.innerHTML = "";
+    iconWrap.classList.add("pr-check--refunded");
+    const cross = document.createElement("img");
+    cross.src = "images/remove.png";
+    cross.alt = isRefund ? "Order refunded" : "Order cancelled";
+    cross.className = "pr-check-img";
+    iconWrap.appendChild(cross);
+  }
+
+  const titleEl = document.querySelector(".pr-title");
+  if (titleEl) titleEl.textContent = isRefund ? "Order Refunded" : "Order Cancelled";
+
+  const subEl = document.querySelector(".pr-sub");
+  if (subEl) {
+    if (isRefund) {
+      const refundedAt = tsToDate(target.RefundedAt);
+      subEl.textContent = refundedAt
+        ? `Sorry! This order was refunded on ${formatDateTime(refundedAt)}.`
+        : "Sorry! This order has been refunded.";
+    } else {
+      const cancelledAt = tsToDate(target.CancelledAt);
+      const reason = prettyCancelReason(target.CancelReason);
+      const reasonText = reason ? ` Reason: ${reason}.` : "";
+      subEl.textContent = cancelledAt
+        ? `Sorry! This order was cancelled on ${formatDateTime(cancelledAt)}.${reasonText}`
+        : `Sorry! This order has been cancelled.${reasonText}`;
+    }
+  }
+}
+
 async function loadSummary(id) {
   const summary = await api(`/checkoutCard/${encodeURIComponent(id)}`);
   const { checkout, orders, items } = summary;
@@ -229,6 +281,7 @@ async function loadSummary(id) {
   }
 
   renderItems(orders, items || []);
+  applyRefundState(orders);
 
   const loading = document.getElementById("prLoading");
   const errBox = document.getElementById("prError");
