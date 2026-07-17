@@ -4,7 +4,6 @@ const path = require("path");
 const sql = require("mssql");
 const dbConfig = require("./dbConfig");
 const cookieParser = require("cookie-parser");
-
 // Route imports
 const stallRoutes = require("./routes/stallRoutes");
 const centreRoutes = require("./routes/centreRoutes");
@@ -29,20 +28,17 @@ const addonRoutes = require("./routes/addonRoutes");
 const stallAnalyticsRoutes = require("./routes/stallAnalyticsRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const commentRoutes = require("./routes/commentRoutes");
-const favItemRoutes = require("./routes/favItemRoutes")
-
+const rentalRoutes = require("./routes/rentalRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const favItemRoutes = require("./routes/favItemRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 // Middleware to parse JSON request bodies (needed later for POST/PUT)
 app.use(express.json({ limit: "10mb" }));
-
 // Without this, every req.cookies?.accessToken read is silently undefined, and login/refresh would appear to just not work at all.
 app.use(cookieParser());
-
 // Serve the front-end (put your html/css/js in the /public folder)
 app.use(express.static(path.join(__dirname, "public")));
-
 // API routes
 app.use("/api/stalls", stallRoutes);
 app.use("/api/centres", centreRoutes);
@@ -64,13 +60,13 @@ app.use("/api/addons", addonRoutes); // This is for stall order management, not 
 app.use("/api/stall", stallAnalyticsRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/comments", commentRoutes);
-app.use("/api/favitems", favItemRoutes)
-
+app.use("/api/rental", rentalRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/favitems", favItemRoutes);
 // Stall-specific routes
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
 app.use("/api/stall", stallAccountRoutes);
-
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
   try {
@@ -85,7 +81,6 @@ app.get("/api/health", async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

@@ -4343,3 +4343,274 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
     transition: none !important;
   }
 }
+
+/* ============================================================
+   Rental / Manage Payments page styles.
+   Link in rental-payment.html <head>:
+     <link rel="stylesheet" href="css/rental-payment.css" />
+   ============================================================ */
+
+/* ---- Rental notifications card ---- */
+#rentalNotifSection .rnItem {
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: rgba(232, 146, 46, 0.1);
+  border-left: 4px solid #e8922e;
+}
+#rentalNotifSection .rnItem.rnOverdue {
+  background: rgba(176, 0, 32, 0.08);
+  border-left-color: #b00020;
+}
+#rentalNotifSection .rnItemTitle {
+  font-weight: 900;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+#rentalNotifSection .rnItemMsg {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+#rentalNotifSection .rnNone {
+  font-weight: 800;
+  font-size: 14px;
+  opacity: 0.75;
+  padding: 4px 0;
+}
+#rentalStatusPill.rnPaid {
+  background: #137333;
+  color: #fff;
+}
+#rentalStatusPill.rnUnpaid {
+  background: #e8922e;
+  color: #fff;
+}
+#rentalStatusPill.rnOverdue {
+  background: #b00020;
+  color: #fff;
+}
+
+/* ---- Monthly Status → Pay Center layout ---- */
+.msStats {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  padding: 4px 16px 16px;
+}
+.msStat .msStatLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 2px;
+}
+.msStat .msStatValue {
+  font-size: 15px;
+  font-weight: 800;
+}
+.msStat .msStatWarn {
+  font-size: 12px;
+  color: #b00020;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.payPanel {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 0 16px 16px;
+}
+.payPanelRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.payPanelField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.payPanelField .payPanelLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 700;
+}
+.payPanelActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.payPanelActions .btn {
+  flex: 1;
+  min-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---- Simulated payment modal ---- */
+.pmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pmModal {
+  background: #fffdf7;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  padding: 24px;
+  border: 3px solid #e8922e;
+}
+.pmTitle {
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0 0 2px;
+}
+.pmSub {
+  font-size: 13px;
+  opacity: 0.7;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+.pmAmount {
+  background: #fff3e0;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 26px;
+  font-weight: 900;
+}
+.pmField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.pmField label {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+.pmField input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(0, 0, 0, 0.2);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pmRow {
+  display: flex;
+  gap: 10px;
+}
+.pmRow .pmField {
+  flex: 1;
+  min-width: 0;
+}
+.pmQr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pmQrBox {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  background: repeating-conic-gradient(#1c1c1c 0% 25%, #fff 0% 50%) 0 / 20px 20px;
+  border: 6px solid #1c1c1c;
+}
+.pmErr {
+  color: #b00020;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 16px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+.pmMsg {
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 18px;
+  margin-top: 6px;
+}
+.pmActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.pmBtn {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 900;
+  font-size: 15px;
+  cursor: pointer;
+}
+.pmPay {
+  background: #e8922e;
+  color: #fff;
+}
+.pmPay:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pmCancel {
+  background: #eee;
+  color: #333;
+}
+
+/* ---- Paid confirmation row (collapses the pay panel when paid) ---- */
+.payPaidRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(19, 115, 51, 0.1);
+  border: 1px solid rgba(19, 115, 51, 0.3);
+  font-weight: 800;
+  font-size: 14px;
+  color: #0f5c29;
+}
+.payPaidRow .payPaidCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #137333;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* ---- Rental Notifications collapse toggle ---- */
+.rnChevron {
+  font-size: 14px;
+  transition: transform 0.18s ease;
+  display: inline-block;
+}
+.rnToggle.collapsed .rnChevron {
+  transform: rotate(-90deg);
+}
+#rentalNotifBody {
+  transition: none;
+}
