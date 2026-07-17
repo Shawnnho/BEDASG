@@ -1,33 +1,32 @@
-const fs = require("fs");
-const path = require("path");
-
 /*
-  No multer, no Firebase Storage — the client sends the photo as a
-  base64 data URL inside the regular JSON body (e.g. from FileReader's
-  readAsDataURL()), and this decodes + writes it to disk directly.
+  No file storage at all — the base64 image string is validated here
+  and then stored directly in the database (ImageUrl column).
 
-  Saves to: <project root>/public/images/uploads/{subfolder}/{uid}/{filename}
-  Public URL: /images/uploads/{subfolder}/{uid}/{filename}
-  Served automatically by your existing:
-    app.use(express.static(path.join(__dirname, "public")));
-  — no separate static mount needed.
+  WHY: each teammate runs their own separate local SQL Server, so files
+  saved to local disk are only ever visible to whoever uploaded them.
+  Once you're on a shared database (see the Azure SQL setup), storing
+  the image bytes IN the row means the photo is shared the moment the
+  row syncs — no file-serving infrastructure needed at all.
+
+  REQUIRED ONE-TIME DB CHANGE — run this in SSMS against your (new,
+  shared) database before this works. A default-length NVARCHAR column
+  silently truncates or errors on a ~6-9MB base64 string:
+
+    ALTER TABLE dbo.Complaints ALTER COLUMN ImageUrl NVARCHAR(MAX);
+    ALTER TABLE dbo.Complaints ALTER COLUMN ImagePath NVARCHAR(MAX);
+    ALTER TABLE dbo.StallReviews ALTER COLUMN ImageUrl NVARCHAR(MAX);
 */
 
-const PROJECT_ROOT = path.join(__dirname, "..");
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB, same cap as before
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB — matches the "max 10MB" hint text on review.html
 
-const EXT_BY_MIME = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/webp": "webp",
-};
+const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]);
 
 // dataUrl looks like: "data:image/png;base64,iVBORw0KGgoAAAANS..."
-// Returns the public URL, or null if dataUrl is falsy (no photo attached).
-// Throws with a user-facing message on bad format / wrong type / too large.
-function saveBase64Image({ dataUrl, subfolder, uid }) {
+// Validates format/type/size and returns the SAME string unchanged —
+// it gets stored directly in the database as-is (the <img src="..."> tag
+// on the front end renders a data URI exactly like a normal URL, no
+// change needed there). Returns null if no image was attached.
+function validateBase64Image(dataUrl) {
   if (!dataUrl) return null;
 
   const match = /^data:(image\/[a-zA-Z+]+);base64,(.+)$/.exec(dataUrl);
@@ -36,26 +35,17 @@ function saveBase64Image({ dataUrl, subfolder, uid }) {
   }
 
   const mime = match[1];
-  const base64Data = match[2];
-
-  const ext = EXT_BY_MIME[mime];
-  if (!ext) {
+  if (!ALLOWED_MIME.has(mime)) {
     throw new Error("Unsupported image type. Use JPG, PNG, GIF, or WebP.");
   }
 
-  const buffer = Buffer.from(base64Data, "base64");
-  if (buffer.length > MAX_BYTES) {
-    throw new Error("Image too large (max 5MB).");
+  const base64Data = match[2];
+  const approxBytes = base64Data.length * 0.75; // base64 -> raw byte estimate
+  if (approxBytes > MAX_BYTES) {
+    throw new Error("Image too large (max 10MB).");
   }
 
-  const safeUid = uid || "anonymous";
-  const dir = path.join(PROJECT_ROOT, "public", "images", "uploads", subfolder, safeUid);
-  fs.mkdirSync(dir, { recursive: true });
-
-  const filename = `${subfolder}_${Date.now()}.${ext}`;
-  fs.writeFileSync(path.join(dir, filename), buffer);
-
-  return `/images/uploads/${subfolder}/${safeUid}/${filename}`;
+  return dataUrl;
 }
 
-module.exports = { saveBase64Image };
+module.exports = { validateBase64Image };

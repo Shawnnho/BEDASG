@@ -9,6 +9,7 @@ function getCurrentMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// GET /api/operator/centres
 
 async function getMyCentres(req, res) {
   try {
@@ -30,7 +31,7 @@ async function getMyCentres(req, res) {
   }
 }
 
-
+// GET /api/operator/overview
 async function getOverview(req, res) {
   try {
     const operatorId = req.user.userId;
@@ -63,6 +64,7 @@ async function getOverview(req, res) {
   }
 }
 
+// GET /api/operator/centres/:centreId/stalls
 
 async function getStallsForCentre(req, res) {
   try {
@@ -74,6 +76,8 @@ async function getStallsForCentre(req, res) {
     res.status(500).json({ error: "Failed to retrieve stalls." });
   }
 }
+
+// GET /api/operator/centres/:centreId/rentals
 
 async function getRentalsForCentre(req, res) {
   try {
@@ -100,6 +104,52 @@ async function getRentalsForCentre(req, res) {
   }
 }
 
+// GET /api/operator/stalls 
+async function getAllStallsForOperator(req, res) {
+  try {
+    const operatorId = req.user.userId;
+    const centres = await centreModel.getCentresByOperator(operatorId);
+
+    const allStalls = [];
+    for (const c of centres) {
+      const stalls = await stallModel.getStallsByCentre(c.CentreId);
+      for (const s of stalls) {
+        allStalls.push({ ...s, CentreName: c.Name });
+      }
+    }
+
+    allStalls.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
+    res.json(allStalls);
+  } catch (err) {
+    console.error("getAllStallsForOperator error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve stalls." });
+  }
+}
+
+// GET /api/operator/rentals 
+async function getAllRentalsForOperator(req, res) {
+  try {
+    const operatorId = req.user.userId;
+    const centres = await centreModel.getCentresByOperator(operatorId);
+    const monthKey = getCurrentMonthKey();
+
+    const allAgreements = [];
+    for (const c of centres) {
+      const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(c.CentreId);
+      for (const ra of agreements) {
+        const bill = await operatorBillModel.ensureBill(ra.StallId, c.CentreId, monthKey, ra.MonthlyRent);
+        allAgreements.push({ ...ra, CentreName: c.Name, bill });
+      }
+    }
+
+    res.json({ monthKey, agreements: allAgreements });
+  } catch (err) {
+    console.error("getAllRentalsForOperator error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve rental agreements." });
+  }
+}
+
+// POST /api/operator/rentals
 
 async function createRental(req, res) {
   try {
@@ -128,6 +178,14 @@ async function createRental(req, res) {
     const stall = await stallModel.getStallById(stallId);
     if (!stall) return res.status(404).json({ error: "Stall not found." });
 
+    const baseRent = Number(monthlyRent);
+    const combinedTotal =
+      baseRent +
+      Number(utilities || 0) +
+      Number(cleaningFee || 0) +
+      Number(penalty || 0) +
+      Number(other || 0);
+
     const { agreementId } = await rentalAgreementModel.createRentalAgreement({
       stallId: stall.StallId,
       ownerUid: stall.OwnerUid,
@@ -137,12 +195,12 @@ async function createRental(req, res) {
       ownerName,
       stallName: stall.StallName,
       unitNo: unitNo || null,
-      monthlyRent: Number(monthlyRent),
+      monthlyRent: combinedTotal,
       startDate,
     });
 
     await operatorBillModel.upsertBill(stall.StallId, getCurrentMonthKey(), centreId, {
-      rent: Number(monthlyRent),
+      rent: baseRent,
       utilities: Number(utilities || 0),
       cleaningFee: Number(cleaningFee || 0),
       penalty: Number(penalty || 0),
@@ -156,7 +214,7 @@ async function createRental(req, res) {
   }
 }
 
-// DELETE 
+// DELETE /api/operator/rentals/:agreementId
 async function deleteRental(req, res) {
   try {
     const { agreementId } = req.params;
@@ -173,11 +231,12 @@ async function deleteRental(req, res) {
   }
 }
 
-// PUT 
+// PUT /api/operator/bills/:stallId/:billMonth
+
 async function saveBill(req, res) {
   try {
     const { stallId, billMonth } = req.params;
-    const { centreId, rent, utilities, cleaningFee, penalty, other } = req.body;
+    const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
 
     if (!centreId) return res.status(400).json({ error: "centreId is required." });
 
@@ -188,6 +247,10 @@ async function saveBill(req, res) {
       penalty: Number(penalty || 0),
       other: Number(other || 0),
     });
+
+    if (agreementId) {
+      await rentalAgreementModel.updateMonthlyRent(agreementId, bill.TotalAmount);
+    }
 
     res.json(bill);
   } catch (err) {
@@ -201,6 +264,8 @@ module.exports = {
   getOverview,
   getStallsForCentre,
   getRentalsForCentre,
+  getAllStallsForOperator,
+  getAllRentalsForOperator,
   createRental,
   deleteRental,
   saveBill,
