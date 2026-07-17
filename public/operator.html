@@ -190,9 +190,16 @@
 
           <div class="modal-grid">
             <label class="modal-field">
+              <span>Centre</span>
+              <select id="addRentalCentreSelect" class="std-input" onchange="onModalCentreChange()">
+                <option value="" disabled selected>Select centre...</option>
+              </select>
+            </label>
+
+            <label class="modal-field">
               <span>Stall</span>
               <select id="addRentalStallSelect" class="std-input">
-                <option value="" disabled selected>Loading stalls...</option>
+                <option value="" disabled selected>Select a centre first...</option>
               </select>
             </label>
 
@@ -246,7 +253,6 @@
       </div>
     </main>
 
-    <!-- operator.js needs AuthClient, defined here, loaded first -->
     <script src="js/authClient.js"></script>
     <script src="js/operator.js"></script>
   </body>

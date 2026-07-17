@@ -1,6 +1,5 @@
 const API_BASE = "/api/operator";
 const LOGIN_PAGE = "signin.html"; 
-
 // State
 let CENTRES = [];
 let SELECTED_CENTRE_ID = null;
@@ -12,7 +11,7 @@ let currentBillMonthKey = null;
 let stallFilter = "all";
 let modalStalls = [];
 
-
+// Fetch helper — wraps AuthClient.apiFetch (which sends credentials:"include")
 async function apiFetch(path, options = {}) {
   const res = await AuthClient.apiFetch(`${API_BASE}${path}`, {
     ...options,
@@ -33,7 +32,6 @@ async function apiFetch(path, options = {}) {
       const body = await res.json();
       if (body?.error) message = body.error;
     } catch {
-      
     }
     throw new Error(message);
   }
@@ -94,6 +92,7 @@ function money(n) {
   const num = Number(n || 0);
   return num.toLocaleString(undefined, { style: "currency", currency: "SGD" });
 }
+
 
 function badgeForStallActive(active) {
   return active !== false
@@ -286,7 +285,6 @@ async function updateOverview() {
   setText("ovCentres", overview.centres);
   setText("ovRevenue", money(overview.totalRevenue));
   setText("ovStalls", overview.totalStalls);
-  
   setText("ovActiveStalls", overview.totalStalls);
   setText("ovRentals", overview.totalRentals);
 
@@ -371,7 +369,6 @@ window.renderStalls = () => {
     })
     .join("");
 };
-
 
 async function loadRentals() {
   const list = document.getElementById("rentalList");
@@ -571,11 +568,6 @@ window.deleteRentalAgreement = async (agreementId) => {
 // Add Rental Agreement (Modal)
 
 window.openAddRentalModal = async () => {
-  if (!SELECTED_CENTRE_ID) {
-    alert("Pick a specific centre from the dropdown first (not \"All Centres\") to add a rental agreement.");
-    return;
-  }
-
   const modal = document.getElementById("addRentalModal");
   if (modal) modal.style.display = "grid";
 
@@ -594,8 +586,42 @@ window.openAddRentalModal = async () => {
   if (rentInput) rentInput.value = "";
   recomputeAddRentalTotal();
 
+  populateModalCentreSelect();
+
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const stallSel = document.getElementById("addRentalStallSelect");
+
+  if (centreSel && centreSel.value) {
+    try {
+      await loadStallsForModal(centreSel.value);
+    } catch (err) {
+      console.error("loadStallsForModal failed:", err);
+      alert(`Failed to load stalls: ${err.message}`);
+    }
+  } else if (stallSel) {
+    stallSel.innerHTML = `<option value="" disabled selected>Select a centre first...</option>`;
+  }
+};
+
+function populateModalCentreSelect() {
+  const sel = document.getElementById("addRentalCentreSelect");
+  if (!sel) return;
+
+  let options = `<option value="" disabled ${SELECTED_CENTRE_ID ? "" : "selected"}>Select centre...</option>`;
+  for (const c of CENTRES) {
+    const isSelected = c.CentreId === SELECTED_CENTRE_ID ? "selected" : "";
+    options += `<option value="${c.CentreId}" ${isSelected}>${c.Name || c.CentreId}</option>`;
+  }
+  sel.innerHTML = options;
+}
+
+window.onModalCentreChange = async () => {
+  const sel = document.getElementById("addRentalCentreSelect");
+  const centreId = sel?.value;
+  if (!centreId) return;
+
   try {
-    await loadStallsForModal();
+    await loadStallsForModal(centreId);
   } catch (err) {
     console.error("loadStallsForModal failed:", err);
     alert(`Failed to load stalls: ${err.message}`);
@@ -619,13 +645,13 @@ window.closeAddRentalModal = () => {
   if (modal) modal.style.display = "none";
 };
 
-async function loadStallsForModal() {
+async function loadStallsForModal(centreId) {
   const sel = document.getElementById("addRentalStallSelect");
   if (!sel) return;
 
   sel.innerHTML = `<option value="" disabled selected>Loading stalls...</option>`;
 
-  const rawStalls = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  const rawStalls = await apiFetch(`/centres/${centreId}/stalls`);
 
   const seen = new Set();
   modalStalls = [];
@@ -652,7 +678,12 @@ async function loadStallsForModal() {
 }
 
 window.createRentalAgreementFromModal = async () => {
-  if (!SELECTED_CENTRE_ID) return;
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const centreId = centreSel?.value;
+  if (!centreId) {
+    alert("Please select a centre.");
+    return;
+  }
 
   const sel = document.getElementById("addRentalStallSelect");
   const stallId = sel?.value;
@@ -679,7 +710,7 @@ window.createRentalAgreementFromModal = async () => {
     await apiFetch("/rentals", {
       method: "POST",
       body: JSON.stringify({
-        centreId: SELECTED_CENTRE_ID,
+        centreId,
         stallId,
         ownerName,
         monthlyRent,
