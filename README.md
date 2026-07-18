@@ -249,6 +249,12 @@ BEDASG/
 
 ## Features
 
+**All Users**
+- Secure login and signup with password confirmation
+- Sessions via httpOnly cookies with automatic token refresh
+- Guest browsing without an account
+- Role-based redirect to correct dashboard after login
+
 **Customer**
 - Browse hawker centres and stalls
 - View stall menus with images, prices, and categories
@@ -265,6 +271,12 @@ BEDASG/
 - Analytics — sales and performance
 - Hygiene — NEA grade records
 - Account and rental payment management
+
+**NEA Officer**
+- Schedule, complete, or cancel hygiene inspections
+- Manage complaints — status tracking, escalate to inspection
+- Manually override a stall's hygiene grade
+- Grade distribution overview across all stalls
 
 ---
 
