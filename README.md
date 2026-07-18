@@ -31,7 +31,7 @@ The application follows an **MVC architecture** — models handle database acces
 | Shawn Ho | Stall-holder side — Dashboard, Orders, Menu, Reviews, Analytics, Hygiene, Account, Manage Payment |
 | _TODO_ | _TODO_ |
 | _TODO_ | _TODO_ |
-| _TODO_ | _TODO_ |
+| Matthew Tay Jun Kai | Feedback, Complaints & Operator side — Submit/Edit/Delete Reviews and Complaints, Personal Feedback History, General Feedback Page, Operator Dashboard (Centres, Stalls, Rental Agreements, Monthly Billing, Revenue) |
 | Jovan Soo | Login, Signup and NEA officer side - Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
 
 ---
@@ -278,6 +278,13 @@ BEDASG/
 - Manually override a stall's hygiene grade
 - Grade distribution overview across all stalls
 
+** Hawker Operator **
+- Dashboard overview — centre count, total stalls, active agreements, revenue
+- View hawker centres, with revenue per centre
+- View stalls by one centre or across all centres at once
+- Create rental agreements — stall, owner, monthly rent, plus utilities, cleaning, penalty, and other charges, with a live running total
+- Edit and delete rental agreements
+- Manage monthly bills per stall
 ---
 
 ## Prerequisites
@@ -289,6 +296,7 @@ BEDASG/
   - Mixed Mode authentication enabled
 
 ---
+
 
 ## Setup & Installation
 
