@@ -278,7 +278,7 @@ BEDASG/
 - Manually override a stall's hygiene grade
 - Grade distribution overview across all stalls
 
-** Hawker Operator **
+ **Hawker Operator**
 - Dashboard overview — centre count, total stalls, active agreements, revenue
 - View hawker centres, with revenue per centre
 - View stalls by one centre or across all centres at once
