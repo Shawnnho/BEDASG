@@ -293,10 +293,12 @@ async function render() {
     if (clearAllWrap) clearAllWrap.hidden = true;
     
     let hasFav = false;
-    try {
-        const fav = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
-        hasFav = fav.length > 0;
-    } catch(e) {}
+    if (currentUser) {
+        try {
+            const fav = await api(`/favourites/${currentUser.uid}`);
+            hasFav = Array.isArray(fav?.items) && fav.items.length > 0;
+        } catch (e) {}
+    }
     if (loadFavBtn) loadFavBtn.hidden = !hasFav;
 
     await clearAppliedPromo();
@@ -310,6 +312,8 @@ async function render() {
   if (proceedBtn) proceedBtn.hidden = false;
   if (fulfillBox) fulfillBox.hidden = false;
   if (clearAllWrap) clearAllWrap.hidden = false;
+  const saveFavBtn = document.getElementById("saveFavBtn");
+  if (saveFavBtn) saveFavBtn.hidden = !currentUser;
 
   if (!list) return;
   list.innerHTML = "";
@@ -399,19 +403,28 @@ function normalizeCheckoutItem(it) {
 
 document.addEventListener("click", async (e) => {
   if (e.target.closest("#saveFavBtn")) {
+    if (!currentUser) {
+        alert("Please log in to save a favourite order.");
+        return;
+    }
     const cart = await readCart();
     if (cart.length > 0) {
-        localStorage.setItem("hp_favourite_cart", JSON.stringify(cart));
-        alert("Order saved as favourite!");
+        try {
+            await api(`/favourites/${currentUser.uid}`, 'PUT', { items: cart });
+            alert("Order saved as favourite!");
+        } catch (err) {
+            alert("Could not save favourite. Please try again.");
+        }
     }
     return;
   }
 
   if (e.target.closest("#loadFavBtn")) {
+    if (!currentUser) return;
     try {
-        const favCart = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
-        if (favCart.length > 0) {
-            await saveCart(favCart);
+        const fav = await api(`/favourites/${currentUser.uid}`);
+        if (fav && Array.isArray(fav.items) && fav.items.length > 0) {
+            await saveCart(fav.items);
             render();
         }
     } catch(err) {}
