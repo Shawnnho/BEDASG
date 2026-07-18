@@ -150,23 +150,6 @@ async function updateAddon(addonId, stallId, data) {
   return result.rowsAffected[0];
 }
 
-async function updateAddon(addonId, stallId, data) {
-  const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("AddonId", sql.NVarChar(255), addonId)
-    .input("StallId", sql.NVarChar(255), stallId)
-    .input("Name", sql.NVarChar(255), data.name)
-    .input("Price", sql.Decimal(10, 2), data.price ?? 0).query(`
-      UPDATE StallAddons
-      SET Name = @Name,
-          Price = @Price,
-          UpdatedAt = SYSUTCDATETIME()
-      WHERE AddonId = @AddonId AND StallId = @StallId;
-    `);
-  return result.rowsAffected[0];
-}
-
 async function deleteAddon(addonId, stallId) {
   const pool = await poolPromise;
   const result = await pool
