@@ -32,6 +32,7 @@ The application follows an **MVC architecture** — models handle database acces
 | _TODO_ | _TODO_ |
 | _TODO_ | _TODO_ |
 | _TODO_ | _TODO_ |
+| Jovan Soo | Login, Signup and NEA officer side - Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
 
 ---
 
