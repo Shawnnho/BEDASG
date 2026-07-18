@@ -22,7 +22,6 @@ async function createReview(req, res) {
     let imageUrl = null;
     if (image) {
       try {
-        // Stored directly in the DB row — no file on disk at all.
         imageUrl = validateBase64Image(image);
       } catch (err) {
         return res.status(400).json({ error: err.message });
@@ -82,7 +81,7 @@ async function getStallRating(req, res) {
   }
 }
 
-// GET /api/reviews/search?stallName=...&rating=... — public, feeds the General Feedback Page
+// GET /api/reviews/search?stallName=...&rating=...
 async function searchReviews(req, res) {
   try {
     const { stallName, rating } = req.query;
@@ -107,7 +106,7 @@ async function getReview(req, res) {
   }
 }
 
-// GET /api/reviews/stall/:stallId — public, all reviews for one stall
+// GET /api/reviews/stall/:stallId 
 async function getReviewsByStall(req, res) {
   try {
     const { stallId } = req.params;
@@ -165,7 +164,7 @@ async function getMyStallReviewCount(req, res) {
     res.status(500).json({ error: "Failed to count reviews." });
   }
 }
-// PUT /api/reviews/:reviewId — edit your own review (SA2PG-100)
+// PUT /api/reviews/:reviewId 
 async function updateReview(req, res) {
   try {
     const { reviewId } = req.params;
@@ -201,7 +200,7 @@ async function updateReview(req, res) {
   }
 }
  
-// DELETE /api/reviews/:reviewId — delete your own review (SA2PG-101)
+// DELETE /api/reviews/:reviewId
 async function deleteReview(req, res) {
   try {
     const { reviewId } = req.params;

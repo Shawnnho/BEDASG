@@ -1,7 +1,7 @@
 const centreModel = require("../models/centreModel");
 const stallModel = require("../models/stallModel");
 const rentalAgreementModel = require("../models/rentalAgreementModel");
-const operatorBillModel = require("../models/operatorBillModel");
+const operatorBillModel = require("../models/operatorbillModel");
 const orderModel = require("../models/operatorRevenueModel");
 
 function getCurrentMonthKey() {
@@ -199,7 +199,7 @@ async function createRental(req, res) {
       startDate,
     });
 
-    await operatorBillModel.upsertBill(stall.StallId, getCurrentMonthKey(), centreId, {
+    await operatorBillModel.updateBill(stall.StallId, getCurrentMonthKey(), centreId, {
       rent: baseRent,
       utilities: Number(utilities || 0),
       cleaningFee: Number(cleaningFee || 0),
@@ -240,7 +240,7 @@ async function saveBill(req, res) {
 
     if (!centreId) return res.status(400).json({ error: "centreId is required." });
 
-    const bill = await operatorBillModel.upsertBill(stallId, billMonth, centreId, {
+    const bill = await operatorBillModel.updateBill(stallId, billMonth, centreId, {
       rent: Number(rent || 0),
       utilities: Number(utilities || 0),
       cleaningFee: Number(cleaningFee || 0),

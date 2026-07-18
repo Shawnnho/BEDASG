@@ -46,7 +46,7 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent) {
 }
 
 
-async function upsertBill(stallId, billMonth, centreId, { rent, utilities, cleaningFee, penalty, other }) {
+async function updateBill(stallId, billMonth, centreId, { rent, utilities, cleaningFee, penalty, other }) {
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
   const total =
@@ -107,4 +107,4 @@ async function upsertBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-module.exports = { getBill, ensureBill, upsertBill, computeBillId };
+module.exports = { getBill, ensureBill, updateBill, computeBillId };
