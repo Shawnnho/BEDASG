@@ -31,6 +31,7 @@ const commentRoutes = require("./routes/commentRoutes");
 const rentalRoutes = require("./routes/rentalRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const favItemRoutes = require("./routes/favItemRoutes");
+const favouriteOrderRoutes = require("./routes/favouriteOrderRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 // Middleware to parse JSON request bodies (needed later for POST/PUT)
@@ -67,6 +68,8 @@ app.use("/api/favitems", favItemRoutes);
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
 app.use("/api/stall", stallAccountRoutes);
+app.use("/api/favourites", favouriteOrderRoutes);
+
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
   try {

@@ -293,10 +293,12 @@ async function render() {
     if (clearAllWrap) clearAllWrap.hidden = true;
     
     let hasFav = false;
-    try {
-        const fav = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
-        hasFav = fav.length > 0;
-    } catch(e) {}
+    if (currentUser) {
+        try {
+            const fav = await api(`/favourites/${currentUser.uid}`);
+            hasFav = Array.isArray(fav?.items) && fav.items.length > 0;
+        } catch (e) {}
+    }
     if (loadFavBtn) loadFavBtn.hidden = !hasFav;
 
     await clearAppliedPromo();
@@ -310,6 +312,8 @@ async function render() {
   if (proceedBtn) proceedBtn.hidden = false;
   if (fulfillBox) fulfillBox.hidden = false;
   if (clearAllWrap) clearAllWrap.hidden = false;
+  const saveFavBtn = document.getElementById("saveFavBtn");
+  if (saveFavBtn) saveFavBtn.hidden = !currentUser;
 
   if (!list) return;
   list.innerHTML = "";
@@ -399,19 +403,28 @@ function normalizeCheckoutItem(it) {
 
 document.addEventListener("click", async (e) => {
   if (e.target.closest("#saveFavBtn")) {
+    if (!currentUser) {
+        alert("Please log in to save a favourite order.");
+        return;
+    }
     const cart = await readCart();
     if (cart.length > 0) {
-        localStorage.setItem("hp_favourite_cart", JSON.stringify(cart));
-        alert("Order saved as favourite!");
+        try {
+            await api(`/favourites/${currentUser.uid}`, 'PUT', { items: cart });
+            alert("Order saved as favourite!");
+        } catch (err) {
+            alert("Could not save favourite. Please try again.");
+        }
     }
     return;
   }
 
   if (e.target.closest("#loadFavBtn")) {
+    if (!currentUser) return;
     try {
-        const favCart = JSON.parse(localStorage.getItem("hp_favourite_cart") || "[]");
-        if (favCart.length > 0) {
-            await saveCart(favCart);
+        const fav = await api(`/favourites/${currentUser.uid}`);
+        if (fav && Array.isArray(fav.items) && fav.items.length > 0) {
+            await saveCart(fav.items);
             render();
         }
     } catch(err) {}
@@ -423,24 +436,40 @@ document.addEventListener("click", async (e) => {
     const act = actBtn.getAttribute("data-act");
     const i = Number(actBtn.getAttribute("data-i"));
     const cart = await readCart();
+    const item = cart[i];
+    if (!item) return;
 
-    let currentQty = Number(cart[i].qty ?? cart[i].Qty ?? 1);
-
+    let currentQty = Number(item.qty ?? item.Qty ?? 1);
     if (act === "plus") currentQty++;
     if (act === "minus") currentQty--;
     if (act === "clear") currentQty = 0;
 
-    if (currentQty <= 0) {
-        cart.splice(i, 1);
+    if (currentUser && item.cartItemId) {
+      // Logged-in users: real per-item PUT/DELETE against the DB cart.
+      try {
+        if (currentQty <= 0) {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'DELETE');
+        } else {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'PUT', { qty: currentQty });
+        }
+      } catch (err) {
+        alert("Could not update cart. Please try again.");
+        return;
+      }
     } else {
+      // Guests: no DB row to target, fall back to rewriting the local array.
+      if (currentQty <= 0) {
+        cart.splice(i, 1);
+      } else {
         cart[i].qty = currentQty;
         cart[i].Qty = currentQty;
         const price = Number(cart[i].unitPrice ?? cart[i].UnitPrice ?? 0);
         cart[i].totalPrice = currentQty * price;
         cart[i].TotalPrice = currentQty * price;
+      }
+      await saveCart(cart);
     }
 
-    await saveCart(cart);
     render();
     return;
   }
