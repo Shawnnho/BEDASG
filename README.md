@@ -29,10 +29,10 @@ The application follows an **MVC architecture** — models handle database acces
 | Member | Responsibility |
 |---|---|
 | Shawn Ho | Stall-holder side — Dashboard, Orders, Menu, Reviews, Analytics, Hygiene, Account, Manage Payment |
-| _TODO_ | _TODO_ |
+| Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart|
 | _TODO_ | _TODO_ |
 | Matthew Tay Jun Kai | Feedback, Complaints & Operator side — Submit/Edit/Delete Reviews and Complaints, Personal Feedback History, General Feedback Page, Operator Dashboard (Centres, Stalls, Rental Agreements, Monthly Billing, Revenue) |
-| Jovan Soo | Login, Signup and NEA officer side - Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
+| Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
 
 ---
 
