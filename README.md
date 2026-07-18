@@ -1,6 +1,6 @@
 # HawkerPoint
 
-A Singapore hawker centre food ordering platform built for the Back-End Development (BED) assignment. Customers can browse hawker centres and stalls, view menus, place and pay for orders, and leave reviews. Stall holders get a full dashboard to manage their menu, orders, reviews, analytics, hygiene records, payments, and account.
+A Singapore hawker centre food ordering platform built for the Back-End Development (BED) assignment. Customers can browse hawker centres and stalls, view menus, place and pay for orders, and leave reviews and complaints. Stall holders get a full dashboard to manage their menu, orders, reviews, analytics, hygiene records, payments, and account. Operators manage their owned hawker centres, stalls, and rental agreements, with monthly billing and revenue tracked per centre.
 
 **Course:** Back-End Development (BED) · Ngee Ann Polytechnic
 **Repository:** https://github.com/Shawnnho/BEDASG
