@@ -243,21 +243,11 @@ addToCartBtn.addEventListener("click", async () => {
     totalPrice: unitPrice() * qty,
   };
 
-  try {
-    // 1. Fetch existing cart items for this user
-    let existing = [];
-    const getRes = await AuthClient.apiFetch(`/api/cart/${encodeURIComponent(currentUid)}`);
-    if (getRes.ok) {
-      existing = await getRes.json();
-    }
-
-    // 2. Append the new item and send the whole cart back
-    const updated = [...existing, newItem];
-
-    const postRes = await AuthClient.apiFetch(`/api/cart/${encodeURIComponent(currentUid)}`, {
+try {
+    const postRes = await AuthClient.apiFetch(`/api/cart/${encodeURIComponent(currentUid)}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: updated }),
+      body: JSON.stringify(newItem),
     });
 
     if (!postRes.ok) throw new Error(`Request failed with status ${postRes.status}`);
@@ -268,6 +258,7 @@ addToCartBtn.addEventListener("click", async () => {
     addToCartBtn.disabled = false;
   }
 });
+
 
 /* =========================
    NAV

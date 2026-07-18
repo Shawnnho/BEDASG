@@ -423,24 +423,40 @@ document.addEventListener("click", async (e) => {
     const act = actBtn.getAttribute("data-act");
     const i = Number(actBtn.getAttribute("data-i"));
     const cart = await readCart();
+    const item = cart[i];
+    if (!item) return;
 
-    let currentQty = Number(cart[i].qty ?? cart[i].Qty ?? 1);
-
+    let currentQty = Number(item.qty ?? item.Qty ?? 1);
     if (act === "plus") currentQty++;
     if (act === "minus") currentQty--;
     if (act === "clear") currentQty = 0;
 
-    if (currentQty <= 0) {
-        cart.splice(i, 1);
+    if (currentUser && item.cartItemId) {
+      // Logged-in users: real per-item PUT/DELETE against the DB cart.
+      try {
+        if (currentQty <= 0) {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'DELETE');
+        } else {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'PUT', { qty: currentQty });
+        }
+      } catch (err) {
+        alert("Could not update cart. Please try again.");
+        return;
+      }
     } else {
+      // Guests: no DB row to target, fall back to rewriting the local array.
+      if (currentQty <= 0) {
+        cart.splice(i, 1);
+      } else {
         cart[i].qty = currentQty;
         cart[i].Qty = currentQty;
         const price = Number(cart[i].unitPrice ?? cart[i].UnitPrice ?? 0);
         cart[i].totalPrice = currentQty * price;
         cart[i].TotalPrice = currentQty * price;
+      }
+      await saveCart(cart);
     }
 
-    await saveCart(cart);
     render();
     return;
   }
