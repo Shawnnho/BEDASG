@@ -315,8 +315,12 @@ BEDASG/
    ```env
    DB_USER=your_sql_username
    DB_PASSWORD=your_sql_password
-   DB_SERVER=localhost\SQLEXPRESS
-   DB_DATABASE=HawkerPoint
+   DB_SERVER=localhost
+   DB_INSTANCE=SQLEXPRESS
+   DB_DATABASE=HawkerPointDB
+   DB_PORT=1433
+   DB_ENCRYPT=false
+   DB_TRUST_SERVER_CERTIFICATE=true
    JWT_SECRET=your_jwt_secret
    PORT=3000
    ```
