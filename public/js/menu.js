@@ -15,13 +15,6 @@
 const params = new URLSearchParams(window.location.search);
 const stallId = params.get("stallId");
 
-// Favourite menu item endpoints (query-param based, matching favItemRoutes.js:
-// GET /api/favitems/get?userId=, POST /api/favitems/add?userId=&menuId=,
-// DELETE /api/favitems/delete?userId=&menuId=)
-const FAV_ITEMS_GET_URL = "/api/favitems/get";
-const FAV_ITEMS_ADD_URL = "/api/favitems/add";
-const FAV_ITEMS_DELETE_URL = "/api/favitems/delete";
-const FAV_ITEMS_COUNTS_URL = "/api/favitems/counts";
 
 let allMenuItems = []; // cached so the search box can filter without refetching
 let currentUid = null;
@@ -112,8 +105,7 @@ async function loadLikeCounts() {
   const menuIds = allMenuItems.map((item) => item.id);
 
   try {
-    const url = `${FAV_ITEMS_COUNTS_URL}?menuIds=${encodeURIComponent(menuIds.join(","))}`;
-    const res = await fetch(url);
+    const res = await fetch(`/api/favitems/counts?menuIds=${encodeURIComponent(menuIds.join(","))}`);
     if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
 
     const rows = await res.json(); // [{ MenuId, LikeCount }, ...] - items with 0 likes are omitted
@@ -285,7 +277,7 @@ async function loadFavouriteItems() {
   if (!currentUid) return;
 
   try {
-    const url = `${FAV_ITEMS_GET_URL}?userId=${encodeURIComponent(currentUid)}`;
+    const url = `/api/favitems/get?userId=${encodeURIComponent(currentUid)}`;
     const res = await AuthClient.apiFetch(url);
     if (res.ok) {
       const rows = await res.json();
@@ -319,7 +311,7 @@ async function toggleFavouriteItem(itemId) {
   renderMenuItems(allMenuItems);
 
   try {
-    const baseUrl = isFav ? FAV_ITEMS_DELETE_URL : FAV_ITEMS_ADD_URL;
+    const baseUrl = isFav ? "/api/favitems/delete" : "/api/favitems/add";
     const url = `${baseUrl}?userId=${encodeURIComponent(currentUid)}&menuId=${encodeURIComponent(itemId)}`;
     const res = await AuthClient.apiFetch(url, {
       method: isFav ? "DELETE" : "POST",
