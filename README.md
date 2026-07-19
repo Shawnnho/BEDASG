@@ -29,7 +29,7 @@ The application follows an **MVC architecture** — models handle database acces
 | Member | Responsibility |
 |---|---|
 | Shawn Ho | Stall-holder side — Dashboard, Orders, Menu, Reviews, Analytics, Hygiene, Account, Manage Payment |
-| Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart|
+| Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart, Customer Settings|
 | Matthew Tan| Order History, View/Delete/Reorder orders, Promotion Page, View/Claim Promotions, Checkout Cart, Edit quantity, Apply Promotion |
 | Matthew Tay Jun Kai | Feedback, Complaints & Operator side — Submit/Edit/Delete Reviews and Complaints, Personal Feedback History, General Feedback Page, Operator Dashboard (Centres, Stalls, Rental Agreements, Monthly Billing, Revenue) |
 | Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
@@ -140,7 +140,7 @@ BEDASG/
 │   └── verifyToken.js
 │
 ├── database/               # SQL creation script + sample data
-│
+│   └── dbscript.sql
 └── public/                 # Static front end
     ├── HTML pages
     │   ├── index.html
