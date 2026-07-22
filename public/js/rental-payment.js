@@ -613,6 +613,8 @@ $("printBtn")?.addEventListener("click", printPage);
 async function payBillWith(method) {
   const note = ($("payNote")?.value || "").trim();
   const amount = currentSummary?.bill?.total || 0;
+  const month =
+    currentSummary?.month || $("monthSelect")?.value || monthKey(new Date());
 
   try {
     await showPaymentModal({ method, amount, label: "Monthly Bill" });
@@ -629,7 +631,7 @@ async function payBillWith(method) {
   if (bk) bk.disabled = true;
 
   try {
-    const res = await apiPost("/api/rental/pay", { method, note });
+    const res = await apiPost("/api/rental/pay", { method, note, month });
     setStatus(
       `✅ Bill paid: ${money(res.amount)} for ${res.month}. Access restored.`,
     );

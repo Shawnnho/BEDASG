@@ -20,6 +20,10 @@ function fmtMonthLabel(monthKey) {
   return d.toLocaleString("en-SG", { month: "long", year: "numeric" });
 }
 
+function isValidMonth(month) {
+  return typeof month === "string" && /^\d{4}-\d{2}$/.test(month);
+}
+
 /**
  * GET /api/rental/status
  * Returns the authenticated stall's monthly BILL status + whether the
@@ -77,10 +81,14 @@ async function payRent(req, res) {
       return res.status(404).json({ error: "No stall found for this user." });
     }
 
+    const reqMonth = isValidMonth(req.body.month) ? req.body.month : undefined;
+
     const status = await paymentModel.getBillStatusForStall(
       stall.StallId,
       stall.CentreId,
+      reqMonth,
     );
+
     if (!status) {
       return res.status(404).json({ error: "No bill found." });
     }
@@ -107,6 +115,8 @@ async function payRent(req, res) {
         .status(409)
         .json({ error: "Could not update bill (already paid?)." });
     }
+
+    await paymentModel.markRentPaid(stall.StallId, status.month);
 
     await paymentModel.addPayment({
       stallId: stall.StallId,

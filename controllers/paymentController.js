@@ -164,6 +164,8 @@ async function payOperator(req, res) {
         .json({ error: "Bill could not be updated (already paid?)." });
     }
 
+    await paymentModel.markRentPaid(stall.StallId, month);
+
     await paymentModel.addPayment({
       stallId: stall.StallId,
       amount: bill.total,
