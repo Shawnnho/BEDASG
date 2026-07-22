@@ -374,23 +374,21 @@ async function getRentStatusForStall(stallId) {
   };
 }
 
-/**
- * Mark the current month's rent as paid for a stall's agreement.
- * Idempotent-ish: only updates if not already paid for this month.
- * Returns { updated, month, amount }.
- */
-async function markRentPaid(stallId) {
+async function markRentPaid(stallId, month) {
   const pool = await poolPromise;
   const status = await getRentStatusForStall(stallId);
   if (!status) return { updated: false, month: null, amount: 0 };
-  if (status.isPaid) {
-    return { updated: false, month: status.month, amount: status.amount };
+
+  const targetMonth = month || status.month;
+
+  if (status.isPaid && targetMonth === status.month) {
+    return { updated: false, month: targetMonth, amount: status.amount };
   }
 
   const result = await pool
     .request()
     .input("agreementId", sql.NVarChar, status.agreementId)
-    .input("month", sql.NVarChar, status.month).query(`
+    .input("month", sql.NVarChar, targetMonth).query(`
       UPDATE dbo.RentalAgreements
       SET RentStatus = 'paid',
           LastPaidMonth = @month,
@@ -402,7 +400,7 @@ async function markRentPaid(stallId) {
 
   return {
     updated: result.rowsAffected[0] > 0,
-    month: status.month,
+    month: targetMonth,
     amount: status.amount,
   };
 }
