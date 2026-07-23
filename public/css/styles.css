@@ -6625,3 +6625,30 @@ body.storePage #stallGrade.gradeD {
 .orderActions button.orderBtn.deleteBtn:hover {
   background-color: #ffcccc;
 }
+
+
+.rgToast {
+        position: fixed; bottom: 20px; right: 20px; z-index: 9998;
+        width: 260px; padding: 16px 18px;
+        background: #fffdf7; border: 3px solid #e8922e; border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.2);
+        font-family: inherit;
+        animation: rgSlide .3s ease-out;
+      }
+      @keyframes rgSlide {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      .rgToastX {
+        position: absolute; top: 6px; right: 10px;
+        background: none; border: 0; font-size: 22px;
+        cursor: pointer; opacity: .45; line-height: 1;
+      }
+      .rgToastX:hover { opacity: .8; }
+      .rgToastTitle { font-size: 15px; font-weight: 900; }
+      .rgToastSub { font-size: 12px; font-weight: 700; opacity: .65; margin-bottom: 8px; }
+      .rgToastAmt { font-size: 24px; font-weight: 900; }
+      .rgToastDue { font-size: 12px; font-weight: 800; opacity: .7; margin-bottom: 10px; }
+      .rgToast .rgBtn { width: 100%; }
+      .rgToast .rgMsg { min-height: 0; margin-top: 0; }
+      .rgToast .rgMsg:empty { display: none; }
