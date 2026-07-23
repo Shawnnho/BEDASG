@@ -15,6 +15,7 @@ router.get("/inspections", neaController.listInspections);
 router.post("/inspections", neaController.scheduleInspection);
 router.put("/inspections/:inspectionId/cancel", neaController.cancelInspection);
 router.put("/inspections/:inspectionId/complete", neaController.completeInspection);
+router.delete("/inspections/:inspectionId", neaController.deleteInspection);
 
 router.get("/complaints", neaController.listComplaints);
 router.put("/complaints/:complaintId/status", neaController.updateComplaintStatus);

@@ -140,6 +140,26 @@ async function cancelInspection(req, res) {
   }
 }
 
+async function deleteInspection(req, res) {
+  try {
+    const { inspectionId } = req.params;
+    const inspection = await neaModel.getInspectionById(inspectionId);
+    if (!inspection) return res.status(404).json({ error: "Inspection not found" });
+
+    if (inspection.InspectionStatus !== "cancelled") {
+      return res.status(400).json({
+        error: "Only cancelled inspections can be permanently deleted",
+      });
+    }
+
+    await neaModel.deleteInspection(inspectionId);
+    res.json({ message: "Inspection deleted" });
+  } catch (err) {
+    console.error("deleteInspection error:", err);
+    res.status(500).json({ error: "Failed to delete inspection" });
+  }
+}
+
 // Validates score/breakdown ranges and recomputes the grade from the score
 // SERVER-SIDE — the old version trusted whatever grade the browser
 // calculated and sent. A tampered request could otherwise submit a
@@ -279,6 +299,7 @@ module.exports = {
   listInspections,
   scheduleInspection,
   cancelInspection,
+  deleteInspection,
   completeInspection,
   listComplaints,
   updateComplaintStatus,
