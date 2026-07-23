@@ -110,6 +110,14 @@ async function cancelInspection(inspectionId) {
     `);
 }
 
+async function deleteInspection(inspectionId) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("id", sql.NVarChar, inspectionId)
+    .query("DELETE FROM dbo.HygieneInspections WHERE InspectionId = @id");
+}
+
 async function completeInspection(
   inspectionId,
   { officer, date, score, grade, remarks, breakdownJson },
@@ -178,6 +186,7 @@ module.exports = {
   getInspectionById,
   createScheduledInspection,
   cancelInspection,
+  deleteInspection,
   completeInspection,
   getAllComplaints,
   updateComplaintStatus,

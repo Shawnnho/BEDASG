@@ -239,16 +239,22 @@ window.renderInspections = () => {
           `;
         }
       }
-
       const canAct = st === "scheduled";
-      const actions = canAct
-        ? `
+      let actions = "";
+      if (canAct) {
+        actions = `
           <div class="actions-row">
             <button class="btn-mini primary" onclick="openCompleteModalForInspection('${x.id}')">Complete</button>
             <button class="btn-mini red" onclick="cancelInspection('${x.id}')">Cancel</button>
           </div>
-        `
-        : "";
+        `;
+      } else if (st === "cancelled") {
+        actions = `
+          <div class="actions-row">
+            <button class="btn-mini red" onclick="deleteInspection('${x.id}')">Delete</button>
+          </div>
+        `;
+      }
 
       return `
         <div class="nea-item">
@@ -277,6 +283,23 @@ window.cancelInspection = async (inspectionId) => {
   } catch (e) {
     console.error(e);
     alert("Could not cancel inspection.");
+  }
+};
+
+window.deleteInspection = async (inspectionId) => {
+  const sure = confirm(
+    "Permanently delete this cancelled inspection? This cannot be undone.",
+  );
+  if (!sure) return;
+ 
+  try {
+    await api(`/inspections/${encodeURIComponent(inspectionId)}`, {
+      method: "DELETE",
+    });
+    await loadInspections();
+  } catch (e) {
+    console.error(e);
+    alert(e.message || "Could not delete inspection.");
   }
 };
 
