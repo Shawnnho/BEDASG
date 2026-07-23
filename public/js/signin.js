@@ -84,6 +84,68 @@ function validate() {
 }
 
 /* =========================
+   Deactivated account popup
+========================= */
+const SUPPORT_EMAIL = "support@hawkerpoint.sg";
+const SUPPORT_PHONE = "+65 6677 9988";
+
+function showDeactivatedModal(role) {
+  // Wording matches the SQL Users.IsDeactivated flag set on either the
+  // stallholder deactivate flow or a customer's own account.
+  const noun = role === "storeholder" ? "stall account" : "account";
+
+  const overlay = document.createElement("div");
+  overlay.className = "hpModalOverlay";
+  overlay.innerHTML = `
+    <div class="hpModal" role="dialog" aria-modal="true" aria-label="Account Deactivated">
+      <div class="hpModalHead">
+        <div class="hpModalTitle">Account Deactivated</div>
+        <button class="hpModalClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="hpModalBody">
+        <p style="margin:0 0 10px; line-height:1.5;">
+          This ${noun} is no longer active on HawkerPoint.
+        </p>
+        <p style="margin:0; line-height:1.5;">
+          Should you wish to resume operations or believe this to be an error,
+          our support team can assist — please reach us at
+          <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> or
+          <a href="tel:${SUPPORT_PHONE.replace(/\s+/g, "")}">${SUPPORT_PHONE}</a>,
+          quoting your registered email address.
+        </p>
+      </div>
+      <div class="hpModalFoot">
+        <button class="hpModalBtn ghost" type="button" data-action="close">Close</button>
+        <button class="hpModalBtn primary" type="button" data-action="email">Email Support</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelector(".hpModalClose").addEventListener("click", close);
+  overlay.querySelector('[data-action="close"]').addEventListener("click", close);
+  overlay.querySelector('[data-action="email"]').addEventListener("click", () => {
+    window.location.href = `mailto:${SUPPORT_EMAIL}`;
+  });
+
+  document.addEventListener(
+    "keydown",
+    function escHandler(e) {
+      if (e.key === "Escape") {
+        close();
+        document.removeEventListener("keydown", escHandler);
+      }
+    },
+    { once: true },
+  );
+}
+
+/* =========================
    Submit
 ========================= */
 form.addEventListener("submit", async (e) => {
@@ -106,6 +168,11 @@ form.addEventListener("submit", async (e) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      if (data.deactivated) {
+        statusMsg.textContent = "";
+        showDeactivatedModal(data.role);
+        return;
+      }
       pwError.textContent = data.error || "Invalid email or password.";
       return;
     }
