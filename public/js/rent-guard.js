@@ -115,16 +115,50 @@
     return overlay;
   }
 
+  function buildToast(status) {
+    const el = document.createElement("div");
+    el.className = "rgToast";
+    el.id = "rgOverlay";
+    el.innerHTML = `
+      <button class="rgToastX" id="rgLaterBtn" type="button" aria-label="Dismiss">&times;</button>
+      <div class="rgToastTitle">Upcoming rental payment</div>
+      <div class="rgToastSub">${status.monthLabel || ""}</div>
+      <div class="rgToastAmt">${money(status.amount)}</div>
+      <div class="rgToastDue">Due ${fmtDate(status.dueDate)}${
+        typeof status.daysUntilDue === "number" && status.daysUntilDue >= 0
+          ? ` · in ${status.daysUntilDue} day${status.daysUntilDue === 1 ? "" : "s"}`
+          : ""
+      }</div>
+      <button class="rgBtn rgPay" id="rgPayBtn" type="button">Pay Now</button>
+      <div class="rgMsg" id="rgMsg"></div>`;
+    return el;
+  }
+
   async function doPay(status, locked) {
-    const btn = document.getElementById("rgPayBtn");
     const msg = document.getElementById("rgMsg");
+
+    try {
+      await window.showPaymentModal({
+        method: "paynow",
+        amount: status.amount,
+        label: "Monthly Bill",
+      });
+    } catch {
+      if (msg) {
+        msg.style.color = "rgba(0,0,0,.7)";
+        msg.textContent = "Payment cancelled.";
+      }
+      return;
+    }
+
+    const btn = document.getElementById("rgPayBtn");
     if (btn) {
       btn.disabled = true;
       btn.textContent = "Processing…";
     }
     if (msg) {
       msg.style.color = "rgba(0,0,0,.7)";
-      msg.textContent = "Contacting payment gateway…";
+      msg.textContent = "Recording payment…";
     }
 
     try {
@@ -132,7 +166,7 @@
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: "paynow" }),
+        body: JSON.stringify({ method: "paynow", month: status.month }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Payment failed");
@@ -142,10 +176,9 @@
         msg.textContent = `Paid ${money(data.amount)}. Access restored.`;
       }
 
-      // Clear the popup; if we were locked, reload so the page unlocks.
       setTimeout(() => {
-        const overlay = document.getElementById("rgOverlay");
-        if (overlay) overlay.remove();
+        document.getElementById("rgOverlay")?.remove();
+        document.body.style.overflow = "";
         if (locked) location.reload();
       }, 900);
     } catch (err) {
@@ -160,13 +193,14 @@
     }
   }
 
-  function showModal(status, locked) {
+  function showModal(status, mode) {
     injectStyles();
-    // Remove any existing one first.
     const existing = document.getElementById("rgOverlay");
     if (existing) existing.remove();
 
-    const overlay = buildModal(status, locked);
+    const locked = mode === "locked";
+    const overlay =
+      mode === "soft" ? buildToast(status) : buildModal(status, locked);
     document.body.appendChild(overlay);
 
     document
@@ -176,19 +210,24 @@
     const laterBtn = document.getElementById("rgLaterBtn");
     if (laterBtn) {
       laterBtn.addEventListener("click", () => {
-        // "Remind Me Later" only dismisses for this session/pageview.
-        // It re-appears next login because status is still unpaid.
+        sessionStorage.setItem("rgDismissed", "1");
         overlay.remove();
+        document.body.style.overflow = "";
       });
     }
 
-    // When locked, clicking the backdrop must NOT dismiss.
-    if (!locked) {
+    if (locked) {
+      document.body.style.overflow = "hidden";
+    } else if (mode === "urgent") {
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) overlay.remove();
+        if (e.target === overlay) {
+          sessionStorage.setItem("rgDismissed", "1");
+          overlay.remove();
+        }
       });
     }
   }
+  if (sessionStorage.getItem("rgDismissed")) return;
 
   async function init() {
     let status;
@@ -199,12 +238,15 @@
     }
     if (!status || !status.hasBill || status.isPaid) return;
 
-    // Overdue → hard paywall (locked modal, no dismiss).
-    // Due soon → reminder popup (dismissable).
+    // Overdue → hard paywall (locked, no dismiss).
+    // Due today or tomorrow → blocking modal (dismissable).
+    // Due 2+ days out → corner toast.
     if (status.isOverdue) {
-      showModal(status, true);
+      showModal(status, "locked");
     } else if (status.showPopup) {
-      showModal(status, false);
+      const urgent =
+        typeof status.daysUntilDue === "number" && status.daysUntilDue <= 1;
+      showModal(status, urgent ? "urgent" : "soft");
     }
   }
 
