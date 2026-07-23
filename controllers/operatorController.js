@@ -1,7 +1,7 @@
 const centreModel = require("../models/centreModel");
 const stallModel = require("../models/stallModel");
 const rentalAgreementModel = require("../models/rentalAgreementModel");
-const operatorBillModel = require("../models/operatorbillModel");
+const operatorBillModel = require("../models/operatorBillModel");
 const orderModel = require("../models/operatorRevenueModel");
 
 function getCurrentMonthKey() {
@@ -70,7 +70,16 @@ async function getStallsForCentre(req, res) {
   try {
     const { centreId } = req.params;
     const stalls = await stallModel.getStallsByCentre(centreId);
-    res.json(stalls);
+
+    const stallIds = stalls.map((s) => s.StallId);
+    const revenueByStall = await orderModel.getCompletedRevenueByStallIds(stallIds);
+
+    const withRevenue = stalls.map((s) => ({
+      ...s,
+      Revenue: revenueByStall[s.StallId] || 0,
+    }));
+
+    res.json(withRevenue);
   } catch (err) {
     console.error("getStallsForCentre error:", err.message);
     res.status(500).json({ error: "Failed to retrieve stalls." });
@@ -118,8 +127,16 @@ async function getAllStallsForOperator(req, res) {
       }
     }
 
-    allStalls.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
-    res.json(allStalls);
+    const stallIds = allStalls.map((s) => s.StallId);
+    const revenueByStall = await orderModel.getCompletedRevenueByStallIds(stallIds);
+
+    const withRevenue = allStalls.map((s) => ({
+      ...s,
+      Revenue: revenueByStall[s.StallId] || 0,
+    }));
+
+    withRevenue.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
+    res.json(withRevenue);
   } catch (err) {
     console.error("getAllStallsForOperator error:", err.message);
     res.status(500).json({ error: "Failed to retrieve stalls." });
@@ -199,7 +216,7 @@ async function createRental(req, res) {
       startDate,
     });
 
-    await operatorBillModel.updateBill(stall.StallId, getCurrentMonthKey(), centreId, {
+    await operatorBillModel.upsertBill(stall.StallId, getCurrentMonthKey(), centreId, {
       rent: baseRent,
       utilities: Number(utilities || 0),
       cleaningFee: Number(cleaningFee || 0),
@@ -240,7 +257,7 @@ async function saveBill(req, res) {
 
     if (!centreId) return res.status(400).json({ error: "centreId is required." });
 
-    const bill = await operatorBillModel.updateBill(stallId, billMonth, centreId, {
+    const bill = await operatorBillModel.upsertBill(stallId, billMonth, centreId, {
       rent: Number(rent || 0),
       utilities: Number(utilities || 0),
       cleaningFee: Number(cleaningFee || 0),

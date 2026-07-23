@@ -358,6 +358,7 @@ window.renderStalls = () => {
         <div class="op-item">
           <div class="item-main">
             <h4>${s.StallName || "Unnamed Stall"}</h4>
+            <span class="badge blue">Revenue: ${money(s.Revenue || 0)}</span>
             ${badgeForStallActive(true)}
           </div>
           <p>Cuisine: ${s.Cuisine || "-"}</p>
@@ -742,6 +743,74 @@ window.createRentalAgreementFromModal = async () => {
   } catch (err) {
     console.warn("Agreement created, but refresh failed:", err.message);
   }
+};
+
+function downloadCsv(filename, rows, columns) {
+  if (!rows.length) {
+    alert("Nothing to export.");
+    return;
+  }
+
+  const escapeCell = (value) => {
+    const str = String(value ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const header = columns.map((c) => escapeCell(c.label)).join(",");
+  const body = rows
+    .map((row) => columns.map((c) => escapeCell(c.value(row))).join(","))
+    .join("\n");
+
+  const csv = `${header}\n${body}`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function getCurrentMonthKeyClient() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+window.exportStallsCsv = () => {
+  const scope = SELECTED_CENTRE_ID ? centreNameById(SELECTED_CENTRE_ID) : "all-centres";
+  downloadCsv(`stall-revenue-${scope}-${getCurrentMonthKeyClient()}.csv`, stallsRaw, [
+    { label: "Stall Name", value: (s) => s.StallName || s.StallId || "" },
+    { label: "Cuisine", value: (s) => s.Cuisine || "" },
+    { label: "Location", value: (s) => s.Location || "" },
+    { label: "Centre", value: (s) => s.CentreName || s.CentreId || "" },
+    { label: "Revenue (SGD)", value: (s) => Number(s.Revenue || 0).toFixed(2) },
+  ]);
+};
+
+window.exportBillsCsv = () => {
+  const scope = SELECTED_CENTRE_ID ? centreNameById(SELECTED_CENTRE_ID) : "all-centres";
+  downloadCsv(`monthly-bills-${scope}-${currentBillMonthKey || getCurrentMonthKeyClient()}.csv`, rentalsRaw, [
+    { label: "Stall Name", value: (ra) => ra.StallName || ra.StallId || "" },
+    { label: "Unit No", value: (ra) => ra.UnitNo || "" },
+    { label: "Owner", value: (ra) => ra.OwnerName || "" },
+    { label: "Centre", value: (ra) => ra.CentreName || ra.CentreId || "" },
+    { label: "Bill Month", value: () => currentBillMonthKey || "" },
+    { label: "Rent (SGD)", value: (ra) => Number(ra.bill?.RentAmount ?? ra.MonthlyRent ?? 0).toFixed(2) },
+    { label: "Utilities (SGD)", value: (ra) => Number(ra.bill?.Utilities ?? 0).toFixed(2) },
+    { label: "Cleaning (SGD)", value: (ra) => Number(ra.bill?.CleaningFee ?? 0).toFixed(2) },
+    { label: "Penalty (SGD)", value: (ra) => Number(ra.bill?.Penalty ?? 0).toFixed(2) },
+    { label: "Other (SGD)", value: (ra) => Number(ra.bill?.OtherCharges ?? 0).toFixed(2) },
+    {
+      label: "Total (SGD)",
+      value: (ra) => Number(ra.bill?.TotalAmount ?? ra.MonthlyRent ?? 0).toFixed(2),
+    },
+  ]);
 };
 
 // Logout

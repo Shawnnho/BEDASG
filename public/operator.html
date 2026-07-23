@@ -104,6 +104,9 @@
       <section id="tab-stalls" class="op-tab">
         <div class="op-header">
           <h2>Stalls (by Centre)</h2>
+          <button class="btn-mini gray" onclick="exportStallsCsv()">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
         </div>
 
         <div class="op-card-container">
@@ -145,9 +148,14 @@
         <div class="op-header">
           <h2>Rental Agreements (by Centre)</h2>
 
-          <button class="btn-mini primary" onclick="openAddRentalModal()">
-            <i class="fa-solid fa-plus"></i> Add Rental Agreement
-          </button>
+          <div style="display: flex; gap: 8px">
+            <button class="btn-mini gray" onclick="exportBillsCsv()">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+            <button class="btn-mini primary" onclick="openAddRentalModal()">
+              <i class="fa-solid fa-plus"></i> Add Rental Agreement
+            </button>
+          </div>
         </div>
 
         <div class="op-card-container">
@@ -253,6 +261,7 @@
       </div>
     </main>
 
+    <!-- operator.js needs AuthClient, defined here, loaded first -->
     <script src="js/authClient.js"></script>
     <script src="js/operator.js"></script>
   </body>
