@@ -16,6 +16,8 @@ async function getAllStalls() {
       s.ImageUrl,
       s.[Desc],
       s.UnitNo,
+      s.SupportsAddons,
+      s.SupportsSizePricing,
       c.Name AS CentreName
     FROM dbo.Stalls s
     INNER JOIN dbo.Centres c ON s.CentreId = c.CentreId
@@ -102,7 +104,9 @@ async function getStallById(stallId) {
         s.PrepMax,
         s.RatingCount,
         s.RatingTotal,
-        s.IsPopular
+        s.IsPopular,
+        s.SupportsAddons,
+        s.SupportsSizePricing
       FROM dbo.Stalls s
       WHERE s.StallId = @stallId
         AND s.IsActive = 1
