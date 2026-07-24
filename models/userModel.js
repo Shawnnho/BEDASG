@@ -26,7 +26,8 @@ async function getUserWithCredentialsByEmail(email) {
     .request()
     .input("email", sql.NVarChar, email)
     .query(`
-      SELECT u.UserId, u.Name, u.Email, u.Phone, u.UserRole, c.PasswordHash
+      SELECT u.UserId, u.Name, u.Email, u.Phone, u.UserRole,
+             u.IsDeactivated, u.DeactivatedAt, c.PasswordHash
       FROM dbo.Users u
       INNER JOIN dbo.UserCredentials c ON c.UserId = u.UserId
       WHERE u.Email = @email
