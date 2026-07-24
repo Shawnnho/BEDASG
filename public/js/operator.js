@@ -354,17 +354,29 @@ window.renderStalls = () => {
         ? `<span>Centre: <b>${s.CentreName || s.CentreId || "-"}</b></span>`
         : "";
 
+      const ratingLabel = s.ReviewCount
+        ? `${Number(s.AvgRating || 0).toFixed(1)} ★ (${s.ReviewCount})`
+        : "No ratings yet";
+
       return `
         <div class="op-item">
           <div class="item-main">
             <h4>${s.StallName || "Unnamed Stall"}</h4>
-            <span class="badge blue">Revenue: ${money(s.Revenue || 0)}</span>
-            ${badgeForStallActive(true)}
+            <div class="badge-group">
+              <span class="badge blue">Revenue: ${money(s.Revenue || 0)}</span>
+              <span class="badge blue">Rating: ${ratingLabel}</span>
+              ${badgeForStallActive(true)}
+            </div>
           </div>
           <p>Cuisine: ${s.Cuisine || "-"}</p>
           <div class="item-meta">
             <span>Location: <b>${s.Location || "—"}</b></span>
             ${centreLine}
+          </div>
+          <div class="actions-row">
+            <button class="btn-mini gray" onclick="viewStallComplaints('${s.StallId}', '${(s.StallName || "").replace(/'/g, "\\'")}')">
+              View Complaints
+            </button>
           </div>
         </div>
       `;
@@ -811,6 +823,52 @@ window.exportBillsCsv = () => {
       value: (ra) => Number(ra.bill?.TotalAmount ?? ra.MonthlyRent ?? 0).toFixed(2),
     },
   ]);
+};
+
+window.viewStallComplaints = async (stallId, stallName) => {
+  const modal = document.getElementById("complaintHistoryModal");
+  const title = document.getElementById("complaintHistoryTitle");
+  const list = document.getElementById("complaintHistoryList");
+
+  if (title) title.textContent = `Complaint History — ${stallName}`;
+  if (list) list.innerHTML = "<p>Loading...</p>";
+  if (modal) modal.style.display = "grid";
+
+  try {
+    const complaints = await apiFetch(`/stalls/${stallId}/complaints`);
+
+    if (!complaints.length) {
+      list.innerHTML = "<p>No complaints found for this stall.</p>";
+      return;
+    }
+
+    list.innerHTML = complaints
+      .map((c) => {
+        const when = c.CreatedAt ? new Date(c.CreatedAt).toLocaleString() : "-";
+        return `
+          <div class="op-item">
+            <div class="item-main">
+              <h4>${c.ComplaintType || "Complaint"}</h4>
+              <span class="badge red">${c.Status || "unknown"}</span>
+            </div>
+            <p>${c.Message || ""}</p>
+            <div class="item-meta">
+              <span>By: <b>${c.UserName || "-"}</b></span>
+              <span>${when}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error("viewStallComplaints failed:", err);
+    list.innerHTML = `<p>Failed to load complaint history: ${err.message}</p>`;
+  }
+};
+
+window.closeComplaintHistoryModal = () => {
+  const modal = document.getElementById("complaintHistoryModal");
+  if (modal) modal.style.display = "none";
 };
 
 // Logout

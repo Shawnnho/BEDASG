@@ -1,20 +1,22 @@
 const { sql, poolPromise } = require("../dbConfig");
 
-// Revenue for a single centre
+// Total Revenue for a single centre
 async function getCompletedRevenueByCentre(centreId) {
   const pool = await poolPromise;
   const result = await pool
     .request()
     .input("centreId", sql.NVarChar, centreId)
     .query(`
-      SELECT ISNULL(SUM(TotalAmount), 0) AS Revenue
-      FROM dbo.Orders
-      WHERE CentreId = @centreId
-        AND OrderStatus = 'completed';
+      SELECT ISNULL(SUM(o.TotalAmount), 0) AS Revenue
+      FROM dbo.Orders o
+      INNER JOIN dbo.Stalls s ON o.StallId = s.StallId
+      WHERE s.CentreId = @centreId
+        AND o.OrderStatus = 'completed';
     `);
   return Number(result.recordset[0].Revenue || 0);
 }
 
+// Revenue for several centres at once, grouped — avoids one query per centre
 
 async function getCompletedRevenueByCentreIds(centreIds) {
   if (!centreIds || centreIds.length === 0) return {};
@@ -29,11 +31,12 @@ async function getCompletedRevenueByCentreIds(centreIds) {
   });
 
   const result = await request.query(`
-    SELECT CentreId, ISNULL(SUM(TotalAmount), 0) AS Revenue
-    FROM dbo.Orders
-    WHERE OrderStatus = 'completed'
-      AND CentreId IN (${placeholders.join(", ")})
-    GROUP BY CentreId;
+    SELECT s.CentreId, ISNULL(SUM(o.TotalAmount), 0) AS Revenue
+    FROM dbo.Orders o
+    INNER JOIN dbo.Stalls s ON o.StallId = s.StallId
+    WHERE o.OrderStatus = 'completed'
+      AND s.CentreId IN (${placeholders.join(", ")})
+    GROUP BY s.CentreId;
   `);
 
   const revenueByCentre = {};
@@ -70,8 +73,6 @@ async function getCompletedRevenueByStallIds(stallIds) {
   return revenueByStall;
 }
 
-module.exports = {
-  getCompletedRevenueByCentre,
-  getCompletedRevenueByCentreIds,
-  getCompletedRevenueByStallIds,
+module.exports = { 
+    getCompletedRevenueByCentre, getCompletedRevenueByCentreIds, getCompletedRevenueByStallIds 
 };

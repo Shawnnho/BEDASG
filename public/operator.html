@@ -259,9 +259,28 @@
           </div>
         </div>
       </div>
+
+      <!-- ================= COMPLAINT HISTORY MODAL ================= -->
+      <div id="complaintHistoryModal" class="modal-backdrop" style="display: none">
+        <div class="modal">
+          <div class="modal-head">
+            <h3 id="complaintHistoryTitle" style="margin: 0">Complaint History</h3>
+            <button class="icon-btn" onclick="closeComplaintHistoryModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div id="complaintHistoryList" class="op-list" style="margin-top: 12px">
+            <p>Loading...</p>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-mini gray" onclick="closeComplaintHistoryModal()">Close</button>
+          </div>
+        </div>
+      </div>
     </main>
 
-    <!-- operator.js needs AuthClient, defined here, loaded first -->
     <script src="js/authClient.js"></script>
     <script src="js/operator.js"></script>
   </body>
