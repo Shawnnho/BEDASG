@@ -328,6 +328,9 @@ async function render() {
     const qty = Number(it.qty ?? it.Qty ?? 1);
     const unitPrice = Number(it.unitPrice ?? it.UnitPrice ?? 0);
     const line = Number(it.totalPrice ?? it.TotalPrice) || (unitPrice * qty);
+    let variant = it.variantKey || ""
+
+    if (variant) variant = `(${variant.replace("_"," ")})`
 
     subtotal += line;
 
@@ -335,7 +338,7 @@ async function render() {
       <article class="menuCard cartCard">
         <div class="menuImgWrap"><img src="${img}"></div>
         <div class="menuInfo">
-          <div class="menuName">${name}</div>
+          <div class="menuName">${name} ${variant}</div>
           <div class="menuPrice">$${money(line)}</div>
           <div class="cartMeta">Qty: ${qty}</div>
         </div>

@@ -3,8 +3,10 @@
  * - Loads the menu item's details via GET /api/menu/:stallId
  *   (no single-item endpoint exists yet, so we fetch the stall's
  *   full menu and find the matching item client-side)
+ * - Loads this item's variants (name + price) via
+ *   GET /api/menuprices/:itemId
  * - Loads stall-wide add-ons via GET /api/addons/:stallId
- *   (add-ons are NOT per-item — every active add-on for the stall applies)
+ *   (add-ons are NOT per-item - every active add-on for the stall applies)
  * - Cart is still localStorage-based ("hp_cart") until a real cart
  *   API exists.
  *************************************************/
@@ -33,6 +35,7 @@ const itemImg = document.getElementById("itemImg");
 const itemName = document.getElementById("itemName");
 const itemBasePrice = document.getElementById("itemBasePrice");
 const itemDesc = document.getElementById("itemDesc");
+const variantsList = document.getElementById("variantsList");
 const addonsList = document.getElementById("addonsList");
 const sideNoteEl = document.getElementById("sideNote");
 const qtyMinus = document.getElementById("qtyMinus");
@@ -46,8 +49,11 @@ const selectedVariantText = document.getElementById("selectedVariantText");
 ========================= */
 let ITEM = null;
 let ADDONS = [];
+let VARIANTS = [];
+let selectedVariant = null; // { menuId, variant, price } or null
 let qty = 1;
 let currentUid = null;
+let STALL_CAPS = { addons: false, sizing: false }; // from GET /api/stalls/:id (SupportsAddons / SupportsSizePricing)
 const selectedAddons = new Set();
 
 /**
@@ -66,8 +72,26 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+/** Convert a raw variant key like "cold_s" into a display label "cold s". */
+function formatVariantLabel(variant) {
+  return String(variant || "").replace(/_/g, " ");
+}
+
+/** Update the "<Item Name> (<variant>)" heading to reflect the current selection. */
+function updateItemNameDisplay() {
+  if (!itemName || !ITEM) return;
+  itemName.textContent = selectedVariant
+    ? `${ITEM.name} (${formatVariantLabel(selectedVariant.variant)})`
+    : ITEM.name;
+}
+
 function hideAddonsUI() {
   const section = document.getElementById("addonsSection");
+  if (section) section.style.display = "none";
+}
+
+function hideVariantsUI() {
+  const section = document.getElementById("variantsSection");
   if (section) section.style.display = "none";
 }
 
@@ -100,13 +124,58 @@ async function loadItem() {
     };
 
     renderItem();
-
-    if (selectedVariantText) {
-      selectedVariantText.textContent = ITEM.priceFrom ? "Price shown is starting price" : "";
-    }
   } catch (err) {
     console.error("Failed to load item:", err);
     window.location.href = `menu.html?stallId=${encodeURIComponent(stallId)}`;
+  }
+}
+
+/**
+ * Fetch this stall's capability flags (SupportsAddons / SupportsSizePricing)
+ * via GET /api/stalls/:stallId. These come back as 0/1 (or boolean, depending
+ * on the SQL driver) - Boolean(...) normalizes either case.
+ */
+async function loadStallCapabilities() {
+  try {
+    const res = await fetch(`/api/stalls/${encodeURIComponent(stallId)}`);
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+    const stall = await res.json();
+    STALL_CAPS = {
+      addons: Boolean(stall.addons),
+      sizing: Boolean(stall.sizing),
+    };
+  } catch (err) {
+    console.error("Failed to load stall capabilities:", err);
+    // Fail safe: assume neither is supported rather than showing broken sections
+    STALL_CAPS = { addons: false, sizing: false };
+  }
+}
+
+/* =========================
+   LOAD VARIANTS
+   Per-item options (e.g. sizes), each with its own price.
+   Only called if STALL_CAPS.sizing is true.
+   If none exist, the base item price from /api/menu/:stallId is used.
+========================= */
+async function loadVariants() {
+  if (!variantsList) return;
+
+  try {
+    const res = await fetch(`/api/menuprices/${encodeURIComponent(itemId)}`);
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+    VARIANTS = await res.json();
+
+    if (!VARIANTS.length) {
+      hideVariantsUI();
+      return;
+    }
+
+    renderVariants();
+  } catch (err) {
+    console.error("Failed to load variants:", err);
+    hideVariantsUI();
   }
 }
 
@@ -141,10 +210,66 @@ async function loadAddons() {
 function renderItem() {
   itemImg.src = ITEM.img;
   itemImg.alt = ITEM.name;
-  itemName.textContent = ITEM.name;
+  updateItemNameDisplay();
   itemBasePrice.textContent = ITEM.priceFrom ? `from ${money(ITEM.price)}` : money(ITEM.price);
   itemDesc.textContent = ITEM.desc || "";
   updateTotal();
+}
+
+/**
+ * Render each variant as a radio button (mutually exclusive, like
+ * choosing a size). Auto-selects the first/cheapest variant so the
+ * displayed total is always accurate as soon as variants load.
+ */
+function renderVariants() {
+  if (!variantsList) return;
+  variantsList.innerHTML = "";
+
+  const sorted = [...VARIANTS].sort((a, b) => Number(a.price) - Number(b.price));
+
+  sorted.forEach((v, index) => {
+    const row = document.createElement("label");
+    row.className = "variantRow";
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "itemVariant";
+    radio.value = v.variant;
+    radio.checked = index === 0; // default to the first (cheapest) option
+
+    radio.addEventListener("change", () => {
+      if (radio.checked) {
+        selectedVariant = v;
+        updateSelectedVariantText();
+        updateItemNameDisplay();
+        updateTotal();
+      }
+    });
+
+    const text = document.createElement("span");
+    text.textContent = v.variant;
+
+    const price = document.createElement("span");
+    price.className = "variantPrice";
+    price.textContent = money(v.price);
+
+    row.append(radio, text, price);
+    variantsList.appendChild(row);
+  });
+
+  // Auto-select the first variant so pricing/cart-add works immediately
+  selectedVariant = sorted[0] || null;
+  updateSelectedVariantText();
+  updateItemNameDisplay();
+}
+
+function updateSelectedVariantText() {
+  if (!selectedVariantText) return;
+  selectedVariantText.textContent = selectedVariant
+    ? selectedVariant.variant
+    : ITEM?.priceFrom
+      ? "Price shown is starting price"
+      : "";
 }
 
 function renderAddons() {
@@ -189,8 +314,14 @@ function addonsTotal() {
   );
 }
 
+/**
+ * If this item has variants, the selected variant's price REPLACES the
+ * base item price (e.g. "Small $3 / Large $5" - not stacked on top of
+ * the base price). If there are no variants, fall back to ITEM.price.
+ */
 function unitPrice() {
-  return (ITEM?.price || 0) + addonsTotal();
+  const base = selectedVariant ? Number(selectedVariant.price) : (ITEM?.price || 0);
+  return base + addonsTotal();
 }
 
 function updateTotal() {
@@ -227,6 +358,11 @@ addToCartBtn.addEventListener("click", async () => {
     return;
   }
 
+  if (VARIANTS.length > 0 && !selectedVariant) {
+    console.warn("Please select an option before adding to cart.");
+    return;
+  }
+
   addToCartBtn.disabled = true;
 
   const newItem = {
@@ -234,6 +370,8 @@ addToCartBtn.addEventListener("click", async () => {
     itemId: ITEM.id,
     name: ITEM.name,
     img: ITEM.img,
+
+    variantKey: selectedVariant ? selectedVariant.variant : null,
 
     qty,
     note: sideNoteEl?.value || "",
@@ -322,5 +460,17 @@ function wireHamburger() {
   markActiveLinks();
   await checkAuthStatus();
   await loadItem();
-  await loadAddons();
+  await loadStallCapabilities();
+
+  if (STALL_CAPS.sizing) {
+    await loadVariants();
+  } else {
+    hideVariantsUI();
+  }
+
+  if (STALL_CAPS.addons) {
+    await loadAddons();
+  } else {
+    hideAddonsUI();
+  }
 })();
