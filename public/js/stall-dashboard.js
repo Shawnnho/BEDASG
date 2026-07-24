@@ -129,6 +129,7 @@ let activeDate = "";
 let activeYear = "";
 let allOrders = [];
 let firstLoadDone = false;
+let pollTimer = null; // and this
 
 /* ===== date filtering ===== */
 function startOfToday() {
@@ -270,6 +271,13 @@ async function loadDashboard() {
 
     if (res.status === 401 || res.status === 403) {
       location.href = "signin.html";
+      return;
+    }
+    if (res.status === 402) {
+      // Overdue: rent-guard.js locks the page in place with a Pay Now modal.
+      // Stop polling and let the guard own the lock.
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
       return;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -427,4 +435,4 @@ $("logoutBtn")?.addEventListener("click", () => {
 
 /* ===== boot ===== */
 loadDashboard();
-setInterval(loadDashboard, POLL_MS);
+pollTimer = setInterval(loadDashboard, POLL_MS);

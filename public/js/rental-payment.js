@@ -111,7 +111,6 @@ async function apiPost(url, body) {
   return data;
 }
 
-
 /* ---------- rendering ---------- */
 
 function renderStaffTable(rows) {
@@ -296,6 +295,8 @@ async function loadPaymentSummary() {
   const lateHint = $("lateHint");
   if (lateHint) {
     if (!bill.dueDate) lateHint.textContent = "No due date set for this month.";
+    else if (bill.isPaid)
+      lateHint.textContent = "✓ Paid — no further action needed.";
     else if (overdue)
       lateHint.textContent = "⚠ Overdue: late payment penalty may apply.";
     else lateHint.textContent = "Pay before due date to avoid penalties.";
