@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hawker Point — Stall Hygiene</title>
+
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/stall-holder.css" />
+    <link rel="stylesheet" href="css/hygiene.css" />
+  </head>
+
+  <body class="stallHolder">
+    <!-- ================= HEADER ================= -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="stall-dashboard.html" aria-label="Hawker Point">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <div class="shStallTitle" id="stallName">—</div>
+
+        <div class="shTopRight">
+          <button class="shUserBtn" type="button">
+            <span id="ownerName">—</span>
+            <span class="shMuted">(Owner)</span>
+          </button>
+
+          <button id="logoutBtn" class="pill shLogout" type="button">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= PAGE LAYOUT ================= -->
+    <main class="shPage">
+      <div class="shLayout">
+        <!-- ===== Sidebar ===== -->
+        <aside class="shSide">
+          <div class="shSideTitle">Stall Manager</div>
+
+          <a class="shNav" href="stall-dashboard.html">
+            <span>Dashboard</span>
+          </a>
+
+          <a class="shNav" href="stall-orders.html">
+            <span>Order</span>
+            <span class="shBadge" id="orderBadge"></span>
+          </a>
+
+          <a class="shNav" href="stall-menu.html">
+            <span>Menu</span>
+          </a>
+
+          <a class="shNav" href="stall-review.html">
+            <span>Review</span>
+            <span class="shBadge" id="reviewBadge"></span>
+          </a>
+
+          <a class="shNav" href="stall-analytics.html">
+            <span>Analytics</span>
+            <span class="shBadge" id="analyticsBadge"></span>
+          </a>
+
+          <a class="shNav active" href="stall-hygiene.html">
+            <span>Hygiene</span>
+            <span class="shBadge" id="hygieneBadge"></span>
+          </a>
+
+          <a class="shNav" href="stall-account.html">
+            <span>Account</span>
+          </a>
+          <div class="shSideDivider"></div>
+          <a class="shNav" href="rental-payment.html">
+            <span>Manage Payment</span>
+          </a>
+        </aside>
+
+        <!-- ===== Content ===== -->
+        <section class="shContent">
+          <div class="shHead">
+            <h1>Hygiene</h1>
+            <p>Your stall's hygiene grade, license validity and inspection history</p>
+          </div>
+
+          <div class="hygieneGrid" style="padding: 0; margin: 0">
+            <!-- LEFT COLUMN -->
+            <div class="hygieneLeft">
+              <!-- Large Grade Card -->
+              <section class="gradeBigCard" id="gradeCard">
+                <div class="bigGrade" id="bigGrade">—</div>
+                <div class="gradeLabel" id="gradeLabel">Loading…</div>
+              </section>
+
+              <!-- Upcoming Inspection Card -->
+              <section
+                class="hygieneCard upcomingCard"
+                id="upcomingCard"
+                style="display: none"
+              >
+                <h3>Upcoming Inspection</h3>
+                <div class="upcomingRow">
+                  <div class="upcomingDate" id="upcomingDate">—</div>
+                  <div class="upcomingTag">Scheduled</div>
+                </div>
+                <p class="upcomingOfficer" id="upcomingOfficer">Officer: —</p>
+                <p class="upcomingHint">
+                  Please ensure all hygiene standards are met before the
+                  inspection date.
+                </p>
+              </section>
+
+              <!-- License Info -->
+              <section class="hygieneCard licenseCard">
+                <h3>License Validity</h3>
+                <div class="licenseRow">
+                  <div class="licenseDays" id="licenseDays">— Days</div>
+                  <div class="licenseTag" id="licenseStatus">Unknown</div>
+                </div>
+
+                <div class="licenseBar">
+                  <div class="licenseFill" id="licenseFill" style="width: 0%"></div>
+                </div>
+
+                <div class="licenseDates">
+                  <span id="issueDate">Issued: —</span>
+                  <span id="expiryDate">Expired: —</span>
+                </div>
+              </section>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="hygieneRight">
+              <!-- Trend Chart -->
+              <section class="hygieneCard">
+                <div class="cardHead">
+                  <h3>Recent Inspection Trend</h3>
+                  <button class="btn small ghost" id="viewTrendBtn" type="button">
+                    View
+                  </button>
+                </div>
+
+                <div class="chartWrap" id="chartWrap">
+                  <div class="chartGrid">
+                    <div class="chartLine"></div>
+                    <div class="chartLine"></div>
+                    <div class="chartLine"></div>
+                    <div class="chartLine"></div>
+                  </div>
+                  <p class="chartEmpty">Loading…</p>
+                </div>
+
+                <div class="chartFooter" id="chartFooter"></div>
+              </section>
+
+              <!-- History Preview -->
+              <section class="hygieneCard">
+                <div class="cardHead">
+                  <h3>Inspection History</h3>
+                  <button class="btn small ghost" id="viewHistoryBtn" type="button">
+                    View
+                  </button>
+                </div>
+
+                <div class="historyList">
+                  <div class="histRow histHead">
+                    <div>Date</div>
+                    <div>Score</div>
+                    <div>Grade</div>
+                    <div>Officer Remarks</div>
+                  </div>
+
+                  <div id="historyRows">
+                    <div class="emptyState" style="padding: 18px; font-size: 14px">
+                      Loading…
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="js/rent-guard.js"></script>
+    <script src="js/stall-hygiene.js"></script>
+    <script src="js/stall-badges.js"></script>
+  </body>
+</html>

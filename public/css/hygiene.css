@@ -95,7 +95,7 @@ body.stallHolder {
   min-width: 26px;
   height: 26px;
   border-radius: 999px;
-  display: grid;
+  display: none; /* hidden until JS sets a count, matches stall-holder.css */
   place-items: center;
   background: #e11d48;
   font-size: 12px;
@@ -369,7 +369,7 @@ body.stallHolder {
   min-width: 26px;
   height: 26px;
   border-radius: 999px;
-  display: grid;
+  display: none; /* hidden until JS sets a count, matches stall-holder.css */
   place-items: center;
   background: #e11d48;
   font-size: 12px;
