@@ -32,7 +32,7 @@ The application follows an **MVC architecture** — models handle database acces
 | Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart, Customer Settings|
 | Matthew Tan| Order History, View/Delete/Reorder orders, Promotion Page, View/Claim Promotions, Checkout Cart, Edit quantity, Apply Promotion |
 | Matthew Tay Jun Kai | Feedback, Complaints & Operator side — Submit/Edit/Delete Reviews and Complaints, Personal Feedback History, General Feedback Page, Operator Dashboard (Centres, Stalls, Rental Agreements, Monthly Billing, Revenue) |
-| Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygenie Grade, Hygiene Inspections and Manage Complaints |
+| Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygenie Grade (Customer, Stall-holder and Inspector side), Hygiene Inspections and Manage Complaints |
 
 ---
 
@@ -179,6 +179,7 @@ BEDASG/
     │   ├── operator.html
     │   ├── rental-payment.html
     │   ├── stall-dashboard.html
+    │   ├── stall-hygiene.html
     │   ├── stall-orders.html
     │   ├── stall-menu.html
     │   ├── stall-review.html
@@ -232,6 +233,7 @@ BEDASG/
     │   ├── rent-guard.js
     │   ├── rental-payment.js
     │   ├── stall-dashboard.js
+    │   ├── stall-hygiene.js
     │   ├── stall-orders.js
     │   ├── stall-menu.js
     │   ├── stall-review.js
