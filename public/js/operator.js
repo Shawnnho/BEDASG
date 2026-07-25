@@ -442,7 +442,12 @@ window.renderRentals = () => {
       return `
         <div class="ra-card">
           <div class="ra-left">
-            <h4>${ra.StallName || "Unknown Stall"}</h4>
+            <div class="item-main" style="margin-bottom: 6px">
+              <h4>${ra.StallName || "Unknown Stall"}</h4>
+              <span class="badge ${bill.IsPaid ? "green" : "red"}">
+                ${bill.IsPaid ? "Paid" : "Unpaid"}
+              </span>
+            </div>
             <p>Unit No: <b>${ra.UnitNo || "-"}</b></p>
             <p class="muted">Stall ID: <b>${ra.StallId || "-"}</b></p>
             <p class="muted">Owner: <b>${ra.OwnerName || "-"}</b></p>
@@ -666,7 +671,27 @@ async function loadStallsForModal(centreId) {
 
   sel.innerHTML = `<option value="" disabled selected>Loading stalls...</option>`;
 
-  const rawStalls = await apiFetch(`/centres/${centreId}/stalls`);
+  const [rawStalls, rentalsData] = await Promise.all([
+    apiFetch(`/centres/${centreId}/stalls`),
+    apiFetch(`/centres/${centreId}/rentals`),
+  ]);
+
+  const currentMonthKey = getCurrentMonthKeyClient();
+
+  const blockedStallIds = new Set();
+  const renewableStallIds = new Set();
+
+  for (const ra of rentalsData.agreements) {
+    const bill = ra.bill || {};
+    const isPaid = bill.IsPaid === true || bill.IsPaid === 1;
+    const isNewMonth = !bill.BillMonth || bill.BillMonth !== currentMonthKey;
+
+    if (isPaid && isNewMonth) {
+      renewableStallIds.add(ra.StallId);
+    } else {
+      blockedStallIds.add(ra.StallId);
+    }
+  }
 
   const seen = new Set();
   modalStalls = [];
@@ -684,7 +709,14 @@ async function loadStallsForModal(centreId) {
 
   sel.innerHTML = `<option value="" disabled selected>Select stall...</option>`;
   for (const s of modalStalls) {
-    sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
+    const isBlocked = blockedStallIds.has(s.StallId);
+    const isRenewable = renewableStallIds.has(s.StallId);
+
+    let label = s.StallName || s.StallId;
+    if (isBlocked) label += " (already rented)";
+    else if (isRenewable) label += " (renewal available)";
+
+    sel.innerHTML += `<option value="${s.StallId}" ${isBlocked ? "disabled" : ""}>${label}</option>`;
   }
 
   sel.onchange = () => {
