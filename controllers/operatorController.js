@@ -3,6 +3,8 @@ const stallModel = require("../models/stallModel");
 const rentalAgreementModel = require("../models/rentalAgreementModel");
 const operatorBillModel = require("../models/operatorbillModel");
 const orderModel = require("../models/operatorRevenueModel");
+const stallRatingModel = require("../models/stallRatingModel");
+const stallComplaintHistoryModel = require("../models/stallComplaintHistoryModel");
 
 function getCurrentMonthKey() {
   const d = new Date();
@@ -70,7 +72,19 @@ async function getStallsForCentre(req, res) {
   try {
     const { centreId } = req.params;
     const stalls = await stallModel.getStallsByCentre(centreId);
-    res.json(stalls);
+
+    const stallIds = stalls.map((s) => s.StallId);
+    const revenueByStall = await orderModel.getCompletedRevenueByStallIds(stallIds);
+    const ratingByStall = await stallRatingModel.getAverageRatingsByStallIds(stallIds);
+
+    const withExtras = stalls.map((s) => ({
+      ...s,
+      Revenue: revenueByStall[s.StallId] || 0,
+      AvgRating: ratingByStall[s.StallId]?.avgRating || 0,
+      ReviewCount: ratingByStall[s.StallId]?.reviewCount || 0,
+    }));
+
+    res.json(withExtras);
   } catch (err) {
     console.error("getStallsForCentre error:", err.message);
     res.status(500).json({ error: "Failed to retrieve stalls." });
@@ -118,8 +132,19 @@ async function getAllStallsForOperator(req, res) {
       }
     }
 
-    allStalls.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
-    res.json(allStalls);
+    const stallIds = allStalls.map((s) => s.StallId);
+    const revenueByStall = await orderModel.getCompletedRevenueByStallIds(stallIds);
+    const ratingByStall = await stallRatingModel.getAverageRatingsByStallIds(stallIds);
+
+    const withExtras = allStalls.map((s) => ({
+      ...s,
+      Revenue: revenueByStall[s.StallId] || 0,
+      AvgRating: ratingByStall[s.StallId]?.avgRating || 0,
+      ReviewCount: ratingByStall[s.StallId]?.reviewCount || 0,
+    }));
+
+    withExtras.sort((a, b) => (a.StallName || "").localeCompare(b.StallName || ""));
+    res.json(withExtras);
   } catch (err) {
     console.error("getAllStallsForOperator error:", err.message);
     res.status(500).json({ error: "Failed to retrieve stalls." });
@@ -259,6 +284,18 @@ async function saveBill(req, res) {
   }
 }
 
+// GET /api/operator/stalls/:stallId/complaints
+async function getStallComplaints(req, res) {
+  try {
+    const { stallId } = req.params;
+    const complaints = await stallComplaintHistoryModel.getComplaintsByStall(stallId);
+    res.json(complaints);
+  } catch (err) {
+    console.error("getStallComplaints error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve complaint history." });
+  }
+}
+
 module.exports = {
   getMyCentres,
   getOverview,
@@ -269,4 +306,5 @@ module.exports = {
   createRental,
   deleteRental,
   saveBill,
+  getStallComplaints,
 };

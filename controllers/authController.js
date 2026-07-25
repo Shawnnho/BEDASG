@@ -126,8 +126,14 @@ async function login(req, res) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    // Account has been deactivated (stallholder or customer) — refuse to
+    // issue tokens and tell the front-end to show the "contact support" popup.
     if (user.IsDeactivated) {
-      return res.status(403).json({ error: "This account has been deactivated." });
+      return res.status(403).json({
+        error: "This account has been deactivated.",
+        deactivated: true,
+        role: user.UserRole,
+      });
     }
 
     await issueTokens(res, user);
