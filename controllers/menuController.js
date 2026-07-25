@@ -13,6 +13,11 @@ async function getMenuItems(req, res) {
     // NOTE: field names below are guesses based on stallController's pattern
     // and the original (dead) mapping code. Adjust the right-hand side
     // (r.XxxYyy) to match your actual StallMenus column names if different.
+    //
+    // popular/likes are intentionally NOT set here — StallMenus has no
+    // IsPopular/Likes columns, so those would always be false/0. The real
+    // like counts come from GET /api/favitems/counts (see menu.js
+    // loadLikeCounts), which also derives "popular" from the real count.
     const items = rows.map((r) => ({
       id: r.MenuId ?? r.ItemId ?? r.Id,
       stallId: r.StallId,
@@ -21,8 +26,6 @@ async function getMenuItems(req, res) {
       desc: r.Desc || r.Description || "",
       img: r.ImageUrl || "images/menu/placeholder.jpg",
       price: r.PriceFrom === null ? Number(r.Price) : Number(r.PriceFrom),
-      popular: r.IsPopular === true || r.IsPopular === 1,
-      likes: r.Likes ?? 0,
     }));
 
     res.json(items);

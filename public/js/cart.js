@@ -511,6 +511,10 @@ document.addEventListener("click", async (e) => {
   }
 
   if (e.target.closest("#checkoutBtn")) {
+    const checkoutBtn = e.target.closest("#checkoutBtn");
+    if (checkoutBtn.disabled) return; // guard against double-click creating two orders
+    checkoutBtn.disabled = true;
+
     const cart = await readCart();
     const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
     const paymentMethod = getSelectedPayMethod();
@@ -548,9 +552,11 @@ document.addEventListener("click", async (e) => {
             }
         } else {
             alert(res?.error || "Order failed. Please try again.");
+            checkoutBtn.disabled = false;
         }
     } catch (err) {
         alert("Server error: Could not submit order. Is your backend running?");
+        checkoutBtn.disabled = false;
     }
   }
 });

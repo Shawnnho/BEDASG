@@ -113,6 +113,9 @@ async function loadLikeCounts() {
 
     allMenuItems.forEach((item) => {
       item.likes = countsByMenuId.get(item.id) || 0;
+      // No backend "popular" flag exists — the real like count is the only
+      // signal we have, so derive it here instead of always showing empty.
+      item.popular = item.likes > 0;
     });
 
     renderMenuItems(allMenuItems);

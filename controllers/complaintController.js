@@ -1,5 +1,5 @@
 const complaintModel = require("../models/complaintModel");
-const { saveBase64Image } = require("../middlewares/imageStorage");
+const { validateBase64Image } = require("../middlewares/imageStorage");
 
 // POST /api/complaints  (application/json — image sent as a base64 data URL)
 async function createComplaint(req, res) {
@@ -11,12 +11,10 @@ async function createComplaint(req, res) {
       return res.status(400).json({ error: "Please fill in all fields." });
     }
 
-    let imagePath = null;
     let imageUrl = null;
     if (image) {
       try {
-        imageUrl = saveBase64Image({ dataUrl: image, subfolder: "complaints", uid });
-        imagePath = imageUrl ? imageUrl.slice(1) : null; 
+        imageUrl = validateBase64Image(image);
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
@@ -33,7 +31,7 @@ async function createComplaint(req, res) {
       stall,
       stallName: stallName || stall,
       message: message.trim(),
-      imagePath,
+      imagePath: null,
       imageUrl,
     });
 

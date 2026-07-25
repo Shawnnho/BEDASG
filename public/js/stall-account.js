@@ -230,6 +230,7 @@ async function load() {
 
 /* ===== edit profile ===== */
 $("editProfileBtn")?.addEventListener("click", () => {
+  if (!acct) return showToast("Account still loading — try again in a moment.");
   const p = acct.profile;
 
   const { overlay } = openModal({
@@ -292,6 +293,7 @@ $("editProfileBtn")?.addEventListener("click", () => {
 
 /* ===== edit stall details ===== */
 $("editStallBtn")?.addEventListener("click", () => {
+  if (!acct) return showToast("Account still loading — try again in a moment.");
   const s = acct.stall;
   if (!s) return;
 

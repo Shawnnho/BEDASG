@@ -4,6 +4,26 @@ function computeBillId(stallId, billMonth) {
   return `${stallId}_${billMonth}`;
 }
 
+function serverMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Due on the 15th. Only rolls to next month when the bill being created is
+// for the CURRENT month and the 15th has already passed (e.g. a mid-month
+// first run) — so a brand-new bill isn't born already overdue. Bills for
+// past months keep their real, historical due date.
+function computeDueDate(billMonth) {
+  const [yy, mm] = billMonth.split("-").map(Number);
+  let dueDate = new Date(yy, mm - 1, 15);
+
+  const now = new Date();
+  if (billMonth === serverMonthKey() && now > dueDate) {
+    dueDate = new Date(yy, mm, 15);
+  }
+  return dueDate;
+}
+
 async function getBill(stallId, billMonth) {
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
@@ -20,8 +40,7 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent) {
 
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
-  const [yy, mm] = billMonth.split("-");
-  const dueDate = new Date(Number(yy), Number(mm) - 1, 15); // due on the 15th
+  const dueDate = computeDueDate(billMonth);
 
   await pool
     .request()
@@ -76,8 +95,7 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
         WHERE BillId = @billId;
       `);
   } else {
-    const [yy, mm] = billMonth.split("-");
-    const dueDate = new Date(Number(yy), Number(mm) - 1, 15);
+    const dueDate = computeDueDate(billMonth);
 
     await pool
       .request()

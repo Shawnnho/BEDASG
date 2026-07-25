@@ -393,7 +393,12 @@ async function markRentPaid(stallId, month) {
 
   const targetMonth = month || status.month;
 
-  if (status.isPaid && targetMonth === status.month) {
+  // Never let paying an older/back-dated month regress LastPaidMonth —
+  // only advance it forward (string compare works since months are
+  // zero-padded yyyy-mm). Without this, catching up on an old unpaid
+  // month AFTER the current month was already paid would overwrite
+  // LastPaidMonth backwards and make the current month look unpaid again.
+  if (status.lastPaidMonth && targetMonth <= status.lastPaidMonth) {
     return { updated: false, month: targetMonth, amount: status.amount };
   }
 
@@ -407,7 +412,7 @@ async function markRentPaid(stallId, month) {
           LastPaidAt = GETDATE(),
           UpdatedAt = GETDATE()
       WHERE AgreementId = @agreementId
-        AND (LastPaidMonth IS NULL OR LastPaidMonth <> @month)
+        AND (LastPaidMonth IS NULL OR LastPaidMonth < @month)
     `);
 
   return {

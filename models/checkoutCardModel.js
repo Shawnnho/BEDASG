@@ -5,6 +5,32 @@ function genId(prefix, len = 10) {
   return `${prefix}${crypto.randomBytes(len).toString("hex")}`;
 }
 
+// Split a checkout-level amount (delivery fee, small-order fee, promo
+// discount) across stalls proportionally to each stall's share of the
+// subtotal, so per-order totals still sum to the checkout's real total
+// instead of leaving the fee unattributed to any order. The last stall
+// absorbs the rounding remainder so the shares always add up exactly.
+function allocateByShare(amount, stallIds, subtotalByStall, grandSubtotal) {
+  const result = new Map();
+  if (!amount || grandSubtotal <= 0) {
+    stallIds.forEach((id) => result.set(id, 0));
+    return result;
+  }
+  let assigned = 0;
+  stallIds.forEach((id, i) => {
+    if (i === stallIds.length - 1) {
+      result.set(id, Math.round((amount - assigned) * 100) / 100);
+    } else {
+      const share =
+        Math.round(((amount * subtotalByStall.get(id)) / grandSubtotal) * 100) /
+        100;
+      result.set(id, share);
+      assigned += share;
+    }
+  });
+  return result;
+}
+
 async function getUserInfo(userId) {
   if (!userId || userId === "guest") return { Name: "Guest", Email: null };
   const pool = await poolPromise;
@@ -83,12 +109,28 @@ async function createCheckoutOrder(orderData) {
         )
       `);
 
+    const stallSubtotals = new Map(
+      stallIds.map((stallId) => [
+        stallId,
+        groups
+          .get(stallId)
+          .reduce((s, it) => s + (Number(it.totalPrice) || 0), 0),
+      ]),
+    );
+
+    const deliveryFeeByStall = singleStall
+      ? new Map([[stallIds[0], deliveryFee]])
+      : allocateByShare(deliveryFee, stallIds, stallSubtotals, subtotal);
+    const smallOrderFeeByStall = singleStall
+      ? new Map([[stallIds[0], smallOrderFee]])
+      : allocateByShare(smallOrderFee, stallIds, stallSubtotals, subtotal);
+    const promoDiscountByStall = singleStall
+      ? new Map([[stallIds[0], promoDiscount]])
+      : allocateByShare(promoDiscount, stallIds, stallSubtotals, subtotal);
+
     for (const stallId of stallIds) {
       const stallItems = groups.get(stallId);
-      const stallSubtotal = stallItems.reduce(
-        (s, it) => s + (Number(it.totalPrice) || 0),
-        0,
-      );
+      const stallSubtotal = stallSubtotals.get(stallId);
 
       let stallName = stallId;
       try {
@@ -104,10 +146,18 @@ async function createCheckoutOrder(orderData) {
       const orderNo = `ORD-${orderId.slice(-6).toUpperCase()}`;
       orderIds.push(orderId);
 
-      const orderDeliveryFee = singleStall ? deliveryFee : 0;
-      const orderSmallOrderFee = singleStall ? smallOrderFee : 0;
-      const orderPromoDiscount = singleStall ? promoDiscount : 0;
-      const orderTotal = singleStall ? total : stallSubtotal;
+      const orderDeliveryFee = deliveryFeeByStall.get(stallId);
+      const orderSmallOrderFee = smallOrderFeeByStall.get(stallId);
+      const orderPromoDiscount = promoDiscountByStall.get(stallId);
+      const orderTotal = singleStall
+        ? total
+        : Math.round(
+            (stallSubtotal +
+              orderDeliveryFee +
+              orderSmallOrderFee -
+              orderPromoDiscount) *
+              100,
+          ) / 100;
 
       await transaction
         .request()

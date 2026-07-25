@@ -123,15 +123,20 @@ class CartModel {
             if (matchRes.recordset.length > 0) {
                 const existing = matchRes.recordset[0];
                 const newQty = Number(existing.Qty) + Number(item.qty || 1);
-                const unitPrice = Number(existing.UnitPrice ?? item.unitPrice ?? 0);
+                // Use the incoming price, not the stale stored one — if the
+                // item's price changed since it was first added (e.g. a promo
+                // ended), the merge should reflect the current price.
+                const unitPrice = Number(item.unitPrice ?? existing.UnitPrice ?? 0);
 
                 await transaction.request()
                     .input('cartItemId', existing.CartItemId)
                     .input('qty', newQty)
+                    .input('uprice', unitPrice)
                     .input('tprice', newQty * unitPrice)
+                    .input('note', item.note || null)
                     .query(`
                         UPDATE CartItems
-                        SET Qty = @qty, TotalPrice = @tprice
+                        SET Qty = @qty, UnitPrice = @uprice, TotalPrice = @tprice, Note = @note
                         WHERE CartItemId = @cartItemId
                     `);
 

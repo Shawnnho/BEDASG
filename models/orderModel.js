@@ -73,7 +73,10 @@ async function getOrdersByStall(stallId, limitN = 50) {
   return result.recordset;
 }
 
-// Update the status of one order (scoped to the stall so an owner can't touch others' orders)
+// Update the status of one order (scoped to the stall so an owner can't touch others' orders).
+// Cancelled/completed orders are terminal — same rule cancelOrder() already
+// enforces — so a bulk update can't drag a cancelled order (with a pending
+// refund) straight into "completed", or reopen a finished order.
 async function updateOrderStatus(orderId, stallId, newStatus) {
   const pool = await poolPromise;
   const result = await pool
@@ -84,9 +87,10 @@ async function updateOrderStatus(orderId, stallId, newStatus) {
       UPDATE Orders
       SET OrderStatus = @NewStatus,
           UpdatedAt = SYSUTCDATETIME()
-      WHERE OrderId = @OrderId AND StallId = @StallId;
+      WHERE OrderId = @OrderId AND StallId = @StallId
+        AND OrderStatus NOT IN ('cancelled', 'completed');
     `);
-  return result.rowsAffected[0]; // 0 = not found / not owned, 1 = updated
+  return result.rowsAffected[0]; // 0 = not found / not owned / already terminal, 1 = updated
 }
 
 // Cash-like payment methods appear as: cash, Cash. Match case-insensitively.
