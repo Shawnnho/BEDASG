@@ -3,5 +3,6 @@ const router = express.Router();
 const promoController = require('../controllers/promotionController');
 
 router.get('/', promoController.getPromotions);
+router.post('/redeem', promoController.redeemPromotion);
 
 module.exports = router;
