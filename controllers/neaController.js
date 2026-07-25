@@ -183,6 +183,12 @@ async function completeInspection(req, res) {
     const inspection = await neaModel.getInspectionById(inspectionId);
     if (!inspection) return res.status(404).json({ error: "Inspection not found" });
 
+    if (inspection.InspectionStatus !== "scheduled") {
+      return res.status(400).json({
+        error: "Only scheduled inspections can be completed",
+      });
+    }
+
     if (!officer || !date) {
       return res.status(400).json({ error: "officer and date are required" });
     }

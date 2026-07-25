@@ -227,7 +227,6 @@
       });
     }
   }
-  if (sessionStorage.getItem("rgDismissed")) return;
 
   async function init() {
     let status;
@@ -238,12 +237,16 @@
     }
     if (!status || !status.hasBill || status.isPaid) return;
 
-    // Overdue → hard paywall (locked, no dismiss).
-    // Due today or tomorrow → blocking modal (dismissable).
-    // Due 2+ days out → corner toast.
+    // Overdue → hard paywall. "Remind Me Later" must NOT suppress this.
     if (status.isOverdue) {
       showModal(status, "locked");
-    } else if (status.showPopup) {
+      return;
+    }
+
+    // Soft reminders respect the session dismissal.
+    if (sessionStorage.getItem("rgDismissed")) return;
+
+    if (status.showPopup) {
       const urgent =
         typeof status.daysUntilDue === "number" && status.daysUntilDue <= 1;
       showModal(status, urgent ? "urgent" : "soft");

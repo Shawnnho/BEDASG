@@ -4,7 +4,7 @@ const { verifyToken } = require("../middlewares/auth");
 const analyticsController = require("../controllers/stallAnalyticsController");
 const { enforceRentPaywall } = require("../middlewares/rentPaywall");
 
-router.get("/analytics", verifyToken, analyticsController.getAnalytics);
 router.use(verifyToken, enforceRentPaywall());
+router.get("/analytics", verifyToken, analyticsController.getAnalytics);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const favStallModel = require("../models/favStallModel");
 
+const SQL_UNIQUE_VIOLATION = 2627;
+
 async function getFavStalls(req, res) {
   try {
     const userId = req.user.userId;
@@ -19,6 +21,9 @@ async function addFavStall(req, res) {
     const success = await favStallModel.addFavStall(userId, stallId);
     res.status(201).json({ success });
   } catch (error) {
+    if (error.number === SQL_UNIQUE_VIOLATION) {
+      return res.status(409).json({ message: "This stall is already a favourite" });
+    }
     console.error("Error adding favorite stall:", error);
     res.status(500).json({ message: "Internal server error" });
   }

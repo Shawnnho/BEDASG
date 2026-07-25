@@ -1,6 +1,5 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
-
 // Used by REGISTER's duplicate-email check.
 // Matches ANY existing Users row — including legacy Firebase-only accounts
 // that have no row in UserCredentials yet — so a new signup can't quietly
@@ -15,7 +14,6 @@ async function getUserByEmail(email) {
     );
   return result.recordset[0] || null;
 }
-
 // Used by LOGIN. Only returns a result if the user both exists AND has a
 // local password set — legacy Firebase-only accounts correctly fail login
 // here (they have no UserCredentials row), rather than the app pretending
@@ -34,7 +32,6 @@ async function getUserWithCredentialsByEmail(email) {
     `);
   return result.recordset[0] || null;
 }
-
 async function getUserById(userId) {
   const pool = await poolPromise;
   const result = await pool
@@ -45,13 +42,11 @@ async function getUserById(userId) {
     );
   return result.recordset[0] || null;
 }
-
 // Inserts into BOTH Users and UserCredentials, wrapped in a transaction so
 // a failure partway through can't leave a profile with no password or vice versa.
 async function createUser({ name, email, phone, passwordHash, role }) {
   const pool = await poolPromise;
   const userId = crypto.randomUUID();
-
   const tx = new sql.Transaction(pool);
   await tx.begin();
   try {
@@ -65,7 +60,6 @@ async function createUser({ name, email, phone, passwordHash, role }) {
         INSERT INTO dbo.Users (UserId, Name, Email, Phone, UserRole, CreatedAt, UpdatedAt)
         VALUES (@userId, @name, @email, @phone, @role, SYSUTCDATETIME(), SYSUTCDATETIME())
       `);
-
     await new sql.Request(tx)
       .input("userId", sql.NVarChar, userId)
       .input("passwordHash", sql.NVarChar, passwordHash)
@@ -73,16 +67,13 @@ async function createUser({ name, email, phone, passwordHash, role }) {
         INSERT INTO dbo.UserCredentials (UserId, PasswordHash)
         VALUES (@userId, @passwordHash)
       `);
-
     await tx.commit();
   } catch (err) {
     await tx.rollback();
     throw err;
   }
-
   return await getUserById(userId);
 }
-
 module.exports = {
   getUserByEmail,
   getUserWithCredentialsByEmail,
