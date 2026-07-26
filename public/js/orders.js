@@ -61,6 +61,7 @@ function isPendingStatus(status) {
 function statusClass(status) {
   const s = String(status || "").toLowerCase();
   if (s === "completed" || s === "collected" || s === "done") return "stDone";
+  if (s === "cancelled") return "stCancelled";
   if (s.includes("pending_payment") || s.includes("pending")) return "stPay";
   if (s.includes("paid") || s.includes("processing")) return "stPaid";
   if (s.includes("preparing")) return "stPrep";
@@ -102,6 +103,7 @@ function combineOrdersByCheckout(orders) {
   const STATUS_PRIORITY = [
     "pending_payment",
     "pending",
+    "cancelled",
     "paid",
     "processing",
     "preparing",

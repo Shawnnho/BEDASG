@@ -1,7 +1,7 @@
 const FavouriteOrderModel = require('../models/favouriteOrderModel');
 
 function ownFavouriteOrForbid(req, res) {
-    if (req.params.uid !== req.user.userId) {
+    if (!req.user || req.params.uid !== (req.user.UserId || req.user.userId)) {
         res.status(403).json({ message: 'You can only access your own favourite order' });
         return false;
     }

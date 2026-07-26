@@ -2,15 +2,13 @@ const express = require("express");
 const router = express.Router();
 const promoController = require("../controllers/promotionController");
 const { verifyToken, requireRole } = require("../middlewares/auth");
-
 // ============================================================
 // CUSTOMER-FACING (existing)
 // ============================================================
 // GET  /api/promotions        -> list all promotions
 // POST /api/promotions/redeem -> redeem a promo code
 router.get("/", promoController.getPromotions);
-router.post("/redeem", promoController.redeemPromotion);
-
+router.post("/redeem", verifyToken, promoController.redeemPromotion);
 // ============================================================
 // STALLHOLDER-FACING (new)
 // All require a valid JWT cookie AND the "storeholder" role, and are
@@ -44,5 +42,4 @@ router.delete(
   requireRole("storeholder"),
   promoController.deletePromotion,
 );
-
 module.exports = router;

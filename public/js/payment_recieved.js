@@ -226,6 +226,46 @@ function applyRefundState(orders) {
   }
 }
 
+function setupCancelButton(id, orders) {
+  const btn = document.getElementById("btnCancel");
+  if (!btn) return;
+
+  const isRefunded = orders.some(
+    (o) => String(o.RefundStatus || "").toLowerCase() === "refunded",
+  );
+  const isCancelled = orders.some((o) => !!o.CancelledAt);
+  const isCompleted = orders.some(
+    (o) => String(o.OrderStatus || "").toLowerCase() === "completed",
+  );
+
+  if (isRefunded || isCancelled || isCompleted) {
+    btn.hidden = true;
+    return;
+  }
+
+  btn.hidden = false;
+  btn.onclick = async () => {
+    if (!confirm("Cancel this order? This cannot be undone.")) return;
+
+    btn.disabled = true;
+    btn.textContent = "Cancelling...";
+
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(id)}/cancel`, {
+        method: "PATCH",
+      });
+      if (!res.ok) throw new Error("Cancel failed");
+
+      await loadSummary(id);
+    } catch (err) {
+      console.error(err);
+      alert("Could not cancel this order. Please try again.");
+      btn.disabled = false;
+      btn.textContent = "Cancel Order";
+    }
+  };
+}
+
 async function loadSummary(id) {
   const summary = await api(`/checkoutCard/${encodeURIComponent(id)}`);
   const { checkout, orders, items } = summary;
@@ -252,6 +292,9 @@ async function loadSummary(id) {
   const paidAt = checkout?.PaymentPaidAt || orders[0].PaidAt;
   const createdAt = checkout?.CreatedAt || orders[0].CreatedAt;
   setPaidAtAndPickup(paidAt, isCash, createdAt);
+
+  const titleEl = document.querySelector(".pr-title");
+  if (titleEl) titleEl.textContent = isCash ? "Order Received" : "Payment Received";
 
   const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
   const stallsEl = document.getElementById("prStalls");
@@ -282,6 +325,7 @@ async function loadSummary(id) {
 
   renderItems(orders, items || []);
   applyRefundState(orders);
+  setupCancelButton(id, orders);
 
   const loading = document.getElementById("prLoading");
   const errBox = document.getElementById("prError");

@@ -112,4 +112,55 @@ async function deleteOrdersForCustomer(userId, id) {
   return orderIds.length;
 }
 
-module.exports = { getOrdersForCustomer, getItemsForOrderIds, deleteOrdersForCustomer };
+async function cancelOrder(userId, id) {
+  const pool = await poolPromise;
+
+  // Is `id` a CheckoutId belonging to this user?
+  const cRes = await pool
+    .request()
+    .input("Id", sql.NVarChar(255), id)
+    .input("UserId", sql.NVarChar(255), userId)
+    .query(
+      "SELECT CheckoutId FROM dbo.Checkouts WHERE CheckoutId = @Id AND UserId = @UserId",
+    );
+  const checkoutId = cRes.recordset[0]?.CheckoutId || null;
+
+  const request = pool.request().input("UserId", sql.NVarChar(255), userId);
+
+  const query = checkoutId
+    ? request.input("CheckoutId", sql.NVarChar(255), checkoutId).query(`
+        UPDATE dbo.Orders
+        SET OrderStatus = 'cancelled',
+            CancelReason = 'customer_cancelled',
+            CancelledAt = SYSUTCDATETIME(),
+            UpdatedAt = SYSUTCDATETIME()
+        WHERE CheckoutId = @CheckoutId
+          AND CustomerId = @UserId
+          AND OrderStatus NOT IN ('completed', 'cancelled')
+      `)
+    : request.input("OrderId", sql.NVarChar(255), id).query(`
+        UPDATE dbo.Orders
+        SET OrderStatus = 'cancelled',
+            CancelReason = 'customer_cancelled',
+            CancelledAt = SYSUTCDATETIME(),
+            UpdatedAt = SYSUTCDATETIME()
+        WHERE OrderId = @OrderId
+          AND CustomerId = @UserId
+          AND OrderStatus NOT IN ('completed', 'cancelled')
+      `);
+
+  const result = await query;
+
+  if (checkoutId && result.rowsAffected[0] > 0) {
+    await pool
+      .request()
+      .input("CheckoutId", sql.NVarChar(255), checkoutId)
+      .query(
+        "UPDATE dbo.Checkouts SET Status = 'cancelled' WHERE CheckoutId = @CheckoutId",
+      );
+  }
+
+  return result.rowsAffected[0];
+}
+
+module.exports = { getOrdersForCustomer, getItemsForOrderIds, deleteOrdersForCustomer, cancelOrder };

@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const favouriteOrderController = require('../controllers/favouriteOrderController');
 const { verifyToken } = require('../middlewares/auth');
+const favouriteOrderController = require('../controllers/favouriteOrderController');
 
-// A favourite order belongs to one logged-in user; :uid must match the
-// caller's own id (enforced in the controller).
-router.use(verifyToken);
-
-router.get('/:uid', favouriteOrderController.getFavourite);
-router.put('/:uid', favouriteOrderController.saveFavourite);
-router.delete('/:uid', favouriteOrderController.deleteFavourite);
+router.get('/:uid', verifyToken, favouriteOrderController.getFavourite);
+router.put('/:uid', verifyToken, favouriteOrderController.saveFavourite);
+router.delete('/:uid', verifyToken, favouriteOrderController.deleteFavourite);
 
 module.exports = router;

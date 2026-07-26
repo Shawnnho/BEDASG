@@ -278,9 +278,23 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: JSON.stringify({ code: promo.code })
       });
-      
+
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        throw new Error('Database error');
+        if (response.status === 401) {
+          redeemMsg.textContent = "Please log in to redeem promo codes.";
+          showToast("Log in required");
+          return;
+        }
+        if (response.status === 409) {
+          redeemMsg.textContent = "You've already claimed this promo code.";
+          showToast("Already claimed");
+          return;
+        }
+        redeemMsg.textContent = data.error || "Could not redeem this code.";
+        showToast("Redemption failed");
+        return;
       }
 
       localStorage.setItem("hawkerpoint_applied_promo", code);
