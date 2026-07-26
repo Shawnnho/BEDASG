@@ -72,9 +72,11 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
-/** Convert a raw variant key like "cold_s" into a display label "cold s". */
+/** Convert a raw variant key like "cold_s" into a display label "Cold S". */
 function formatVariantLabel(variant) {
-  return String(variant || "").replace(/_/g, " ");
+  return String(variant || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 /** Update the "<Item Name> (<variant>)" heading to reflect the current selection. */
@@ -247,7 +249,7 @@ function renderVariants() {
     });
 
     const text = document.createElement("span");
-    text.textContent = v.variant;
+    text.textContent = formatVariantLabel(v.variant);
 
     const price = document.createElement("span");
     price.className = "variantPrice";
