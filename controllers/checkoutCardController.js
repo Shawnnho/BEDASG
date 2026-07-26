@@ -6,7 +6,8 @@ const CartModel = require("../models/cartModel");
 // flow. But if the checkout DOES belong to a registered user, block anyone
 // else (including a different logged-in user) from viewing/paying it.
 function ownsCheckoutOrForbid(req, res, checkout) {
-  if (checkout?.UserId && checkout.UserId !== req.user?.userId) {
+  const currentUserId = req.user?.UserId || req.user?.userId;
+  if (checkout?.UserId && checkout.UserId !== currentUserId) {
     res.status(403).json({ error: "You don't have access to this checkout." });
     return false;
   }

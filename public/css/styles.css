@@ -6652,3 +6652,17 @@ body.storePage #stallGrade.gradeD {
       .rgToast .rgBtn { width: 100%; }
       .rgToast .rgMsg { min-height: 0; margin-top: 0; }
       .rgToast .rgMsg:empty { display: none; }
+
+.pr-btn-danger {
+  background-color: #ffe0e0;
+  color: #cc2b2b;
+}
+
+.pr-btn-danger:hover {
+  background-color: #ffcccc;
+}
+
+.orderStatusPill.stCancelled {
+  background-color: #ffe0e0;
+  color: #cc2b2b;
+}

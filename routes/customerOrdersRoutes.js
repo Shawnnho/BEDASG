@@ -5,5 +5,6 @@ const customerOrdersController = require("../controllers/customerOrdersControlle
 
 router.get("/", verifyToken, customerOrdersController.getMyOrders);
 router.delete("/:id", verifyToken, customerOrdersController.deleteMyOrder);
+router.patch("/:id/cancel", verifyToken, customerOrdersController.cancelMyOrder);
 
 module.exports = router;

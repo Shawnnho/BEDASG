@@ -84,4 +84,25 @@ const deleteMyOrder = async (req, res) => {
   }
 };
 
-module.exports = { getMyOrders, deleteMyOrder };
+const cancelMyOrder = async (req, res) => {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const id = req.params.id;
+    const affected = await customerOrdersModel.cancelOrder(userId, id);
+
+    if (affected === 0) {
+      return res
+        .status(409)
+        .json({ error: "Order not found, not yours, or already completed/cancelled" });
+    }
+
+    res.json({ success: true, cancelledCount: affected });
+  } catch (err) {
+    console.error("cancelMyOrder error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+};
+
+module.exports = { getMyOrders, deleteMyOrder, cancelMyOrder };
