@@ -72,7 +72,6 @@
             ><span>Manage Payment</span></a
           >
         </aside>
-        </aside>
 
         <!-- ===== Content ===== -->
         <section class="shContent">
@@ -237,6 +236,86 @@
               </div>
             </section>
 
+            <!-- ============ CLOSURES & PUBLIC HOLIDAYS ============ -->
+            <section class="acctCard acctWide">
+              <div class="acctCardHead">
+                <div>
+                  <span class="acctEyebrow">Availability</span>
+                  <h3>Closures &amp; Public Holidays</h3>
+                </div>
+              </div>
+
+              <p class="acctHint">
+                Mark your stall closed on specific dates. Upcoming Singapore
+                public holidays are listed below — tap “Mark closed” to add one
+                quickly.
+              </p>
+
+              <!-- Upcoming public holidays (from data.gov.sg via our backend) -->
+              <div
+                class="acctHoursToggle"
+                id="holidaysToggle"
+                role="button"
+                tabindex="0"
+                aria-expanded="false"
+                style="margin-top: 16px"
+              >
+                <span class="acctHoursSummary"
+                  ><i class="ti ti-calendar-event" aria-hidden="true"></i
+                  ><span>Upcoming Public Holidays</span></span
+                >
+                <i
+                  class="ti ti-chevron-down acctHoursChevron"
+                  aria-hidden="true"
+                ></i>
+              </div>
+              <div class="acctClosureCollapse" id="holidaysWrap">
+                <div class="acctClosureList" id="holidaysList">
+                  <div class="acctHint">Loading…</div>
+                </div>
+              </div>
+
+              <!-- Add an arbitrary closure -->
+              <div class="acctLabel" style="margin-top: 18px">
+                Add a Closure
+              </div>
+              <div
+                class="acctClosureForm"
+                style="
+                  display: flex;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                  align-items: center;
+                  margin-top: 6px;
+                "
+              >
+                <input type="date" id="closureDateInput" class="acctInput" />
+                <input
+                  type="text"
+                  id="closureReasonInput"
+                  class="acctInput"
+                  placeholder="Reason (optional)"
+                  maxlength="255"
+                  style="min-width: 220px"
+                />
+                <button
+                  class="btn small primary"
+                  id="addClosureBtn"
+                  type="button"
+                >
+                  <i class="ti ti-plus" aria-hidden="true"></i> Add Closure
+                </button>
+              </div>
+
+              <!-- Existing closures for this stall -->
+              <div class="acctLabel" style="margin-top: 18px">
+                Your Closures
+              </div>
+              <div class="acctClosureList" id="closuresList">
+                <div class="acctHint">Loading…</div>
+              </div>
+            </section>
+
             <!-- ============ NOTIFICATIONS + SECURITY (two-up) ============ -->
             <div class="acctWide acctRow2">
               <!-- Notifications -->
@@ -323,9 +402,10 @@
     <div class="toast" id="toast"></div>
 
     <script src="js/stall-account.js"></script>
+    <script src="js/stall-closures.js"></script>
     <script src="js/stall-badges.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script src="js/payment-modal.js"></script>
-<script src="js/rent-guard.js" defer></script>
+    <script src="js/payment-modal.js"></script>
+    <script src="js/rent-guard.js" defer></script>
   </body>
 </html>
