@@ -72,7 +72,8 @@ BEDASG/
 │   ├── stallAnalyticsController.js
 │   ├── stallController.js
 │   ├── stallMenuController.js
-│   └── stallReviewController.js
+│   ├── stallReviewController.js
+│   └── stallClosureController.js 
 │
 ├── models/
 │   ├── addonModel.js
@@ -102,7 +103,9 @@ BEDASG/
 │   ├── stallMenuModel.js
 │   ├── stallModel.js
 │   ├── stallReviewModel.js
-│   └── userModel.js
+│   ├── userModel.js
+│   ├── stallClosureModel.js
+│   └── stallComplaintHistoryModel.js       
 │
 ├── routes/
 │   ├── addonRoutes.js
@@ -130,7 +133,13 @@ BEDASG/
 │   ├── stallAccountRoutes.js
 │   ├── stallAnalyticsRoutes.js
 │   ├── stallMenuRoutes.js
-│   └── stallRoutes.js
+│   ├── stallRoutes.js
+│   ├── favouriteOrderRoutes.js       
+│   ├── menuPricesRoutes.js           
+│   └── stallClosureRoutes.js          
+│
+├── services/                           # NEW folder
+│   └── holidayService.js
 │
 ├── middlewares/
 │   ├── auth.js
@@ -184,7 +193,9 @@ BEDASG/
     │   ├── stall-menu.html
     │   ├── stall-review.html
     │   ├── stall-analytics.html
+    │   ├── stall-promotions.html
     │   └── stall-account.html
+
     │
     ├── css/
     │   ├── styles.css
@@ -240,6 +251,9 @@ BEDASG/
     │   ├── stall-analytics.js
     │   ├── stall-account.js
     │   └── stall-badges.js
+    │   ├── stall-closures.js               # NEW — closures card logic
+    │   └── stall-promotions.js
+
     │
     └── images/
         ├── menu/           # Menu item images (per-stall subfolders)
