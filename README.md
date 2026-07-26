@@ -73,6 +73,8 @@ BEDASG/
 │   ├── stallController.js
 │   ├── stallMenuController.js
 │   ├── stallReviewController.js
+│   ├── favouriteOrderController.js
+│   ├── menuPricesController.js
 │   └── stallClosureController.js 
 │
 ├── models/
@@ -105,6 +107,7 @@ BEDASG/
 │   ├── stallReviewModel.js
 │   ├── userModel.js
 │   ├── stallClosureModel.js
+│   ├── stallRatingModel.js
 │   └── stallComplaintHistoryModel.js       
 │
 ├── routes/
@@ -135,7 +138,8 @@ BEDASG/
 │   ├── stallMenuRoutes.js
 │   ├── stallRoutes.js
 │   ├── favouriteOrderRoutes.js       
-│   ├── menuPricesRoutes.js           
+│   ├── menuPricesRoutes.js
+│   ├── favStallRoutes.js     
 │   └── stallClosureRoutes.js          
 │
 ├── services/                           # NEW folder
@@ -192,6 +196,7 @@ BEDASG/
     │   ├── stall-orders.html
     │   ├── stall-menu.html
     │   ├── stall-review.html
+    │   ├── payment-modal.js
     │   ├── stall-analytics.html
     │   ├── stall-promotions.html
     │   └── stall-account.html
