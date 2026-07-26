@@ -4614,3 +4614,65 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
 #rentalNotifBody {
   transition: none;
 }
+/* ============================================================
+   Stall Closures card (stall-account page)
+   Append to the end of stall-holder.css
+   ============================================================ */
+
+/* Always-visible list container (unlike .acctHours, which collapses) */
+.shAcctModern .acctClosureList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+/* Reuse the same row layout as opening-hours rows */
+.shAcctModern .acctClosureList .acctHourRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+/* Text/date inputs on the closures form */
+.shAcctModern .acctInput {
+  padding: 9px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+}
+.shAcctModern .acctInput:focus {
+  outline: none;
+  border-color: #d79a2b;
+  box-shadow: 0 0 0 3px rgba(215, 154, 43, 0.15);
+}
+
+/* ---------- Collapsible "Upcoming Public Holidays" ---------- */
+/* Collapsed by default; expands when JS adds the .open class.
+   max-height is generous so the full holiday list fits, and
+   overflow-y lets it scroll if it ever gets very long. */
+.shAcctModern .acctClosureCollapse {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+}
+.shAcctModern .acctClosureCollapse.open {
+  max-height: 520px;
+  opacity: 1;
+  overflow-y: auto;
+  padding-top: 8px;
+}
+
+/* Chevron flips when the holidays toggle is open (matches opening-hours) */
+.shAcctModern .acctHoursToggle#holidaysToggle.open .acctHoursChevron {
+  transform: rotate(180deg);
+}
