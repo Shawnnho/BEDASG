@@ -4616,7 +4616,6 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
 }
 /* ============================================================
    Stall Closures card (stall-account page)
-   Append to the end of stall-holder.css
    ============================================================ */
 
 /* Always-visible list container (unlike .acctHours, which collapses) */
@@ -4640,7 +4639,7 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
   background: rgba(0, 0, 0, 0.015);
 }
 
-/* Text/date inputs on the closures form */
+/* Text/date inputs on the closures & promotions forms */
 .shAcctModern .acctInput {
   padding: 9px 12px;
   border: 1px solid rgba(0, 0, 0, 0.15);
@@ -4656,9 +4655,7 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
 }
 
 /* ---------- Collapsible "Upcoming Public Holidays" ---------- */
-/* Collapsed by default; expands when JS adds the .open class.
-   max-height is generous so the full holiday list fits, and
-   overflow-y lets it scroll if it ever gets very long. */
+/* Collapsed by default; expands when JS adds the .open class. */
 .shAcctModern .acctClosureCollapse {
   max-height: 0;
   opacity: 0;
@@ -4675,4 +4672,108 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
 /* Chevron flips when the holidays toggle is open (matches opening-hours) */
 .shAcctModern .acctHoursToggle#holidaysToggle.open .acctHoursChevron {
   transform: rotate(180deg);
+}
+
+/* ============================================================
+   Stall Promotions page
+   ============================================================ */
+
+/* Responsive two-column form grid */
+.shAcctModern .promoFormGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+.shAcctModern .promoFormGrid .acctSpan2 {
+  grid-column: 1 / -1;
+}
+
+/* select styled like the text inputs */
+.shAcctModern select.acctInput {
+  cursor: pointer;
+}
+
+/* Checkboxes row */
+.shAcctModern .promoCheckRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 16px;
+}
+.shAcctModern .promoCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Form action buttons */
+.shAcctModern .promoFormActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  align-items: center;
+}
+/* Keep both buttons the same height and vertically centred */
+.shAcctModern .promoFormActions .btn.small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+}
+
+/* Rows in the promo list: stack details left, actions right */
+.shAcctModern #promoList .promoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.015);
+}
+.shAcctModern #promoList .promoRowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.shAcctModern #promoList .promoRowTitle {
+  font-weight: 800;
+}
+.shAcctModern #promoList .promoRowMeta {
+  font-size: 13px;
+  color: #6b6b6b;
+}
+.shAcctModern #promoList .promoRowActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.shAcctModern .promoBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(215, 154, 43, 0.15);
+  color: #9a6a12;
+  margin-left: 6px;
+}
+
+/* ---------- Secondary (non-primary) small buttons ---------- */
+/* Gives Cancel / Edit / Remove a clean outlined look so they don't
+   render flat next to the amber primary buttons. */
+.shAcctModern .btn.small:not(.primary) {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.shAcctModern .btn.small:not(.primary):hover {
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
