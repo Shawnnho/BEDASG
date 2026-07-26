@@ -347,7 +347,6 @@ BEDASG/
    EMAIL_USER=hawkerpointsg@gmail.com
    EMAIL_PASS=anoj stwd gauf xrbs
    ```
-   > Adjust `DB_SERVER` to match your instance. Never commit `.env`.
 
 4. **Set up the database**
    Run the SQL creation script (with sample data) from the `database/` folder against your SQL Server instance using SSMS or `sqlcmd`.
