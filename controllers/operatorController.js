@@ -203,6 +203,24 @@ async function createRental(req, res) {
     const stall = await stallModel.getStallById(stallId);
     if (!stall) return res.status(404).json({ error: "Stall not found." });
 
+    const existing = await rentalAgreementModel.getRentalAgreementByStallId(stall.StallId);
+    if (existing) {
+      const latestBill = await operatorBillModel.getLatestBillForStall(stall.StallId);
+      const currentMonthKey = getCurrentMonthKey();
+      const isPaid = latestBill?.IsPaid === true || latestBill?.IsPaid === 1;
+      const isNewMonth = !latestBill || latestBill.BillMonth !== currentMonthKey;
+
+      if (!(isPaid && isNewMonth)) {
+        return res.status(409).json({
+          error: isPaid
+            ? "This stall's agreement can only be renewed in a new month."
+            : "This stall's current rental agreement is unpaid — settle it before creating a new one.",
+        });
+      }
+
+      await rentalAgreementModel.deleteRentalAgreement(existing.AgreementId);
+    }
+
     const baseRent = Number(monthlyRent);
     const combinedTotal =
       baseRent +

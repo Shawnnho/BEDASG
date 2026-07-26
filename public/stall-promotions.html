@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hawker Point — Promotions</title>
+
+    <!-- Icon font -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
+    />
+
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/stall-holder.css" />
+  </head>
+
+  <body class="stallHolder shAcctModern">
+    <!-- ================= HEADER ================= -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="stall-dashboard.html" aria-label="Hawker Point">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <div class="shStallTitle" id="stallName">—</div>
+
+        <div class="shTopRight">
+          <button class="shUserBtn" type="button">
+            <span id="ownerName">—</span>
+            <span class="shMuted">(Owner)</span>
+          </button>
+          <button id="logoutBtn" class="pill shLogout" type="button">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= PAGE ================= -->
+    <main class="shPage">
+      <div class="shLayout">
+        <!-- ===== Sidebar ===== -->
+        <aside class="shSide">
+          <div class="shSideTitle">Stall Manager</div>
+
+          <a class="shNav" href="stall-dashboard.html"
+            ><span>Dashboard</span></a
+          >
+
+          <a class="shNav" href="stall-orders.html">
+            <span>Order</span><span class="shBadge" id="orderBadge"></span>
+          </a>
+
+          <a class="shNav active" href="stall-promotions.html"
+            ><span>Promotions</span></a
+          >
+
+          <a class="shNav" href="stall-menu.html"><span>Menu</span></a>
+
+          <a class="shNav" href="stall-review.html">
+            <span>Review</span>
+            <span class="shBadge" id="reviewBadge"></span>
+          </a>
+          <a class="shNav" href="stall-analytics.html"
+            ><span>Analytics</span></a
+          >
+          <a class="shNav" href="stall-hygiene.html"><span>Hygiene</span></a>
+
+          <a class="shNav" href="stall-account.html"><span>Account</span></a>
+
+          <div class="shSideDivider"></div>
+          <a class="shNav" href="rental-payment.html"
+            ><span>Manage Payment</span></a
+          >
+        </aside>
+
+        <!-- ===== Content ===== -->
+        <section class="shContent">
+          <div class="shHead">
+            <h1>Promotions</h1>
+            <p>Create and manage promotions for your stall</p>
+          </div>
+
+          <div class="acctGrid">
+            <!-- ============ CREATE / EDIT FORM ============ -->
+            <section class="acctCard acctWide">
+              <div class="acctCardHead">
+                <div>
+                  <span class="acctEyebrow">Promotions</span>
+                  <h3 id="formTitle">Create a Promotion</h3>
+                </div>
+              </div>
+
+              <!-- Hidden id: empty = create mode, set = edit mode -->
+              <input type="hidden" id="promoId" value="" />
+
+              <div class="promoFormGrid">
+                <div>
+                  <div class="acctLabel">Title</div>
+                  <input
+                    type="text"
+                    id="promoTitle"
+                    class="acctInput"
+                    placeholder="e.g. Lunch Special"
+                    maxlength="255"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Promo Code</div>
+                  <input
+                    type="text"
+                    id="promoCode"
+                    class="acctInput"
+                    placeholder="e.g. KOPI10"
+                    maxlength="50"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Type</div>
+                  <select id="promoType" class="acctInput">
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed amount ($)</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="acctLabel">Discount Value</div>
+                  <input
+                    type="number"
+                    id="discountValue"
+                    class="acctInput"
+                    placeholder="10"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Minimum Spend ($)</div>
+                  <input
+                    type="number"
+                    id="minSpend"
+                    class="acctInput"
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Max Discount ($, optional)</div>
+                  <input
+                    type="number"
+                    id="maxDiscount"
+                    class="acctInput"
+                    placeholder="e.g. 5"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Redemptions Available</div>
+                  <input
+                    type="number"
+                    id="redemptionsLeft"
+                    class="acctInput"
+                    placeholder="100"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Expiry Date (optional)</div>
+                  <input type="date" id="expiresAt" class="acctInput" />
+                </div>
+                <div class="acctSpan2">
+                  <div class="acctLabel">Description (optional)</div>
+                  <input
+                    type="text"
+                    id="promoDesc"
+                    class="acctInput"
+                    placeholder="Short description shown to customers"
+                    maxlength="1000"
+                    style="width: 100%"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Required Item Keyword (optional)</div>
+                  <input
+                    type="text"
+                    id="requiredKeyword"
+                    class="acctInput"
+                    placeholder="e.g. kopi"
+                    maxlength="100"
+                  />
+                </div>
+                <div>
+                  <div class="acctLabel">Promo Image (optional)</div>
+                  <input
+                    type="file"
+                    id="imageFile"
+                    class="acctInput"
+                    accept="image/*"
+                  />
+                  <img
+                    id="imagePreview"
+                    alt="Promo image preview"
+                    style="
+                      display: none;
+                      margin-top: 8px;
+                      max-width: 160px;
+                      max-height: 120px;
+                      border-radius: 10px;
+                      border: 1px solid rgba(0, 0, 0, 0.1);
+                    "
+                  />
+                  <button
+                    type="button"
+                    id="removeImageBtn"
+                    class="btn small"
+                    style="display: none; margin-top: 8px"
+                  >
+                    Remove image
+                  </button>
+                  <!-- Holds the base64 (or existing URL) that gets submitted -->
+                  <input type="hidden" id="imageUrl" value="" />
+                </div>
+              </div>
+              <p class="acctHint" style="margin-top: 6px">
+                Required keyword: the promo only applies if the customer's cart
+                contains an item whose name includes this word. Images are
+                stored as part of the promotion (max ~1.5MB).
+              </p>
+
+              <div class="promoCheckRow">
+                <label class="promoCheck">
+                  <input type="checkbox" id="isPopular" />
+                  <span>Mark as popular</span>
+                </label>
+                <label class="promoCheck">
+                  <input type="checkbox" id="claimOnce" />
+                  <span>Claim once per customer</span>
+                </label>
+              </div>
+
+              <div class="promoFormActions">
+                <button
+                  class="btn small primary"
+                  id="savePromoBtn"
+                  type="button"
+                >
+                  <i class="ti ti-plus" aria-hidden="true"></i>
+                  <span id="saveBtnLabel">Create Promotion</span>
+                </button>
+                <button
+                  class="btn small"
+                  id="cancelEditBtn"
+                  type="button"
+                  style="display: none"
+                >
+                  Cancel
+                </button>
+              </div>
+            </section>
+
+            <!-- ============ EXISTING PROMOTIONS ============ -->
+            <section class="acctCard acctWide">
+              <div class="acctCardHead">
+                <div>
+                  <span class="acctEyebrow">Your stall</span>
+                  <h3>Active Promotions</h3>
+                </div>
+              </div>
+
+              <div class="acctClosureList" id="promoList">
+                <div class="acctHint">Loading…</div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/stall-promotions.js"></script>
+    <script src="js/stall-badges.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="js/payment-modal.js"></script>
+    <script src="js/rent-guard.js" defer></script>
+  </body>
+</html>
