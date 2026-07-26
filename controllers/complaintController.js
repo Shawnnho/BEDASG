@@ -1,16 +1,18 @@
 const complaintModel = require("../models/complaintModel");
 const { validateBase64Image } = require("../middlewares/imageStorage");
+const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
+const { sendComplaintAlert } = require("../services/notificationEmails");
 
 // POST /api/complaints  (application/json — image sent as a base64 data URL)
 async function createComplaint(req, res) {
   try {
     const uid = req.user.userId; // set by verifyToken from the accessToken cookie
     const { stall, stallName, firstName, lastName, email, message, image } = req.body;
-
+ 
     if (!stall || !firstName || !lastName || !email || !message) {
       return res.status(400).json({ error: "Please fill in all fields." });
     }
-
+ 
     let imageUrl = null;
     if (image) {
       try {
@@ -19,7 +21,7 @@ async function createComplaint(req, res) {
         return res.status(400).json({ error: err.message });
       }
     }
-
+ 
     const userName = `${firstName.trim()} ${lastName.trim()}`;
     
     const { complaintId } = await complaintModel.createComplaint({
@@ -34,7 +36,19 @@ async function createComplaint(req, res) {
       imagePath: null,
       imageUrl,
     });
-
+ 
+    stallOwnerLookupModel
+      .getStallOwnerEmail(stall)
+      .then((ownerEmail) => {
+        if (ownerEmail) {
+          sendComplaintAlert(ownerEmail, {
+            stallName: stallName || stall,
+            message: message.trim(),
+          });
+        }
+      })
+      .catch((err) => console.error("Complaint alert email failed:", err.message));
+ 
     res.status(201).json({ complaintId });
   } catch (err) {
     console.error("createComplaint error:", err.message);

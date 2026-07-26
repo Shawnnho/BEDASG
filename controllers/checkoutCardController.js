@@ -1,5 +1,7 @@
 const checkoutCardModel = require("../models/checkoutCardModel");
 const CartModel = require("../models/cartModel");
+const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
+const { sendOrderConfirmation, sendNewOrderAlert } = require("../services/notificationEmails");
 
 // Guest checkouts (checkout.UserId is null) are viewable/payable by anyone
 // holding the unguessable checkoutId — that's the intended guest-checkout
@@ -11,6 +13,34 @@ function ownsCheckoutOrForbid(req, res, checkout) {
     return false;
   }
   return true;
+}
+
+function formatSGDateTime(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleString("en-SG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// AddonsJson is stored as JSON.stringify(it.addons || []) at order creation —
+// an array of { label/id, price } objects. The email template just wants
+// plain label strings.
+function parseAddonLabels(addonsJson) {
+  if (!addonsJson) return [];
+  try {
+    const arr = JSON.parse(addonsJson);
+    return Array.isArray(arr) ? arr.map((a) => a.label || a.id || String(a)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function capitalize(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 const createCheckout = async (req, res) => {
@@ -68,6 +98,44 @@ const payCheckout = async (req, res) => {
         await CartModel.updateCartItems(userId, []);
       } catch (e) {
         console.error("Cart clear after payment failed:", e);
+      }
+    }
+
+  
+    if (Array.isArray(summary.orders)) {
+      for (const order of summary.orders) {
+        const orderItems = (summary.items || [])
+          .filter((it) => it.OrderId === order.OrderId)
+          .map((it) => ({
+            name: it.ItemName || "Item",
+            qty: Number(it.Quantity) || 1,
+            addons: parseAddonLabels(it.AddonsJson),
+            note: it.ItemNote || "",
+          }));
+
+        const emailOrder = {
+          orderId: order.OrderNo || order.OrderId,
+          paidAt: formatSGDateTime(order.PaidAt),
+          stallName: order.StallName,
+          paymentMethod: capitalize(order.PaymentMethod) || "Card",
+          totalPaid: Number(order.TotalAmount ?? 0),
+          items: orderItems,
+        };
+
+        if (order.CustomerEmail) {
+          sendOrderConfirmation(order.CustomerEmail, emailOrder).catch((err) =>
+            console.error("Order confirmation email failed:", err.message),
+          );
+        }
+
+        if (order.StallId) {
+          stallOwnerLookupModel
+            .getStallOwnerEmail(order.StallId)
+            .then((ownerEmail) => {
+              if (ownerEmail) sendNewOrderAlert(ownerEmail, emailOrder);
+            })
+            .catch((err) => console.error("New order alert email failed:", err.message));
+        }
       }
     }
 
