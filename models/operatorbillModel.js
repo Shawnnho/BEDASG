@@ -9,10 +9,7 @@ function serverMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// Due on the 15th. Only rolls to next month when the bill being created is
-// for the CURRENT month and the 15th has already passed (e.g. a mid-month
-// first run) — so a brand-new bill isn't born already overdue. Bills for
-// past months keep their real, historical due date.
+
 function computeDueDate(billMonth) {
   const [yy, mm] = billMonth.split("-").map(Number);
   let dueDate = new Date(yy, mm - 1, 15);
@@ -31,6 +28,20 @@ async function getBill(stallId, billMonth) {
     .request()
     .input("billId", sql.NVarChar, billId)
     .query("SELECT * FROM dbo.OperatorBills WHERE BillId = @billId");
+  return result.recordset[0] || null;
+}
+
+async function getLatestBillForStall(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.OperatorBills
+      WHERE StallId = @stallId
+      ORDER BY BillMonth DESC;
+    `);
   return result.recordset[0] || null;
 }
 
@@ -125,4 +136,6 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-module.exports = { getBill, ensureBill, updateBill, computeBillId };
+module.exports = {
+  getBill, getLatestBillForStall, ensureBill, updateBill, computeBillId 
+};
