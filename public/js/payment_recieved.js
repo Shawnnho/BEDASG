@@ -253,6 +253,9 @@ async function loadSummary(id) {
   const createdAt = checkout?.CreatedAt || orders[0].CreatedAt;
   setPaidAtAndPickup(paidAt, isCash, createdAt);
 
+  const titleEl = document.querySelector(".pr-title");
+  if (titleEl) titleEl.textContent = isCash ? "Order Received" : "Payment Received";
+
   const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
   const stallsEl = document.getElementById("prStalls");
   if (stallsEl) {
