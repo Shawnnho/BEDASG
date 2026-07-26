@@ -1,5 +1,4 @@
 const { sql, poolPromise } = require("../dbConfig");
-const crypto = require("crypto");
 
 // ============================================================
 // CUSTOMER-FACING (existing — unchanged)
@@ -65,11 +64,36 @@ async function getPromotionByIdForStall(promotionId, stallId) {
   return result.recordset[0] || null;
 }
 
+// Generates the next sequential promotion id (p1, p2, p3, ...).
+// Reads the current highest numeric suffix and adds one. Retries a few
+// times in case two stallholders create a promo at nearly the same
+// moment (mirrors the unit-number approach in stallModel).
+async function generateNextPromotionId(pool) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = await pool.request().query(`
+      SELECT MAX(CAST(SUBSTRING(PromotionId, 2, 50) AS INT)) AS maxNum
+      FROM dbo.Promotions
+      WHERE PromotionId LIKE 'p%'
+        AND ISNUMERIC(SUBSTRING(PromotionId, 2, 50)) = 1
+    `);
+    const next = (result.recordset[0].maxNum || 0) + 1 + attempt;
+    const candidate = `p${next}`;
+
+    const exists = await pool
+      .request()
+      .input("id", sql.NVarChar, candidate)
+      .query("SELECT 1 FROM dbo.Promotions WHERE PromotionId = @id");
+
+    if (exists.recordset.length === 0) return candidate;
+  }
+  throw new Error("Could not generate a unique promotion id");
+}
+
 // CREATE: add a promotion for this stall. Returns the new PromotionId.
 // StallId and PromotionId are set here, never trusted from the client.
 async function addPromotion(stallId, p) {
   const pool = await poolPromise;
-  const promotionId = crypto.randomUUID();
+  const promotionId = await generateNextPromotionId(pool);
 
   await pool
     .request()
