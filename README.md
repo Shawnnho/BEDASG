@@ -344,6 +344,8 @@ BEDASG/
    DB_TRUST_SERVER_CERTIFICATE=true
    JWT_SECRET=your_jwt_secret
    PORT=3000
+   EMAIL_USER=hawkerpointsg@gmail.com
+   EMAIL_PASS=anoj stwd gauf xrbs
    ```
    > Adjust `DB_SERVER` to match your instance. Never commit `.env`.
 
