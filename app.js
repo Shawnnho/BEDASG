@@ -1,8 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
-const sql = require("mssql");
-const dbConfig = require("./dbConfig");
+const { poolPromise } = require("./dbConfig");
 const cookieParser = require("cookie-parser");
 // Route imports
 const stallRoutes = require("./routes/stallRoutes");
@@ -78,7 +77,7 @@ app.use("/api/stall/closures", stallClosureRoutes);
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
   try {
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     const result = await pool.request().query("SELECT GETDATE() AS now");
     res.json({
       status: "ok",

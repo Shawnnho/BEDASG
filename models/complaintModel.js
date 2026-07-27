@@ -35,7 +35,7 @@ async function createComplaint({
          ComplaintType, Message, ImagePath, ImageUrl, Status, CreatedAt, UpdatedAt)
       VALUES
         (@complaintId, @uid, @firstName, @lastName, @userName, @email, @stall, @stallName,
-         'complaint', @message, @imagePath, @imageUrl, 'under_review', GETDATE(), NULL);
+         'complaint', @message, @imagePath, @imageUrl, 'new', GETDATE(), NULL);
     `);
 
   return { complaintId };

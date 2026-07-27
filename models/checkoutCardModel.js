@@ -41,35 +41,194 @@ async function getUserInfo(userId) {
   return result.recordset[0] || { Name: "Guest", Email: null };
 }
 
+// Looks up the real per-unit price for a menu item from StallMenus /
+// StallMenuPrices — never trust a client-supplied unitPrice/totalPrice,
+// since that would let a request forge arbitrary order amounts.
+async function getAuthoritativeBasePrice(pool, stallId, itemId, variantKey) {
+  const menuRes = await pool
+    .request()
+    .input("MenuId", sql.NVarChar(255), itemId)
+    .input("StallId", sql.NVarChar(255), stallId)
+    .query(
+      "SELECT MenuId, Name, Price FROM dbo.StallMenus WHERE MenuId = @MenuId AND StallId = @StallId",
+    );
+  const menu = menuRes.recordset[0];
+  if (!menu) throw new Error(`Menu item not found: ${itemId}`);
+
+  // Check for variants regardless of whether the client sent a variantKey —
+  // items priced by variant can have a null/unused base StallMenus.Price,
+  // so branching only on "did the client send one" would let a client get
+  // a variant-priced item for free just by omitting variantKey.
+  const variantsRes = await pool
+    .request()
+    .input("MenuId", sql.NVarChar(255), itemId)
+    .query("SELECT VariantKey, Price FROM dbo.StallMenuPrices WHERE MenuId = @MenuId");
+  const variants = variantsRes.recordset;
+
+  if (variants.length > 0) {
+    const variant = variants.find((v) => v.VariantKey === variantKey);
+    if (!variant) throw new Error(`Invalid variant "${variantKey}" for item ${itemId}`);
+    return { basePrice: Number(variant.Price) || 0, name: menu.Name };
+  }
+
+  return { basePrice: Number(menu.Price) || 0, name: menu.Name };
+}
+
+// Resolves the addons attached to a line item against StallAddons so the
+// price contribution is real. Addon ids that don't belong to the stall are
+// silently dropped (they can only reduce, never inflate, the charge).
+async function getAuthoritativeAddons(pool, stallId, addons) {
+  const list = Array.isArray(addons) ? addons : [];
+  const resolved = [];
+  let total = 0;
+  for (const a of list) {
+    const addonId = a?.id ?? a?.AddonId;
+    if (!addonId) continue;
+    const res = await pool
+      .request()
+      .input("AddonId", sql.NVarChar(255), addonId)
+      .input("StallId", sql.NVarChar(255), stallId)
+      .query(
+        "SELECT AddonId, Label, Price FROM dbo.StallAddons WHERE AddonId = @AddonId AND StallId = @StallId AND (Active = 1 OR Active IS NULL)",
+      );
+    const row = res.recordset[0];
+    if (!row) continue;
+    const price = Number(row.Price) || 0;
+    total += price;
+    resolved.push({ id: row.AddonId, label: row.Label, price });
+  }
+  return { addons: resolved, total: Math.round(total * 100) / 100 };
+}
+
+// Mirrors the fee rules in public/js/cart.js (calcDeliveryFee / the small
+// order fee inline in render()) — kept here as the source of truth so a
+// client can't just send whatever smallOrderFee/deliveryFee it wants.
+function computeSmallOrderFee(fulfillment, subtotal) {
+  if (fulfillment !== "delivery" || subtotal >= 15) return 0;
+  return Math.round(Math.min(15 - subtotal, 4) * 100) / 100;
+}
+function computeDeliveryFee(fulfillment) {
+  return fulfillment === "delivery" ? 2.5 : 0;
+}
+
+// Recomputes the promo discount from the trusted Promotions row instead of
+// trusting orderData.pricing.promoDiscount. Mirrors calcPromoDiscount() in
+// public/js/cart.js. Returns 0 (no error) if the promo doesn't validate —
+// checkout proceeds without the discount rather than failing outright.
+async function getAuthoritativePromoDiscount(pool, promoCode, subtotal, stallIds, itemNames) {
+  if (!promoCode || promoCode === "NONE") return 0;
+
+  const res = await pool
+    .request()
+    .input("PromoCode", sql.NVarChar(255), promoCode)
+    .query(`
+      SELECT PromoType, DiscountValue, MaxDiscount, MinSpend, ExpiresAt, StallId, RequiredKeyword, RedemptionsLeft
+      FROM dbo.Promotions WHERE PromoCode = @PromoCode
+    `);
+  const promo = res.recordset[0];
+  if (!promo) return 0;
+  if (promo.RedemptionsLeft != null && promo.RedemptionsLeft <= 0) return 0;
+  if (promo.ExpiresAt && new Date(promo.ExpiresAt) < new Date()) return 0;
+  if (promo.MinSpend != null && subtotal < Number(promo.MinSpend)) return 0;
+  if (promo.StallId && !stallIds.includes(promo.StallId)) return 0;
+  if (promo.RequiredKeyword) {
+    const kw = String(promo.RequiredKeyword).toLowerCase();
+    const hasKeyword = itemNames.some((n) => String(n || "").toLowerCase().includes(kw));
+    if (!hasKeyword) return 0;
+  }
+
+  const type = String(promo.PromoType || "cash").toLowerCase();
+  const value = Number(promo.DiscountValue) || 0;
+  let discount = 0;
+  if (type === "cash") discount = value;
+  else if (type === "percent") discount = subtotal * (value / 100);
+  // "freebie" -> 0, matching cart.js
+
+  if (Number(promo.MaxDiscount) > 0) discount = Math.min(discount, Number(promo.MaxDiscount));
+  discount = Math.min(discount, subtotal);
+  return Math.max(0, Math.round(discount * 100) / 100);
+}
+
 async function createCheckoutOrder(orderData) {
   const pool = await poolPromise;
   const userId = String(orderData.userId || "guest");
   const dbUserId = (userId === "guest" || !orderData.userId) ? null : userId;
-  
+
   const items = Array.isArray(orderData.items) ? orderData.items : [];
   if (!items.length) throw new Error("Cart is empty");
 
-  const pricing = orderData.pricing || {};
-  const subtotal = Number(pricing.subtotal) || 0;
-  const promoDiscount = Number(pricing.promoDiscount) || 0;
-  const smallOrderFee = Number(pricing.smallOrderFee) || 0;
-  const deliveryFee = Number(pricing.deliveryFee) || 0;
-  const total = Number(pricing.total) || 0;
-  const promoCode = orderData.promoCode || "NONE";
+  const promoCode = String(orderData.promoCode || "NONE");
   const fulfillment = String(orderData.fulfillment || "pickup");
   const paymentMethod = String(orderData.paymentMethod || "cash");
   const address = orderData.address || {};
 
   const user = await getUserInfo(userId);
 
-  const groups = new Map();
+  // Resolve every line item's real price from the DB — the client's
+  // unitPrice/totalPrice are ignored from this point on.
+  const resolvedItems = [];
   for (const it of items) {
     const stallId = it.stallId || "tiong-bahru";
-    if (!groups.has(stallId)) groups.set(stallId, []);
-    groups.get(stallId).push(it);
+    const qty = Math.max(1, Math.floor(Number(it.qty)) || 1);
+
+    const { basePrice, name } = await getAuthoritativeBasePrice(
+      pool,
+      stallId,
+      it.itemId,
+      it.variantKey,
+    );
+    const { addons, total: addonsTotal } = await getAuthoritativeAddons(
+      pool,
+      stallId,
+      it.addons,
+    );
+
+    const unitPrice = Math.round((basePrice + addonsTotal) * 100) / 100;
+    const lineTotal = Math.round(unitPrice * qty * 100) / 100;
+
+    resolvedItems.push({
+      ...it,
+      stallId,
+      qty,
+      name: it.name || name,
+      unitPrice,
+      totalPrice: lineTotal,
+      addons,
+    });
+  }
+
+  const groups = new Map();
+  for (const it of resolvedItems) {
+    if (!groups.has(it.stallId)) groups.set(it.stallId, []);
+    groups.get(it.stallId).push(it);
   }
   const stallIds = Array.from(groups.keys());
   const singleStall = stallIds.length === 1;
+
+  const stallSubtotals = new Map(
+    stallIds.map((stallId) => [
+      stallId,
+      groups.get(stallId).reduce((s, it) => s + it.totalPrice, 0),
+    ]),
+  );
+  const subtotal =
+    Math.round(
+      Array.from(stallSubtotals.values()).reduce((s, v) => s + v, 0) * 100,
+    ) / 100;
+
+  const smallOrderFee = computeSmallOrderFee(fulfillment, subtotal);
+  const deliveryFee = computeDeliveryFee(fulfillment);
+  const promoDiscount = await getAuthoritativePromoDiscount(
+    pool,
+    promoCode,
+    subtotal,
+    stallIds,
+    resolvedItems.map((it) => it.name),
+  );
+  const total = Math.max(
+    0,
+    Math.round((subtotal - promoDiscount + smallOrderFee + deliveryFee) * 100) / 100,
+  );
 
   const checkoutId = genId("CO_");
   const orderIds = [];
@@ -108,15 +267,6 @@ async function createCheckoutOrder(orderData) {
           @PricingSubtotal, @PricingTotal, @PromoCode, @OrderIds, SYSUTCDATETIME()
         )
       `);
-
-    const stallSubtotals = new Map(
-      stallIds.map((stallId) => [
-        stallId,
-        groups
-          .get(stallId)
-          .reduce((s, it) => s + (Number(it.totalPrice) || 0), 0),
-      ]),
-    );
 
     const deliveryFeeByStall = singleStall
       ? new Map([[stallIds[0], deliveryFee]])

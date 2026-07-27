@@ -175,9 +175,10 @@ async function confirmCashReceived(orderId, stallId) {
           UpdatedAt     = SYSUTCDATETIME()
       WHERE OrderId = @OrderId
         AND StallId = @StallId
-        AND OrderStatus = 'pending_payment';
+        AND OrderStatus = 'pending_payment'
+        AND PaymentMethod = 'cash';
     `);
-  return result.rowsAffected[0]; // 1 = confirmed, 0 = not found / already paid
+  return result.rowsAffected[0]; // 1 = confirmed, 0 = not found / already paid / not a cash order
 }
 
 // Read an order's current state so the controller can decide if a refund is owed

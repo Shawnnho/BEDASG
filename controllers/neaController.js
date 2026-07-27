@@ -290,7 +290,10 @@ async function updateComplaintStatus(req, res) {
       return res.status(400).json({ error: "Invalid status" });
     }
 
-    await neaModel.updateComplaintStatus(complaintId, status);
+    const affected = await neaModel.updateComplaintStatus(complaintId, status);
+    if (affected === 0) {
+      return res.status(404).json({ error: "Complaint not found" });
+    }
     res.json({ message: "Complaint status updated", complaintId, status });
   } catch (err) {
     console.error("updateComplaintStatus error:", err);

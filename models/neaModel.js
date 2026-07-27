@@ -166,7 +166,7 @@ async function getAllComplaints() {
 
 async function updateComplaintStatus(complaintId, status) {
   const pool = await poolPromise;
-  await pool
+  const result = await pool
     .request()
     .input("id", sql.NVarChar, complaintId)
     .input("status", sql.NVarChar, status)
@@ -175,6 +175,7 @@ async function updateComplaintStatus(complaintId, status) {
       SET [Status] = @status, UpdatedAt = SYSUTCDATETIME()
       WHERE ComplaintId = @id
     `);
+  return result.rowsAffected[0]; // 0 = complaintId not found
 }
 
 module.exports = {

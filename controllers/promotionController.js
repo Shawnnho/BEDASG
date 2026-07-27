@@ -40,6 +40,9 @@ const redeemPromotion = async (req, res) => {
     if (result.reason === 'exhausted') {
       return res.status(400).json({ error: "This promo code has no redemptions left" });
     }
+    if (result.reason === 'expired') {
+      return res.status(400).json({ error: "This promo code has expired" });
+    }
     return res.status(400).json({ error: "Invalid promo code" });
   } catch (error) {
     console.error("redeemPromotion error:", error);

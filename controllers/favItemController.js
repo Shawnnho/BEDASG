@@ -10,11 +10,9 @@ const SQL_FK_VIOLATION = 547;
  */
 async function getFavouriteItems(req, res) {
     try {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ message: 'userId is required' });
-        }
+        // Always the authenticated caller's own id — never trust a userId
+        // from the query string, or one account could read another's favourites.
+        const userId = req.user.userId;
 
         const favourites = await favItemModel.getFavouriteMenuItems(userId);
         return res.status(200).json(favourites);
@@ -30,11 +28,9 @@ async function getFavouriteItems(req, res) {
  */
 async function createFavouriteItem(req, res) {
     try {
-        const { userId, menuId } = req.query;
+        const userId = req.user.userId;
+        const { menuId } = req.query;
 
-        if (!userId) {
-            return res.status(400).json({ message: 'userId is required' });
-        }
         if (!menuId) {
             return res.status(400).json({ message: 'menuId is required' });
         }
@@ -59,11 +55,9 @@ async function createFavouriteItem(req, res) {
  */
 async function deleteFavouriteItem(req, res) {
     try {
-        const { userId, menuId } = req.query;
+        const userId = req.user.userId;
+        const { menuId } = req.query;
 
-        if (!userId) {
-            return res.status(400).json({ message: 'userId is required' });
-        }
         if (!menuId) {
             return res.status(400).json({ message: 'menuId is required' });
         }

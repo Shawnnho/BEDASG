@@ -93,7 +93,11 @@ async function getMarketComparison(req, res) {
       if (score !== null) scores.push({ stallId: id, score });
     }
 
-    if (scores.length < 2) {
+    // Also bail out to "not yet ranked" if the requested stall itself has
+    // no completed inspection — otherwise findIndex below returns -1 and
+    // produces a bogus ranking/percentile even though stallScore is null.
+    const stallHasScore = scores.some((s) => s.stallId === stallId);
+    if (scores.length < 2 || !stallHasScore) {
       return res.json({
         ranking: null,
         percentile: null,

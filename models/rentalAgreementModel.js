@@ -26,6 +26,22 @@ async function getRentalAgreementById(agreementId) {
   return result.recordset[0] || null;
 }
 
+// Most recent agreement for a stall, if any — used by createRental to
+// detect whether a stall already has an (unexpired/unrenewed) agreement.
+async function getRentalAgreementByStallId(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.RentalAgreements
+      WHERE StallId = @stallId
+      ORDER BY CreatedAt DESC
+    `);
+  return result.recordset[0] || null;
+}
+
 async function createRentalAgreement({
   stallId,
   ownerUid,
@@ -91,6 +107,7 @@ async function updateMonthlyRent(agreementId, monthlyRent) {
 module.exports = {
   getRentalAgreementsByCentre,
   getRentalAgreementById,
+  getRentalAgreementByStallId,
   createRentalAgreement,
   deleteRentalAgreement,
   updateMonthlyRent,

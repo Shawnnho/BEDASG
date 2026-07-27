@@ -267,7 +267,19 @@ async function bulkUpdateStatus(req, res) {
 
     let updated = 0;
     for (const oid of orderIds) {
-      updated += await orderModel.updateOrderStatus(oid, stallId, raw);
+      if (raw === "cancelled") {
+        // Route through the same path as the single-order cancel endpoint
+        // so a paid order gets RefundStatus='pending' instead of silently
+        // losing refund tracking when cancelled via bulk action.
+        const order = await orderModel.getOrderForCancel(oid, stallId);
+        if (!order || order.OrderStatus === "cancelled" || order.OrderStatus === "completed") {
+          continue;
+        }
+        const isPaid = String(order.PaymentStatus || "").toLowerCase() === "paid";
+        updated += await orderModel.cancelOrder(oid, stallId, "other", isPaid);
+      } else {
+        updated += await orderModel.updateOrderStatus(oid, stallId, raw);
+      }
     }
 
     res.json({ updated });
