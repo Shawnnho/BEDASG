@@ -16,9 +16,12 @@ router.use(verifyToken, requireOperatorRole);
 router.get("/centres", operatorController.getMyCentres);
 router.get("/overview", operatorController.getOverview);
 
+router.get("/stalls", operatorController.getAllStallsForOperator);
 router.get("/centres/:centreId/stalls", operatorController.getStallsForCentre);
 
+router.get("/rentals", operatorController.getAllRentalsForOperator);
 router.get("/centres/:centreId/rentals", operatorController.getRentalsForCentre);
+router.get("/stalls/:stallId/complaints", operatorController.getStallComplaints);
 router.post("/rentals", operatorController.createRental);
 router.delete("/rentals/:agreementId", operatorController.deleteRental);
 

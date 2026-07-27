@@ -1,0 +1,325 @@
+/* This is the General Feedback Page, Not the Feedback dashboard. */
+
+.gfContainer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+}
+
+.gfHead {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.gfHead h1 {
+  font-family: "Inter", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #16181d;
+  margin: 0 0 6px;
+}
+.gfHead p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.gfControls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.gfSearchInput {
+  flex: 1;
+  min-width: 200px;
+}
+.gfRatingSelect {
+  width: auto;
+  min-width: 160px;
+}
+
+.gfStatus {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13.5px;
+  padding: 20px 0;
+}
+
+.gfEmpty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+  padding: 30px 0;
+}
+
+.gfList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 940px) {
+  .gfList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 620px) {
+  .gfList {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gfCard {
+  background: #fff;
+  border: 1px solid #e7e7ea;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 20px rgba(16, 24, 40, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+}
+.gfCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(16, 24, 40, 0.06), 0 14px 28px rgba(16, 24, 40, 0.1);
+}
+
+.gfCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.gfStallName {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #16181d;
+  line-height: 1.3;
+}
+.gfRating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.gfReviewImg {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 10px 0 0;
+}
+
+.gfText {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gfMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 10px;
+}
+.gfDot {
+  opacity: 0.6;
+}
+.gfReportLink {
+  margin-left: auto;
+  color: #b91c1c;
+  font-weight: 600;
+  text-decoration: none;
+}
+.gfReportLink:hover {
+  text-decoration: underline;
+}
+
+.gfCommentsToggle {
+  margin-top: 12px;
+  align-self: flex-start;
+  border: 1px solid #e2e2e6;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.gfCommentsToggle:hover {
+  background: #f0f0f2;
+}
+
+.gfComments {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f2;
+}
+.gfComments[hidden] {
+  display: none;
+}
+
+.gfCommentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gfCommentItem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 13px;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.gfCommentAuthor {
+  font-weight: 700;
+  color: #16181d;
+}
+.gfCommentText {
+  color: #374151;
+  flex: 1;
+  min-width: 120px;
+}
+.gfCommentDate {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.gfCommentEmpty,
+.gfCommentLoading {
+  font-size: 12.5px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.gfCommentForm {
+  display: flex;
+  gap: 8px;
+}
+.gfCommentInput {
+  flex: 1;
+}
+.gfCommentBtn {
+  border: none;
+  background: var(--chili, #d84315);
+  color: #fff;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gfCommentBtn:hover {
+  filter: brightness(0.92);
+}
+.gfCommentBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gfCommentLoginHint {
+  font-size: 12.5px;
+  color: #9ca3af;
+  margin: 0;
+}
+.gfCommentLoginHint a {
+  color: var(--chili, #d84315);
+  font-weight: 600;
+}
+
+.reportReviewPreview {
+  margin-bottom: 20px;
+}
+.reportReviewCard {
+  background: #f9fafb;
+  border: 1px solid #eceef1;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.reportReviewTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.reportReviewStars {
+  color: #f5b301;
+  font-size: 14px;
+}
+.reportReviewText {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+.reportReviewAuthor {
+  margin: 0;
+  font-size: 12.5px;
+  color: #9ca3af;
+}
+
+.reportSuccess {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .gfControls {
+    flex-direction: column;
+  }
+  .gfRatingSelect {
+    width: 100%;
+  }
+}
+
+
+.fbViewAllLink {
+  color: var(--chili, #d84315);
+  font-weight: 700;
+  font-size: 13.5px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fbViewAllLink:hover {
+  text-decoration: underline;
+}
+
+.gfBackLink {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+}
+.gfBackLink:hover {
+  color: var(--chili, #d84315);
+  text-decoration: underline;
+}

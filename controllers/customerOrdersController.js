@@ -1,5 +1,15 @@
 const customerOrdersModel = require("../models/customerOrdersModel");
 
+function safeParseArray(str) {
+  if (!str) return [];
+  try {
+    const v = JSON.parse(str);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
 function shapeOrder(row, items) {
   return {
     id: row.OrderId,
@@ -14,8 +24,18 @@ function shapeOrder(row, items) {
     items: items
       .filter((it) => it.OrderId === row.OrderId)
       .map((it) => ({
+        stallId: it.StallId,
+        itemId: it.ItemId,
         name: it.ItemName,
+        img: it.ImageUrl,
         qty: Number(it.Quantity ?? 1),
+        unitPrice: Number(it.UnitPrice ?? 0),
+        totalPrice: Number(it.LineTotal ?? 0),
+        variantKey: it.VariantKey || null,
+        variantLabel: it.VariantLabel || null,
+        note: it.ItemNote || null,
+        addons: safeParseArray(it.AddonsJson),
+        required: safeParseArray(it.RequiredModifiersJson),
       })),
   };
 }
@@ -42,4 +62,47 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-module.exports = { getMyOrders };
+const deleteMyOrder = async (req, res) => {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const id = req.params.id;
+    const deletedCount = await customerOrdersModel.deleteOrdersForCustomer(
+      userId,
+      id,
+    );
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json({ success: true, deletedCount });
+  } catch (err) {
+    console.error("deleteMyOrder error:", err);
+    res.status(500).json({ error: "Failed to delete order" });
+  }
+};
+
+const cancelMyOrder = async (req, res) => {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const id = req.params.id;
+    const affected = await customerOrdersModel.cancelOrder(userId, id);
+
+    if (affected === 0) {
+      return res
+        .status(409)
+        .json({ error: "Order not found, not yours, or already completed/cancelled" });
+    }
+
+    res.json({ success: true, cancelledCount: affected });
+  } catch (err) {
+    console.error("cancelMyOrder error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+};
+
+module.exports = { getMyOrders, deleteMyOrder, cancelMyOrder };

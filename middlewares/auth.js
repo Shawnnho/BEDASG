@@ -18,6 +18,19 @@ function verifyToken(req, res, next) {
   });
 }
 
+// Like verifyToken, but never rejects a missing/invalid token — it just
+// leaves req.user unset. For routes that must support anonymous/guest use
+// (e.g. guest checkout) while still identifying a caller who IS logged in.
+function optionalAuth(req, res, next) {
+  const token = req.cookies?.accessToken;
+  if (!token) return next();
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (!err) req.user = decoded;
+    next();
+  });
+}
+
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -27,4 +40,4 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { verifyToken, requireRole };
+module.exports = { verifyToken, requireRole, optionalAuth };

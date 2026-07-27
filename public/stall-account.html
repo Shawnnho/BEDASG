@@ -4,11 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Hawker Point — Account</title>
+
+    <!-- Icon font -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
+    />
+
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/stall-holder.css" />
   </head>
 
-  <body class="stallHolder">
+  <!-- shAcctModern activates the redesign; remove it to fall back to the old look -->
+  <body class="stallHolder shAcctModern">
     <!-- ================= HEADER ================= -->
     <header class="topbar">
       <div class="topbar-inner">
@@ -45,8 +53,15 @@
             <span>Order</span><span class="shBadge" id="orderBadge"></span>
           </a>
 
+          <a class="shNav" href="stall-promotions.html"
+            ><span>Promotions</span></a
+          >
+
           <a class="shNav" href="stall-menu.html"><span>Menu</span></a>
-          <a class="shNav" href="stall-review.html"><span>Review</span></a>
+          <a class="shNav" href="stall-review.html">
+            <span>Review</span>
+            <span class="shBadge" id="reviewBadge"></span>
+          </a>
           <a class="shNav" href="stall-analytics.html"
             ><span>Analytics</span></a
           >
@@ -70,15 +85,8 @@
           </div>
 
           <div class="acctGrid">
-            <!-- ============ PROFILE ============ -->
-            <section class="acctCard">
-              <div class="acctCardHead">
-                <h3>Profile</h3>
-                <button class="btn small primary" id="editProfileBtn">
-                  Edit
-                </button>
-              </div>
-
+            <!-- ============ IDENTITY BAR (Profile) ============ -->
+            <section class="acctCard acctWide acctIdBar">
               <div class="acctProfile">
                 <img
                   id="avatar"
@@ -88,38 +96,78 @@
                   onerror="this.src = 'images/defaultprofile.png'"
                 />
                 <div class="acctProfileInfo">
-                  <div class="acctName" id="profileName">—</div>
+                  <div class="acctNameRow">
+                    <div class="acctName" id="profileName">—</div>
+                    <span class="prep" id="stallStatusPill">—</span>
+                  </div>
                   <div class="acctMeta" id="email">—</div>
                   <div class="acctMeta" id="phone">—</div>
                 </div>
               </div>
+              <button class="btn small primary" id="editProfileBtn">
+                <i class="ti ti-edit" aria-hidden="true"></i> Edit
+              </button>
             </section>
 
-            <!-- ============ STALL STATUS ============ -->
-            <section class="acctCard">
-              <div class="acctCardHead">
-                <h3>Stall Status</h3>
-                <span class="prep" id="stallStatusPill">—</span>
+            <!-- ============ LIVE AVAILABILITY BAND ============ -->
+            <section
+              class="acctWide acctLiveBand"
+              id="stallLiveBand"
+              aria-live="polite"
+            >
+              <div class="acctLiveLeft">
+                <i
+                  class="ti ti-broadcast acctLiveIcon"
+                  id="stallLiveIcon"
+                  aria-hidden="true"
+                ></i>
+                <div>
+                  <p class="acctLiveHead" id="stallLiveHead">
+                    Your stall is live
+                  </p>
+                  <p class="acctLiveSub">
+                    <b id="stallActiveText">Live</b> —
+                    <span
+                      >Customers can only order when your stall is live.</span
+                    >
+                  </p>
+                </div>
               </div>
-
-              <label class="acctToggleRow">
-                <input type="checkbox" id="stallActiveToggle" />
-                <span>
-                  <b id="stallActiveText">Offline</b>
-                  <span class="acctHint"
-                    >Customers can only order when your stall is live.</span
-                  >
-                </span>
+              <label class="acctSwitch">
+                <input type="checkbox" id="stallActiveToggle" checked />
+                <span class="acctSwitchTrack" aria-hidden="true"></span>
               </label>
+            </section>
 
-              <div class="acctStatRow">
+            <!-- ============ STAT STRIP ============ -->
+            <section class="acctCard acctWide acctStatStrip">
+              <div class="acctStat">
+                <div class="acctStatIcon green" aria-hidden="true">
+                  <i class="ti ti-shield-check"></i>
+                </div>
                 <div>
                   <div class="acctStatNum" id="hygieneGrade">—</div>
                   <div class="acctStatLabel">Hygiene Grade</div>
                 </div>
+              </div>
+              <div class="acctStatDivider"></div>
+              <div class="acctStat">
+                <div class="acctStatIcon amber" aria-hidden="true">
+                  <i class="ti ti-star-filled"></i>
+                </div>
                 <div>
                   <div class="acctStatNum" id="stallRating">—</div>
                   <div class="acctStatLabel">Rating</div>
+                </div>
+              </div>
+              <div class="acctStatDivider"></div>
+              <div class="acctStat">
+                <div class="acctStatIcon rust" aria-hidden="true">
+                  <i class="ti ti-bolt"></i>
+                </div>
+                <div>
+                  <div class="acctStatNum" id="prepTimeStat">—</div>
+                  <div class="acctStatLabel">Prep Time</div>
                 </div>
               </div>
             </section>
@@ -127,9 +175,12 @@
             <!-- ============ STALL DETAILS ============ -->
             <section class="acctCard acctWide">
               <div class="acctCardHead">
-                <h3>Stall Details</h3>
+                <div>
+                  <span class="acctEyebrow">Your stall</span>
+                  <h3>Stall Details</h3>
+                </div>
                 <button class="btn small primary" id="editStallBtn">
-                  Edit
+                  <i class="ti ti-edit" aria-hidden="true"></i> Edit
                 </button>
               </div>
 
@@ -156,8 +207,22 @@
                 </div>
               </div>
 
-              <div class="acctLabel" style="margin-top: 16px">
-                Opening Hours
+              <!-- Opening hours: click to expand per-day -->
+              <div
+                class="acctHoursToggle"
+                id="hoursToggle"
+                role="button"
+                tabindex="0"
+                aria-expanded="false"
+              >
+                <span class="acctHoursSummary"
+                  ><i class="ti ti-clock-hour-8" aria-hidden="true"></i
+                  ><span id="hoursSummary">Opening hours</span></span
+                >
+                <i
+                  class="ti ti-chevron-down acctHoursChevron"
+                  aria-hidden="true"
+                ></i>
               </div>
               <div class="acctHours" id="hoursList"></div>
 
@@ -165,59 +230,174 @@
                 Menu Features
               </div>
               <div class="acctFeatures">
-                <span class="acctFeature" id="featSizes">Multiple sizes</span>
-                <span class="acctFeature" id="featAddons">Add-ons</span>
+                <span class="acctFeature" id="featSizes"
+                  ><i class="ti ti-check" aria-hidden="true"></i>Multiple
+                  sizes</span
+                >
+                <span class="acctFeature" id="featAddons"
+                  ><i class="ti ti-plus" aria-hidden="true"></i>Add-ons</span
+                >
               </div>
             </section>
 
-            <!-- ============ NOTIFICATIONS ============ -->
-            <section class="acctCard">
+            <!-- ============ CLOSURES & PUBLIC HOLIDAYS ============ -->
+            <section class="acctCard acctWide">
               <div class="acctCardHead">
-                <h3>Notifications</h3>
+                <div>
+                  <span class="acctEyebrow">Availability</span>
+                  <h3>Closures &amp; Public Holidays</h3>
+                </div>
               </div>
 
-              <label class="acctCheckRow">
-                <input type="checkbox" id="prefNewOrders" />
-                <span>New orders</span>
-              </label>
-              <label class="acctCheckRow">
-                <input type="checkbox" id="prefOrderUpdates" />
-                <span>Order updates</span>
-              </label>
-              <label class="acctCheckRow">
-                <input type="checkbox" id="prefNewReview" />
-                <span>New reviews</span>
-              </label>
-              <label class="acctCheckRow">
-                <input type="checkbox" id="prefHygiene" />
-                <span>Hygiene inspections</span>
-              </label>
+              <p class="acctHint">
+                Mark your stall closed on specific dates. Upcoming Singapore
+                public holidays are listed below — tap “Mark closed” to add one
+                quickly.
+              </p>
 
-              <button class="btn small primary" id="savePrefsBtn">
-                Save Preferences
-              </button>
-            </section>
-
-            <!-- ============ SECURITY ============ -->
-            <section class="acctCard">
-              <div class="acctCardHead">
-                <h3>Security</h3>
+              <!-- Upcoming public holidays (from data.gov.sg via our backend) -->
+              <div
+                class="acctHoursToggle"
+                id="holidaysToggle"
+                role="button"
+                tabindex="0"
+                aria-expanded="false"
+                style="margin-top: 16px"
+              >
+                <span class="acctHoursSummary"
+                  ><i class="ti ti-calendar-event" aria-hidden="true"></i
+                  ><span>Upcoming Public Holidays</span></span
+                >
+                <i
+                  class="ti ti-chevron-down acctHoursChevron"
+                  aria-hidden="true"
+                ></i>
+              </div>
+              <div class="acctClosureCollapse" id="holidaysWrap">
+                <div class="acctClosureList" id="holidaysList">
+                  <div class="acctHint">Loading…</div>
+                </div>
               </div>
 
-              <button class="btn small" id="changePwBtn">
-                Change Password
-              </button>
-
-              <div class="acctDanger">
-                <div class="acctLabel">Danger Zone</div>
-                <p class="acctHint">
-                  Deactivating takes your stall offline and signs you out.
-                </p>
-                <button class="acctDangerBtn" id="deactivateBtn">
-                  Deactivate Account
+              <!-- Add an arbitrary closure -->
+              <div class="acctLabel" style="margin-top: 18px">
+                Add a Closure
+              </div>
+              <div
+                class="acctClosureForm"
+                style="
+                  display: flex;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                  align-items: center;
+                  margin-top: 6px;
+                "
+              >
+                <input type="date" id="closureDateInput" class="acctInput" />
+                <input
+                  type="text"
+                  id="closureReasonInput"
+                  class="acctInput"
+                  placeholder="Reason (optional)"
+                  maxlength="255"
+                  style="min-width: 220px"
+                />
+                <button
+                  class="btn small primary"
+                  id="addClosureBtn"
+                  type="button"
+                >
+                  <i class="ti ti-plus" aria-hidden="true"></i> Add Closure
                 </button>
               </div>
+
+              <!-- Existing closures for this stall -->
+              <div class="acctLabel" style="margin-top: 18px">
+                Your Closures
+              </div>
+              <div class="acctClosureList" id="closuresList">
+                <div class="acctHint">Loading…</div>
+              </div>
             </section>
+
+            <!-- ============ NOTIFICATIONS + SECURITY (two-up) ============ -->
+            <div class="acctWide acctRow2">
+              <!-- Notifications -->
+              <section class="acctCard">
+                <div class="acctCardHead">
+                  <div>
+                    <span class="acctEyebrow">Preferences</span>
+                    <h3>Notifications</h3>
+                  </div>
+                </div>
+
+                <label class="acctCheckRow">
+                  <span>New orders</span>
+                  <input type="checkbox" id="prefNewOrders" />
+                </label>
+                <label class="acctCheckRow">
+                  <span>Order updates</span>
+                  <input type="checkbox" id="prefOrderUpdates" />
+                </label>
+                <label class="acctCheckRow">
+                  <span>New reviews</span>
+                  <input type="checkbox" id="prefNewReview" />
+                </label>
+                <label class="acctCheckRow">
+                  <span>Hygiene inspections</span>
+                  <input type="checkbox" id="prefHygiene" />
+                </label>
+
+                <button
+                  class="btn small primary"
+                  id="savePrefsBtn"
+                  style="margin-top: 14px"
+                >
+                  Save Preferences
+                </button>
+              </section>
+
+              <!-- Security -->
+              <section class="acctCard">
+                <div class="acctCardHead">
+                  <div>
+                    <span class="acctEyebrow">Account</span>
+                    <h3>Security</h3>
+                  </div>
+                </div>
+
+                <button class="acctSecRow" id="changePwBtn" type="button">
+                  <span class="acctSecLeft"
+                    ><i class="ti ti-lock" aria-hidden="true"></i>Change
+                    password</span
+                  >
+                  <i
+                    class="ti ti-chevron-right acctSecChevron"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+
+                <div class="acctDanger">
+                  <button
+                    class="acctSecRow danger"
+                    id="deactivateBtn"
+                    type="button"
+                  >
+                    <span class="acctSecLeft"
+                      ><i class="ti ti-power" aria-hidden="true"></i>Deactivate
+                      account</span
+                    >
+                    <i
+                      class="ti ti-chevron-right acctSecChevron"
+                      aria-hidden="true"
+                    ></i>
+                  </button>
+                  <p class="acctHint" style="margin-top: 8px">
+                    Deactivating takes your stall offline and signs you out.
+                  </p>
+                </div>
+              </section>
+            </div>
           </div>
         </section>
       </div>
@@ -226,5 +406,10 @@
     <div class="toast" id="toast"></div>
 
     <script src="js/stall-account.js"></script>
+    <script src="js/stall-closures.js"></script>
+    <script src="js/stall-badges.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="js/payment-modal.js"></script>
+    <script src="js/rent-guard.js" defer></script>
   </body>
 </html>

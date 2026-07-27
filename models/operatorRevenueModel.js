@@ -7,10 +7,11 @@ async function getCompletedRevenueByCentre(centreId) {
     .request()
     .input("centreId", sql.NVarChar, centreId)
     .query(`
-      SELECT ISNULL(SUM(TotalAmount), 0) AS Revenue
-      FROM dbo.Orders
-      WHERE CentreId = @centreId
-        AND OrderStatus = 'completed';
+      SELECT ISNULL(SUM(o.TotalAmount), 0) AS Revenue
+      FROM dbo.Orders o
+      INNER JOIN dbo.Stalls s ON o.StallId = s.StallId
+      WHERE s.CentreId = @centreId
+        AND o.OrderStatus = 'completed';
     `);
   return Number(result.recordset[0].Revenue || 0);
 }
@@ -30,11 +31,12 @@ async function getCompletedRevenueByCentreIds(centreIds) {
   });
 
   const result = await request.query(`
-    SELECT CentreId, ISNULL(SUM(TotalAmount), 0) AS Revenue
-    FROM dbo.Orders
-    WHERE OrderStatus = 'completed'
-      AND CentreId IN (${placeholders.join(", ")})
-    GROUP BY CentreId;
+    SELECT s.CentreId, ISNULL(SUM(o.TotalAmount), 0) AS Revenue
+    FROM dbo.Orders o
+    INNER JOIN dbo.Stalls s ON o.StallId = s.StallId
+    WHERE o.OrderStatus = 'completed'
+      AND s.CentreId IN (${placeholders.join(", ")})
+    GROUP BY s.CentreId;
   `);
 
   const revenueByCentre = {};
@@ -44,6 +46,33 @@ async function getCompletedRevenueByCentreIds(centreIds) {
   return revenueByCentre;
 }
 
+async function getCompletedRevenueByStallIds(stallIds) {
+  if (!stallIds || stallIds.length === 0) return {};
+
+  const pool = await poolPromise;
+  const request = pool.request();
+
+  const placeholders = stallIds.map((id, i) => {
+    const paramName = `stallId${i}`;
+    request.input(paramName, sql.NVarChar, id);
+    return `@${paramName}`;
+  });
+
+  const result = await request.query(`
+    SELECT StallId, ISNULL(SUM(TotalAmount), 0) AS Revenue
+    FROM dbo.Orders
+    WHERE OrderStatus = 'completed'
+      AND StallId IN (${placeholders.join(", ")})
+    GROUP BY StallId;
+  `);
+
+  const revenueByStall = {};
+  for (const row of result.recordset) {
+    revenueByStall[row.StallId] = Number(row.Revenue || 0);
+  }
+  return revenueByStall;
+}
+
 module.exports = { 
-    getCompletedRevenueByCentre, getCompletedRevenueByCentreIds 
+    getCompletedRevenueByCentre, getCompletedRevenueByCentreIds, getCompletedRevenueByStallIds 
 };

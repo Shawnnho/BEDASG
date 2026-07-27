@@ -104,6 +104,9 @@
       <section id="tab-stalls" class="op-tab">
         <div class="op-header">
           <h2>Stalls (by Centre)</h2>
+          <button class="btn-mini gray" onclick="exportStallsCsv()">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
         </div>
 
         <div class="op-card-container">
@@ -145,9 +148,14 @@
         <div class="op-header">
           <h2>Rental Agreements (by Centre)</h2>
 
-          <button class="btn-mini primary" onclick="openAddRentalModal()">
-            <i class="fa-solid fa-plus"></i> Add Rental Agreement
-          </button>
+          <div style="display: flex; gap: 8px">
+            <button class="btn-mini gray" onclick="exportBillsCsv()">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+            <button class="btn-mini primary" onclick="openAddRentalModal()">
+              <i class="fa-solid fa-plus"></i> Add Rental Agreement
+            </button>
+          </div>
         </div>
 
         <div class="op-card-container">
@@ -185,14 +193,21 @@
           </div>
 
           <p class="muted" style="margin-top: 6px">
-            Select an existing stall from Firestore (<code>stalls</code> collection).
+            Select an existing stall.
           </p>
 
           <div class="modal-grid">
             <label class="modal-field">
-              <span>Stall (from Firestore)</span>
+              <span>Centre</span>
+              <select id="addRentalCentreSelect" class="std-input" onchange="onModalCentreChange()">
+                <option value="" disabled selected>Select centre...</option>
+              </select>
+            </label>
+
+            <label class="modal-field">
+              <span>Stall</span>
               <select id="addRentalStallSelect" class="std-input">
-                <option value="" disabled selected>Loading stalls...</option>
+                <option value="" disabled selected>Select a centre first...</option>
               </select>
             </label>
 
@@ -203,13 +218,37 @@
 
             <label class="modal-field">
               <span>Monthly Rent (SGD)</span>
-              <input id="addRentalMonthlyRent" class="std-input" type="number" min="0" />
+              <input id="addRentalMonthlyRent" class="std-input" type="number" min="0" oninput="recomputeAddRentalTotal()" />
             </label>
 
             <label class="modal-field">
               <span>Start Date</span>
               <input id="addRentalStartDate" class="std-input" type="date" />
             </label>
+
+            <label class="modal-field">
+              <span>Utilities (SGD)</span>
+              <input id="addRentalUtilities" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Cleaning Fee (SGD)</span>
+              <input id="addRentalCleaningFee" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Penalty (SGD)</span>
+              <input id="addRentalPenalty" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+
+            <label class="modal-field">
+              <span>Other Charges (SGD)</span>
+              <input id="addRentalOther" class="std-input" type="number" min="0" value="0" oninput="recomputeAddRentalTotal()" />
+            </label>
+          </div>
+
+          <div class="modal-total">
+            First Month's Total: <span id="addRentalTotal">SGD 0.00</span>
           </div>
 
           <div class="modal-actions">
@@ -220,9 +259,29 @@
           </div>
         </div>
       </div>
+
+      <!-- ================= COMPLAINT HISTORY MODAL ================= -->
+      <div id="complaintHistoryModal" class="modal-backdrop" style="display: none">
+        <div class="modal">
+          <div class="modal-head">
+            <h3 id="complaintHistoryTitle" style="margin: 0">Complaint History</h3>
+            <button class="icon-btn" onclick="closeComplaintHistoryModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div id="complaintHistoryList" class="op-list" style="margin-top: 12px">
+            <p>Loading...</p>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-mini gray" onclick="closeComplaintHistoryModal()">Close</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <script src="js/authClient.js"></script>
-    <script type="module" src="js/operator.js"></script>
+    <script src="js/operator.js"></script>
   </body>
 </html>

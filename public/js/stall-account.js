@@ -155,6 +155,7 @@ function render(data) {
   const live = !!s.isActive;
   $("stallActiveToggle").checked = live;
   setText("stallActiveText", live ? "Live" : "Offline");
+  syncLiveBand(live); // update the availability band visuals
 
   const pill = $("stallStatusPill");
   if (pill) {
@@ -177,6 +178,11 @@ function render(data) {
     "prepTime",
     s.prepMin && s.prepMax ? `${s.prepMin}–${s.prepMax} min` : "—",
   );
+  // mirror prep time into the stat strip card
+  setText(
+    "prepTimeStat",
+    s.prepMin && s.prepMax ? `${s.prepMin}–${s.prepMax} min` : "—",
+  );
   setText("stallDesc", s.desc || "—");
 
   // hours
@@ -196,8 +202,18 @@ function render(data) {
   }
 
   // feature pills
-  $("featSizes")?.classList.toggle("isOn", !!s.supportsSizePricing);
-  $("featAddons")?.classList.toggle("isOn", !!s.supportsAddons);
+  setFeature("featSizes", !!s.supportsSizePricing);
+  setFeature("featAddons", !!s.supportsAddons);
+}
+
+/* Toggle a feature pill's on/off state and swap its leading icon.
+   Keeps any <i class="ti ..."> child intact instead of wiping it. */
+function setFeature(id, on) {
+  const el = $(id);
+  if (!el) return;
+  el.classList.toggle("isOn", on);
+  const icon = el.querySelector("i");
+  if (icon) icon.className = "ti " + (on ? "ti-check" : "ti-plus");
 }
 
 async function load() {
@@ -214,6 +230,7 @@ async function load() {
 
 /* ===== edit profile ===== */
 $("editProfileBtn")?.addEventListener("click", () => {
+  if (!acct) return showToast("Account still loading — try again in a moment.");
   const p = acct.profile;
 
   const { overlay } = openModal({
@@ -276,6 +293,7 @@ $("editProfileBtn")?.addEventListener("click", () => {
 
 /* ===== edit stall details ===== */
 $("editStallBtn")?.addEventListener("click", () => {
+  if (!acct) return showToast("Account still loading — try again in a moment.");
   const s = acct.stall;
   if (!s) return;
 
@@ -360,14 +378,14 @@ $("editStallBtn")?.addEventListener("click", () => {
       if (!stallName) return setErr(overlay, "Stall name is required.");
 
       // collect the 7 day rows
-      const hours = Array.from(
-        overlay.querySelectorAll(".hourEditRow"),
-      ).map((row) => ({
-        dayOfWeek: Number(row.dataset.day),
-        isClosed: row.querySelector("[data-closed]").checked,
-        openTime: row.querySelector("[data-open]").value || "",
-        closeTime: row.querySelector("[data-close]").value || "",
-      }));
+      const hours = Array.from(overlay.querySelectorAll(".hourEditRow")).map(
+        (row) => ({
+          dayOfWeek: Number(row.dataset.day),
+          isClosed: row.querySelector("[data-closed]").checked,
+          openTime: row.querySelector("[data-open]").value || "",
+          closeTime: row.querySelector("[data-close]").value || "",
+        }),
+      );
 
       for (const h of hours) {
         if (h.isClosed) continue;
@@ -554,5 +572,47 @@ $("logoutBtn")?.addEventListener("click", () => {
   location.href = "signin.html";
 });
 
+/* =========================================================
+   UI-only helpers (presentation, no data logic)
+   Merged in from stall-account-ui.js.
+   ========================================================= */
+
+/* Live availability band mirrors the toggle's on/off state.
+   Called from render() and safe to call anytime. */
+function syncLiveBand(on) {
+  const band = $("stallLiveBand");
+  const icon = $("stallLiveIcon");
+  const head = $("stallLiveHead");
+  if (band) band.classList.toggle("isOffline", !on);
+  if (icon)
+    icon.className =
+      "ti acctLiveIcon " + (on ? "ti-broadcast" : "ti-broadcast-off");
+  if (head)
+    head.textContent = on ? "Your stall is live" : "Your stall is offline";
+}
+
+/* Wire the collapsible opening-hours row + prep-time stat mirror.
+   Runs once at boot; every lookup is guarded. */
+function setupAccountUI() {
+  // Collapsible opening hours
+  const hoursToggle = $("hoursToggle");
+  const hoursList = $("hoursList");
+  if (hoursToggle && hoursList) {
+    const toggleHours = () => {
+      const open = hoursList.classList.toggle("open");
+      hoursToggle.classList.toggle("open", open);
+      hoursToggle.setAttribute("aria-expanded", String(open));
+    };
+    hoursToggle.addEventListener("click", toggleHours);
+    hoursToggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleHours();
+      }
+    });
+  }
+}
+
 /* ===== boot ===== */
+setupAccountUI();
 load();

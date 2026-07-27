@@ -20,7 +20,7 @@ const resetBtn = document.getElementById("discoverReset");
 // Helpers
 // =========================
 function isExpired(p) {
-  return p.expiresAt && Date.now() > p.expiresAt;
+  return p.ExpiresAt && Date.now() > new Date(p.ExpiresAt).getTime();
 }
 
 function esc(s = "") {
@@ -182,18 +182,16 @@ function renderPromoStrip(data) {
       (p) => `
       <article class="promoCard">
         <a class="promoLink" href="promotions.html">
-          <div class="promoImg" style="background-image:url('${esc(
-            p.img || "images/stalls/feature1.jpg",
-          )}')"></div>
+          <div class="promoImg" style="background-image:url('${esc(p.ImageUrl || "images/placeholder.png")}')"></div>
         </a>
 
         <div class="promoBody">
-          <div class="promoTitle">${esc(p.title)}</div>
-          <div class="promoDesc">${esc(p.desc)}</div>
+          <div class="promoTitle">${esc(p.PromoTitle)}</div>
+          <div class="promoDesc">${esc(p.Desc)}</div>
 
           <div class="promoFooter">
-            <div class="promoCode">${esc(p.code)}</div>
-            <button class="promoClaimBtn" type="button" data-code="${esc(p.code)}">
+            <div class="promoCode">${esc(p.PromoCode)}</div>
+            <button class="promoClaimBtn" type="button" data-code="${esc(p.PromoCode)}">
               Claim
             </button>
           </div>
@@ -236,7 +234,9 @@ async function loadDiscoverPromos() {
     const validPromos = discoverPromos
       .filter((p) => !isExpired(p))
       .sort((a, b) => (b.popular === true) - (a.popular === true))
+      .sort((a, b) => (b.IsPopular === true) - (a.IsPopular === true))
       .slice(0, 6);
+
 
     renderPromoStrip(validPromos);
   } catch (err) {
@@ -263,9 +263,7 @@ async function loadStalls() {
 async function loadFavourites() {
   if (!currentUid) return;
   try {
-    const res = await fetch("/api/users/favourites", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
+    const res = await AuthClient.apiFetch("/api/favstalls/get");
     if (res.ok) {
       const data = await res.json();
       favSet = new Set(data.favourites || []);
@@ -292,12 +290,10 @@ async function toggleFavourite(stallId) {
   applyFilters();
 
   try {
-    const res = await fetch("/api/users/favourites", {
+    const url = isFav ? "/api/favstalls/delete" : "/api/favstalls/add";
+    const res = await AuthClient.apiFetch(url, {
       method: isFav ? "DELETE" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stallId }),
     });
 
@@ -361,54 +357,33 @@ document.addEventListener("click", async (e) => {
   const code = btn.dataset.code;
   if (!code) return;
 
-  if (!currentUid) {
-    showDToast("Please sign in to claim this promotion.");
-    setTimeout(() => (window.location.href = "signin.html?from=guest"), 650);
-    return;
-  }
+  // Claiming a promo code is a client-side action app-wide (see promotions.js
+  // claimVoucher) — there's no backend claim endpoint, codes are just applied
+  // at checkout. Track claimed codes the same way so state is shared with
+  // the full promotions page.
+  const claimedCodes = new Set(
+    JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"),
+  );
+  const upperCode = code.toUpperCase();
+  if (claimedCodes.has(upperCode)) return;
 
-  btn.textContent = "Claiming...";
+  claimedCodes.add(upperCode);
+  localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
 
-  try {
-    const res = await fetch("/api/users/claim-promo", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ code }),
-    });
-
-    if (res.ok) {
-      btn.textContent = "Claimed";
-      btn.disabled = true;
-    } else {
-      btn.textContent = "Claim";
-      showDToast("Failed to claim promotion.");
-    }
-  } catch (err) {
-    btn.textContent = "Claim";
-    showDToast("Error claiming promotion.");
-  }
+  btn.textContent = "Claimed";
+  btn.disabled = true;
+  showDToast(`Claimed: ${upperCode}`);
 });
 
 // =========================
 // Authentication & Init
 // =========================
-function checkAuthStatus() {
-  const token = localStorage.getItem("token");
+async function checkAuthStatus() {
+  const user = await AuthClient.getCurrentUser();
 
-  if (token) {
-    try {
-      // Decode JWT payload to get user details
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      currentUid = payload.userId || "authorized_user";
-      loadFavourites();
-    } catch (e) {
-      console.error("Invalid token format");
-      currentUid = null;
-      favSet = new Set();
-    }
+  if (user) {
+    currentUid = user.id;
+    loadFavourites();
   } else {
     currentUid = null;
     favSet = new Set();
@@ -419,13 +394,6 @@ function checkAuthStatus() {
     renderList(stalls);
     applyFilters();
   }
-}
-
-// Handle Guest Mode URL Param
-const params = new URLSearchParams(window.location.search);
-if (params.get("mode") === "guest") {
-  localStorage.removeItem("token");
-  currentUid = null;
 }
 
 // Initial Data Load

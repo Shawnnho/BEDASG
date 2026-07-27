@@ -1,12 +1,3 @@
-/*************************************************
- * payment_recieved.js
- * Reads order/checkout data from the SQL Server backend
- * (dbo.Checkouts / dbo.Orders / dbo.OrderItems) via:
- *   GET /api/checkoutCard/:id
- * Works with either ?checkoutId=XXXX or ?orderId=YYYY —
- * the backend resolves either one to the same summary shape.
- *************************************************/
-
 async function api(endpoint) {
   const res = await fetch(`/api${endpoint}`);
   if (!res.ok) throw new Error("API Error");
@@ -97,14 +88,13 @@ function setPaidAtAndPickup(paidAtRaw, isCash, createdAtRaw) {
     }
   }
 
-  // Cash orders have no PaidAt yet, so estimate pickup off CreatedAt instead.
   const anchorDate = paidDate || (isCash ? tsToDate(createdAtRaw) : null);
 
   const pickupEl = document.getElementById("prPickupTime");
   if (pickupEl) {
     if (anchorDate) {
-      const from = addMinutes(anchorDate, 15);
-      const to = addMinutes(anchorDate, 20);
+      const from = addMinutes(anchorDate, 1);
+      const to = addMinutes(anchorDate, 3);
       pickupEl.textContent = `${formatTimeOnly(from)} – ${formatTimeOnly(to)}`;
     } else {
       pickupEl.textContent = "—";
@@ -174,18 +164,135 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
+function prettyCancelReason(reason) {
+  const x = String(reason || "").trim();
+  if (!x) return "";
+  const spaced = x.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function applyRefundState(orders) {
+  const refundedOrder = orders.find(
+    (o) => String(o.RefundStatus || "").toLowerCase() === "refunded",
+  );
+  const cancelledOrder = orders.find((o) => !!o.CancelledAt);
+
+  const target = refundedOrder || cancelledOrder;
+  if (!target) return;
+
+  hideInlineQr();
+
+  const isRefund = !!refundedOrder;
+
+  const iconWrap = document.querySelector(".pr-check");
+  if (iconWrap) {
+    iconWrap.innerHTML = "";
+    iconWrap.classList.add("pr-check--refunded");
+    const cross = document.createElement("img");
+    cross.src = "images/remove.png";
+    cross.alt = isRefund ? "Order refunded" : "Order cancelled";
+    cross.className = "pr-check-img";
+    iconWrap.appendChild(cross);
+  }
+
+  const titleEl = document.querySelector(".pr-title");
+  if (titleEl) titleEl.textContent = isRefund ? "Order Refunded" : "Order Cancelled";
+
+  const subEl = document.querySelector(".pr-sub");
+  if (subEl) {
+    if (isRefund) {
+      const refundedAt = tsToDate(target.RefundedAt);
+      subEl.textContent = refundedAt
+        ? `Sorry! This order was refunded on ${formatDateTime(refundedAt)}.`
+        : "Sorry! This order has been refunded.";
+    } else {
+      const cancelledAt = tsToDate(target.CancelledAt);
+      const reason = prettyCancelReason(target.CancelReason);
+      const reasonText = reason ? ` Reason: ${reason}.` : "";
+      subEl.textContent = cancelledAt
+        ? `Sorry! This order was cancelled on ${formatDateTime(cancelledAt)}.${reasonText}`
+        : `Sorry! This order has been cancelled.${reasonText}`;
+    }
+  }
+}
+
+const QR_REVEAL_DELAY_MS = 60000;
+
+function setupInlineQr(id, orderNo) {
+  const container = document.getElementById("inlineQrContainer");
+  const img = document.getElementById("inlineQrImg");
+  const orderEl = document.getElementById("inlineQrOrderNo");
+  
+  if (!container || !img) return;
+
+  if (container._qrTimer) clearTimeout(container._qrTimer);
+
+  container.hidden = true;
+  container._qrTimer = setTimeout(() => {
+    if (orderEl) orderEl.textContent = `Order No. ${orderNo || "—"}`;
+    img.src = `/api/checkoutCard/${encodeURIComponent(id)}/qr?ts=${Date.now()}`;
+    container.hidden = false;
+  }, QR_REVEAL_DELAY_MS);
+}
+
+function hideInlineQr() {
+  const container = document.getElementById("inlineQrContainer");
+  if (!container) return;
+  if (container._qrTimer) clearTimeout(container._qrTimer);
+  container.hidden = true;
+}
+
+function setupCancelButton(id, orders) {
+  const btn = document.getElementById("btnCancel");
+  if (!btn) return;
+
+  const isRefunded = orders.some(
+    (o) => String(o.RefundStatus || "").toLowerCase() === "refunded",
+  );
+  const isCancelled = orders.some((o) => !!o.CancelledAt);
+  const isCompleted = orders.some(
+    (o) => String(o.OrderStatus || "").toLowerCase() === "completed",
+  );
+
+  if (isRefunded || isCancelled || isCompleted) {
+    btn.hidden = true;
+    return;
+  }
+
+  btn.hidden = false;
+  btn.onclick = async () => {
+    if (!confirm("Cancel this order? This cannot be undone.")) return;
+
+    btn.disabled = true;
+    btn.textContent = "Cancelling...";
+
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(id)}/cancel`, {
+        method: "PATCH",
+      });
+      if (!res.ok) throw new Error("Cancel failed");
+
+      await loadSummary(id);
+    } catch (err) {
+      console.error(err);
+      alert("Could not cancel this order. Please try again.");
+      btn.disabled = false;
+      btn.textContent = "Cancel Order";
+    }
+  };
+}
+
 async function loadSummary(id) {
   const summary = await api(`/checkoutCard/${encodeURIComponent(id)}`);
   const { checkout, orders, items } = summary;
 
   if (!orders || !orders.length) throw new Error("Order not found.");
 
-  // Order No. display
+  const orderNos = orders.map((o) => o.OrderNo || o.OrderId);
+  const primaryOrderNo = orderNos[0] || "—";
+
   const orderIdEl = document.getElementById("prOrderId");
-  if (orderIdEl) {
-    const nos = orders.map((o) => o.OrderNo || o.OrderId);
-    orderIdEl.textContent = nos.length === 1 ? nos[0] : nos.join(", ");
-  }
+  if (orderIdEl) orderIdEl.textContent = primaryOrderNo;
 
   const fulfillmentType = checkout?.FulfillmentType || orders[0].FulfillmentType;
   const address = {
@@ -201,9 +308,21 @@ async function loadSummary(id) {
   const createdAt = checkout?.CreatedAt || orders[0].CreatedAt;
   setPaidAtAndPickup(paidAt, isCash, createdAt);
 
+  const titleEl = document.querySelector(".pr-title");
+  if (titleEl) titleEl.textContent = isCash ? "Order Received" : "Payment Received";
+
   const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
   const stallsEl = document.getElementById("prStalls");
-  if (stallsEl) stallsEl.textContent = stallNames.length ? stallNames.join(", ") : "—";
+  if (stallsEl) {
+    if (!stallNames.length) {
+      stallsEl.textContent = "—";
+    } else if (stallNames.length <= 2) {
+      stallsEl.textContent = stallNames.join(", ");
+    } else {
+      stallsEl.textContent = `${stallNames.slice(0, 2).join(", ")} +${stallNames.length - 2} more`;
+      stallsEl.title = stallNames.join(", ");
+    }
+  }
 
   const payMethodEl = document.getElementById("prPayMethod");
   if (payMethodEl) {
@@ -220,6 +339,9 @@ async function loadSummary(id) {
   }
 
   renderItems(orders, items || []);
+  applyRefundState(orders);
+  setupCancelButton(id, orders);
+  setupInlineQr(id, primaryOrderNo);
 
   const loading = document.getElementById("prLoading");
   const errBox = document.getElementById("prError");

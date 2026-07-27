@@ -70,24 +70,78 @@ async function saveCart(cart) {
   await writeCloudCart(currentUser.uid, cart);
 }
 
-async function getPromoByCode(codeRaw) {
+async function fetchPromoByCode(codeRaw) {
   const code = String(codeRaw || "").trim().toUpperCase();
   if (!code) return null;
   try {
       const promos = await api('/promotions');
       if (!promos) return null;
-      return promos.find(p => p.PromoCode.toUpperCase() === code) || null;
+      return promos.find(p => String(p.PromoCode).toUpperCase() === code) || null;
   } catch (e) {
       return null;
   }
+}
+
+function validatePromoLocally(promo, cart, subtotal) {
+  if (!promo) return { ok: false, error: "Invalid promo code." };
+
+  if (promo.RedemptionsLeft != null && promo.RedemptionsLeft <= 0) {
+    return { ok: false, error: "This promo has been fully redeemed." };
+  }
+
+  if (promo.ExpiresAt && new Date(promo.ExpiresAt) < new Date()) {
+    return { ok: false, error: "This promo has expired." };
+  }
+
+  if (promo.MinSpend && subtotal < Number(promo.MinSpend)) {
+    const shortfall = Number(promo.MinSpend) - subtotal;
+    return { ok: false, error: `Add $${shortfall.toFixed(2)} more to use this promo.` };
+  }
+
+  if (promo.StallId) {
+    const hasStall = cart.some(it => (it.stallId ?? it.StallId) === promo.StallId);
+    if (!hasStall) {
+      return { ok: false, error: "This promo isn't valid for the stalls in your cart." };
+    }
+  }
+
+  if (promo.RequiredKeyword) {
+    const kw = String(promo.RequiredKeyword).toLowerCase();
+    const hasKeyword = cart.some(it => (it.name ?? it.Name ?? "").toLowerCase().includes(kw));
+    if (!hasKeyword) {
+      return { ok: false, error: `Requires "${promo.RequiredKeyword}" in your cart.` };
+    }
+  }
+
+  if (promo.ClaimOnce) {
+    if (!currentUser) {
+      return { ok: false, error: "Log in to use this promo." };
+    }
+    const claimedKey = "hp_claimedPromoIds";
+    const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
+    if (claimed.has(promo.PromotionId)) {
+      return { ok: false, error: "You have already used this promo." };
+    }
+  }
+
+  return { ok: true };
 }
 
 function calcPromoDiscount(promo, subtotal) {
   if (!promo) return 0;
   const type = String(promo.PromoType || "cash").toLowerCase();
   let discount = 0;
-  if (type === "cash") discount = 5;
-  if (type === "percent") discount = subtotal * 0.1;
+
+  const value = Number(promo.Value ?? promo.DiscountValue ?? promo.DiscountAmount ?? promo.ExactDollarAmount ?? promo.Percentage ?? promo.Discount ?? 0);
+
+  if (type === "cash") discount = value;
+  if (type === "percent") discount = subtotal * (value / 100);
+  if (type === "freebie") discount = 0;
+
+  if (Number(promo.MaxDiscount) > 0) {
+    discount = Math.min(discount, Number(promo.MaxDiscount));
+  }
+
   return Math.min(discount, subtotal);
 }
 
@@ -215,6 +269,7 @@ async function render() {
   const proceedBtn = document.getElementById("checkoutBtn");
   const fulfillBox = document.getElementById("fulfillBox");
   const clearAllWrap = document.getElementById("clearAllWrap");
+  const loadFavBtn = document.getElementById("loadFavBtn");
 
   let cart = [];
   try {
@@ -230,24 +285,35 @@ async function render() {
   if (!cart || cart.length === 0) {
     if (list) list.innerHTML = "";
     if (empty) empty.hidden = false;
-    if (promoBox) promoBox.style.display = "none";
-    if (summary) summary.style.display = "none";
-    if (payBox) payBox.style.display = "none";
-    if (proceedBtn) proceedBtn.style.display = "none";
-    if (fulfillBox) fulfillBox.style.display = "none";
-    if (clearAllWrap) clearAllWrap.style.display = "none";
+    if (promoBox) promoBox.hidden = true;
+    if (summary) summary.hidden = true;
+    if (payBox) payBox.hidden = true;
+    if (proceedBtn) proceedBtn.hidden = true;
+    if (fulfillBox) fulfillBox.hidden = true;
+    if (clearAllWrap) clearAllWrap.hidden = true;
+    
+    let hasFav = false;
+    if (currentUser) {
+        try {
+            const fav = await api(`/favourites/${currentUser.uid}`);
+            hasFav = Array.isArray(fav?.items) && fav.items.length > 0;
+        } catch (e) {}
+    }
+    if (loadFavBtn) loadFavBtn.hidden = !hasFav;
 
     await clearAppliedPromo();
     return;
   }
 
   if (empty) empty.hidden = true;
-  if (promoBox) promoBox.style.display = currentUser ? "" : "none";
-  if (summary) summary.style.display = "";
-  if (payBox) payBox.style.display = "";
-  if (proceedBtn) proceedBtn.style.display = "";
-  if (fulfillBox) fulfillBox.style.display = "";
-  if (clearAllWrap) clearAllWrap.style.display = "flex";
+  if (promoBox) promoBox.hidden = currentUser ? false : true;
+  if (summary) summary.hidden = false;
+  if (payBox) payBox.hidden = false;
+  if (proceedBtn) proceedBtn.hidden = false;
+  if (fulfillBox) fulfillBox.hidden = false;
+  if (clearAllWrap) clearAllWrap.hidden = false;
+  const saveFavBtn = document.getElementById("saveFavBtn");
+  if (saveFavBtn) saveFavBtn.hidden = !currentUser;
 
   if (!list) return;
   list.innerHTML = "";
@@ -262,14 +328,17 @@ async function render() {
     const qty = Number(it.qty ?? it.Qty ?? 1);
     const unitPrice = Number(it.unitPrice ?? it.UnitPrice ?? 0);
     const line = Number(it.totalPrice ?? it.TotalPrice) || (unitPrice * qty);
-    
+    let variant = it.variantKey || ""
+
+    if (variant) variant = `(${variant.replace("_"," ")})`
+
     subtotal += line;
 
     list.innerHTML += `
       <article class="menuCard cartCard">
         <div class="menuImgWrap"><img src="${img}"></div>
         <div class="menuInfo">
-          <div class="menuName">${name}</div>
+          <div class="menuName">${name} ${variant}</div>
           <div class="menuPrice">$${money(line)}</div>
           <div class="cartMeta">Qty: ${qty}</div>
         </div>
@@ -282,6 +351,13 @@ async function render() {
       </article>
     `;
   });
+
+  if (appliedPromo) {
+    const check = validatePromoLocally(appliedPromo, cart, subtotal);
+    if (!check.ok) {
+      await clearAppliedPromo(check.error);
+    }
+  }
 
   let promoDiscount = calcPromoDiscount(appliedPromo, subtotal);
   const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
@@ -311,8 +387,6 @@ async function render() {
   syncProceedBtn();
 }
 
-// Normalize a cart item (either DB-cased or local-cased) into the shape
-// the backend's checkoutCardModel expects.
 function normalizeCheckoutItem(it) {
   return {
     stallId: it.stallId ?? it.StallId ?? null,
@@ -331,29 +405,74 @@ function normalizeCheckoutItem(it) {
 }
 
 document.addEventListener("click", async (e) => {
+  if (e.target.closest("#saveFavBtn")) {
+    if (!currentUser) {
+        alert("Please log in to save a favourite order.");
+        return;
+    }
+    const cart = await readCart();
+    if (cart.length > 0) {
+        try {
+            await api(`/favourites/${currentUser.uid}`, 'PUT', { items: cart });
+            alert("Order saved as favourite!");
+        } catch (err) {
+            alert("Could not save favourite. Please try again.");
+        }
+    }
+    return;
+  }
+
+  if (e.target.closest("#loadFavBtn")) {
+    if (!currentUser) return;
+    try {
+        const fav = await api(`/favourites/${currentUser.uid}`);
+        if (fav && Array.isArray(fav.items) && fav.items.length > 0) {
+            await saveCart(fav.items);
+            render();
+        }
+    } catch(err) {}
+    return;
+  }
+
   const actBtn = e.target.closest("[data-act]");
   if (actBtn) {
     const act = actBtn.getAttribute("data-act");
     const i = Number(actBtn.getAttribute("data-i"));
     const cart = await readCart();
+    const item = cart[i];
+    if (!item) return;
 
-    let currentQty = Number(cart[i].qty ?? cart[i].Qty ?? 1);
-
+    let currentQty = Number(item.qty ?? item.Qty ?? 1);
     if (act === "plus") currentQty++;
     if (act === "minus") currentQty--;
     if (act === "clear") currentQty = 0;
 
-    if (currentQty <= 0) {
-        cart.splice(i, 1);
+    if (currentUser && item.cartItemId) {
+      // Logged-in users: real per-item PUT/DELETE against the DB cart.
+      try {
+        if (currentQty <= 0) {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'DELETE');
+        } else {
+          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'PUT', { qty: currentQty });
+        }
+      } catch (err) {
+        alert("Could not update cart. Please try again.");
+        return;
+      }
     } else {
+      // Guests: no DB row to target, fall back to rewriting the local array.
+      if (currentQty <= 0) {
+        cart.splice(i, 1);
+      } else {
         cart[i].qty = currentQty;
         cart[i].Qty = currentQty;
         const price = Number(cart[i].unitPrice ?? cart[i].UnitPrice ?? 0);
         cart[i].totalPrice = currentQty * price;
         cart[i].TotalPrice = currentQty * price;
+      }
+      await saveCart(cart);
     }
 
-    await saveCart(cart);
     render();
     return;
   }
@@ -369,9 +488,14 @@ document.addEventListener("click", async (e) => {
   if (e.target.closest("#redeemBtn")) {
     const code = document.getElementById("redeemInput")?.value;
     const msg = document.getElementById("redeemMsg");
-    const promo = await getPromoByCode(code);
 
-    if (promo) {
+    const cart = await readCart();
+    const subtotal = lastPricing.subtotal;
+
+    const promo = await fetchPromoByCode(code);
+    const check = validatePromoLocally(promo, cart, subtotal);
+
+    if (check.ok) {
         appliedPromo = promo;
         if (msg) {
             msg.textContent = "Promo applied successfully!";
@@ -380,13 +504,17 @@ document.addEventListener("click", async (e) => {
         const label = document.getElementById("promoCodeLabel");
         if (label) label.textContent = promo.PromoCode;
     } else {
-        await clearAppliedPromo("Invalid or expired promo code.");
+        await clearAppliedPromo(check.error);
         if (msg) msg.style.color = "red";
     }
     render();
   }
 
   if (e.target.closest("#checkoutBtn")) {
+    const checkoutBtn = e.target.closest("#checkoutBtn");
+    if (checkoutBtn.disabled) return; // guard against double-click creating two orders
+    checkoutBtn.disabled = true;
+
     const cart = await readCart();
     const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
     const paymentMethod = getSelectedPayMethod();
@@ -407,24 +535,28 @@ document.addEventListener("click", async (e) => {
     try {
         const res = await api('/checkoutCard/create', 'POST', payload);
         if (res && res.success) {
+            if (appliedPromo && appliedPromo.ClaimOnce) {
+              const claimedKey = "hp_claimedPromoIds";
+              const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
+              claimed.add(appliedPromo.PromotionId);
+              localStorage.setItem(claimedKey, JSON.stringify([...claimed]));
+            }
+
             if (paymentMethod === 'cash') {
-                // Cash is confirmed by the stall at pickup/delivery, so it's
-                // safe to clear the cart immediately.
                 await saveCart([]);
                 window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else if (paymentMethod === 'card') {
-                // Do NOT clear the cart here — payment hasn't happened yet.
-                // card.js clears it only after a real payment confirmation.
                 window.location.href = `card.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             } else {
-                // Same for Paynow/NETS — clear only after qr.html confirms payment.
                 window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
             }
         } else {
-            alert("Order failed. Please try again.");
+            alert(res?.error || "Order failed. Please try again.");
+            checkoutBtn.disabled = false;
         }
     } catch (err) {
         alert("Server error: Could not submit order. Is your backend running?");
+        checkoutBtn.disabled = false;
     }
   }
 });

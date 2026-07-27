@@ -18,6 +18,8 @@ async function getAllStalls(req, res) {
       img: r.ImageUrl || "images/stalls/placeholder.jpg",
       desc: r.Desc || "",
       unit: r.UnitNo || "",
+      addons: r.SupportsAddons,
+      sizing: r.SupportsSizePricing,
     }));
 
     res.json(stalls);
@@ -50,7 +52,7 @@ async function getStallById(req, res) {
       popular: row.IsPopular === true,
       desc: row.Desc || "",
       img: row.ImageUrl || "images/stalls/placeholder.jpg",
-      unit: row.UnitNo || "",
+      unit: (row.UnitNo || "").replace("#", ""),
       unitNo: row.UnitNo || "", // Kept both unit and unitNo in case different frontend components rely on them
       rating:
         row.RatingCount > 0
@@ -62,6 +64,8 @@ async function getStallById(req, res) {
       openTime: row.OpenTime || "",
       closeTime: row.CloseTime || "",
       operatingHours: row.OperatingHours || null,
+      addons: row.SupportsAddons,
+      sizing: row.SupportsSizePricing,
     };
     
     res.json(stall);

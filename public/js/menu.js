@@ -15,12 +15,6 @@
 const params = new URLSearchParams(window.location.search);
 const stallId = params.get("stallId");
 
-// TODO (pending backend confirmation): endpoints for per-item favourites.
-// Placeholder, following the /api/favstalls/{get,add,delete} convention
-// used for stalls in home.js. Will update once real routes are confirmed.
-const FAV_ITEMS_GET_URL = "/api/favitems/get";
-const FAV_ITEMS_ADD_URL = "/api/favitems/add";
-const FAV_ITEMS_DELETE_URL = "/api/favitems/delete";
 
 let allMenuItems = []; // cached so the search box can filter without refetching
 let currentUid = null;
@@ -93,9 +87,41 @@ async function loadMenuItems() {
 
     allMenuItems = await res.json();
     renderMenuItems(allMenuItems);
+    loadLikeCounts();
   } catch (err) {
     console.error("Failed to load menu items:", err);
     menuList.innerHTML = `<div class="menuEmptyState">Failed to load menu items.</div>`;
+  }
+}
+
+/**
+ * Fetch real like counts (across all users) for every menu item
+ * currently loaded, merge them into allMenuItems, and re-render.
+ * Public endpoint - doesn't require the viewer to be logged in.
+ */
+async function loadLikeCounts() {
+  if (!allMenuItems || allMenuItems.length === 0) return;
+
+  const menuIds = allMenuItems.map((item) => item.id);
+
+  try {
+    const res = await fetch(`/api/favitems/counts?menuIds=${encodeURIComponent(menuIds.join(","))}`);
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+    const rows = await res.json(); // [{ MenuId, LikeCount }, ...] - items with 0 likes are omitted
+    const countsByMenuId = new Map(rows.map((row) => [row.MenuId, row.LikeCount]));
+
+    allMenuItems.forEach((item) => {
+      item.likes = countsByMenuId.get(item.id) || 0;
+      // No backend "popular" flag exists — the real like count is the only
+      // signal we have, so derive it here instead of always showing empty.
+      item.popular = item.likes > 0;
+    });
+
+    renderMenuItems(allMenuItems);
+  } catch (err) {
+    console.error("Failed to load like counts:", err);
+    // Non-fatal: cards just keep whatever "likes" value came from /api/menu/:id (if any)
   }
 }
 
@@ -246,15 +272,19 @@ function wireMenuSearch() {
 /**
  * Load the current user's liked menu items and re-render so likeBtn
  * "active" state + likeCount reflect it. Mirrors home.js's loadFavourites().
+ *
+ * Backend returns raw rows: [{ UserId, MenuId, CreatedAt }, ...]
+ * (not { favourites: [...] }), so we map MenuId out of each row.
  */
 async function loadFavouriteItems() {
   if (!currentUid) return;
 
   try {
-    const res = await AuthClient.apiFetch(FAV_ITEMS_GET_URL);
+    const url = `/api/favitems/get?userId=${encodeURIComponent(currentUid)}`;
+    const res = await AuthClient.apiFetch(url);
     if (res.ok) {
-      const data = await res.json();
-      favItemsSet = new Set(data.favourites || []);
+      const rows = await res.json();
+      favItemsSet = new Set(rows.map((row) => row.MenuId));
       renderMenuItems(allMenuItems);
     }
   } catch (err) {
@@ -265,31 +295,40 @@ async function loadFavouriteItems() {
 /**
  * Toggle a menu item's liked state, with optimistic UI update and
  * rollback on failure. Mirrors home.js's toggleFavourite().
+ *
+ * Backend expects userId + menuId as query params on both
+ * POST /api/favitems/add and DELETE /api/favitems/delete (no JSON body).
  */
 async function toggleFavouriteItem(itemId) {
   if (!currentUid) return;
 
   const isFav = favItemsSet.has(itemId);
+  const item = allMenuItems.find((i) => i.id === itemId);
 
-  // Optimistic UI update
+  // Optimistic UI update - toggle liked state and adjust the visible count
   if (isFav) favItemsSet.delete(itemId);
   else favItemsSet.add(itemId);
+  if (item) {
+    item.likes = Math.max(0, (Number(item.likes) || 0) + (isFav ? -1 : 1));
+  }
   renderMenuItems(allMenuItems);
 
   try {
-    const url = isFav ? FAV_ITEMS_DELETE_URL : FAV_ITEMS_ADD_URL;
+    const baseUrl = isFav ? "/api/favitems/delete" : "/api/favitems/add";
+    const url = `${baseUrl}?userId=${encodeURIComponent(currentUid)}&menuId=${encodeURIComponent(itemId)}`;
     const res = await AuthClient.apiFetch(url, {
       method: isFav ? "DELETE" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId }),
     });
 
     if (!res.ok) throw new Error("Failed to save");
   } catch (err) {
     console.error("Error toggling favourite item:", err);
-    // Revert on failure
+    // Revert both the liked state and the count on failure
     if (isFav) favItemsSet.add(itemId);
     else favItemsSet.delete(itemId);
+    if (item) {
+      item.likes = Math.max(0, (Number(item.likes) || 0) + (isFav ? 1 : -1));
+    }
     renderMenuItems(allMenuItems);
   }
 }

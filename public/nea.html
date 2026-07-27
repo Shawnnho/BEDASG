@@ -217,6 +217,37 @@
             <div class="overview-box">
               Not graded <span id="ovNone">-</span>
             </div>
+
+            <div class="gradeLegend">
+              <div class="gradeLegendBar">
+                <div class="gradeLegendSeg segD" style="width: 55%">D</div>
+                <div class="gradeLegendSeg segC" style="width: 15%">C</div>
+                <div class="gradeLegendSeg segB" style="width: 15%">B</div>
+                <div class="gradeLegendSeg segA" style="width: 15%">A</div>
+              </div>
+              <div class="gradeLegendScale">
+                <span>0</span><span>55</span><span>70</span><span>85</span><span>100</span>
+              </div>
+
+              <div class="gradeLegendList">
+                <div class="gradeLegendItem">
+                  <span class="gradeDot segA"></span>
+                  <strong>A (85–100)</strong> — Excellent Hygiene Standards
+                </div>
+                <div class="gradeLegendItem">
+                  <span class="gradeDot segB"></span>
+                  <strong>B (70–84)</strong> — Good Hygiene Standards
+                </div>
+                <div class="gradeLegendItem">
+                  <span class="gradeDot segC"></span>
+                  <strong>C (55–69)</strong> — Average Hygiene Standards
+                </div>
+                <div class="gradeLegendItem">
+                  <span class="gradeDot segD"></span>
+                  <strong>D (Below 55)</strong> — Poor Hygiene Standards
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -425,12 +456,12 @@
         </div>
 
         <label>Officer Remarks</label>
-        <textarea
+        <input
           id="compRemarks"
           class="std-input"
           rows="3"
           placeholder="Enter inspection observations..."
-        ></textarea>
+        ></input>
 
         <div style="background: #f1f1f1; padding: 10px; border-radius: 6px">
           <strong>Calculated Grade: </strong>

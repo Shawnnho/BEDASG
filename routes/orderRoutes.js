@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken } = require("../middlewares/auth");
+const { enforceRentPaywall } = require("../middlewares/rentPaywall"); 
 const orderController = require("../controllers/orderController");
+
+
+router.use(verifyToken, enforceRentPaywall()); // ADD
 
 // All routes below require a valid JWT
 router.get("/dashboard", verifyToken, orderController.getDashboard);
@@ -12,5 +16,6 @@ router.get("/orders", verifyToken, orderController.getStallOrders);
 router.patch("/orders/confirm-cash", verifyToken, orderController.confirmCash);
 router.patch("/orders/complete", verifyToken, orderController.completeOrder);
 router.patch("/orders/cancel", verifyToken, orderController.cancelOrder);
+router.patch("/orders/refund", verifyToken, orderController.markRefunded);
 
 module.exports = router;

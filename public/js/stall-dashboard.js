@@ -67,12 +67,69 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
+/* Ask the owner why they're cancelling. Resolves to a reason key, or null if they back out. */
+function promptCancelReason() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "hpSimpleModal";
+    overlay.innerHTML = `
+      <div class="hpSimpleModalCard cancelModal">
+        <div class="cancelModalHead">Cancel this order?</div>
+
+        <div class="cancelModalBody">
+          <p class="cancelModalHint">
+            If the customer has already paid, a refund will be flagged as pending.
+          </p>
+
+          <label class="cancelModalLabel" for="cancelReasonSel">Reason</label>
+          <select id="cancelReasonSel" class="cancelModalSelect">
+            <option value="">Choose a reason…</option>
+            <option value="out_of_stock">Item out of stock</option>
+            <option value="stall_closed">Stall closed / not operating</option>
+            <option value="customer_request">Customer requested cancellation</option>
+            <option value="unable_to_fulfil">Unable to fulfil order</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="cancelModalFoot">
+          <button type="button" class="hpModalBtn ghost" data-act="close">Keep order</button>
+          <button type="button" class="hpModalBtn danger" data-act="confirm">Cancel order</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const close = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay || e.target.dataset.act === "close") {
+        close(null);
+        return;
+      }
+
+      if (e.target.dataset.act === "confirm") {
+        const reason = overlay.querySelector("#cancelReasonSel").value;
+        if (!reason) {
+          alert("Please choose a reason.");
+          return;
+        }
+        close(reason);
+      }
+    });
+  });
+}
+
 /* ===== UI state ===== */
 let activeStatus = "";
 let activeDate = "";
 let activeYear = "";
 let allOrders = [];
 let firstLoadDone = false;
+let pollTimer = null; // and this
 
 /* ===== date filtering ===== */
 function startOfToday() {
@@ -157,18 +214,12 @@ function renderOrdersTable() {
       return idText.includes(qtxt) || custText.includes(qtxt);
     });
 
-  // stats from ALL orders (not filtered)
-  const pending = allOrders.filter((o) => o.status === "pending").length;
-  const inProgress = allOrders.filter((o) => o.status === "in-progress").length;
-  const cancelled = allOrders.filter((o) => o.status === "cancelled").length;
-  const sales = allOrders
-    .filter((o) => o.status === "completed")
-    .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-
-  setText("statPendingNum", pending);
-  setText("statProgressNum", inProgress);
-  setText("statCancelledNum", cancelled);
-  setText("statSalesNum", money(sales));
+  // Stats come from the server, computed in SQL across ALL orders —
+  // not just the 50 rows this table shows.
+  setText("statPendingNum", latestStats.pending ?? 0);
+  setText("statProgressNum", latestStats.inProgress ?? 0);
+  setText("statCancelledNum", latestStats.cancelled ?? 0);
+  setText("statSalesNum", money(latestStats.sales ?? 0));
   setBadge("orderBadge", latestStats.unpaidCash || 0);
 
   const body = $("ordersBody");
@@ -184,18 +235,20 @@ function renderOrdersTable() {
       const displayId = escapeHtml(
         o.orderNo || `#${String(o.orderId).slice(-6).toUpperCase()}`,
       );
-      // Cancel only makes sense before payment — no refund path exists
-      const cancelBtn =
-        o.status === "pending"
-          ? `<button class="rowBtn rowBtnCancel" type="button" data-cancel="${escapeHtml(o.orderId)}">Cancel</button>`
-          : "";
+
+      // Owner can cancel any time before the food is handed over.
+      // Paid orders trigger a refund; unpaid ones just void.
+      const canCancel = o.status === "pending" || o.status === "in-progress";
+      const cancelBtn = canCancel
+        ? `<button class="rowBtn rowBtnCancel" type="button" data-cancel="${escapeHtml(o.orderId)}">Cancel</button>`
+        : "";
 
       return `
       <tr>
         <td><input type="checkbox" class="orderCheck" data-oid="${escapeHtml(o.orderId)}" /></td>
         <td>${displayId}</td>
         <td>${escapeHtml(o.customer)}</td>
-        <td><span class="prep ${prettyStatus(o.status)}">${prettyStatus(o.status)}</span></td>
+       <td><span class="prep ${escapeHtml(o.status)}">${prettyStatus(o.status)}</span></td>
         <td>${escapeHtml(o.item)}</td>
         <td>${money(o.amount)}</td>
         <td>
@@ -218,6 +271,13 @@ async function loadDashboard() {
 
     if (res.status === 401 || res.status === 403) {
       location.href = "signin.html";
+      return;
+    }
+    if (res.status === 402) {
+      // Overdue: rent-guard.js locks the page in place with a Pay Now modal.
+      // Stop polling and let the guard own the lock.
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
       return;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -323,7 +383,9 @@ $("ordersBody")?.addEventListener("click", async (e) => {
   const cancelBtn = e.target.closest("[data-cancel]");
   if (cancelBtn) {
     const orderId = cancelBtn.getAttribute("data-cancel");
-    if (!confirm("Cancel this order? This cannot be undone.")) return;
+
+    const reason = await promptCancelReason();
+    if (!reason) return; // owner backed out
 
     cancelBtn.disabled = true;
     cancelBtn.textContent = "Cancelling…";
@@ -333,13 +395,20 @@ $("ordersBody")?.addEventListener("click", async (e) => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, reason }),
       });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      if (data.refundRequired) {
+        showToast(
+          `Order cancelled — refund of ${money(data.refundAmount)} pending`,
+        );
+      } else {
+        showToast("Order cancelled");
       }
-      showToast("Order cancelled");
+
       await loadDashboard();
     } catch (err) {
       console.error(err);
@@ -366,4 +435,4 @@ $("logoutBtn")?.addEventListener("click", () => {
 
 /* ===== boot ===== */
 loadDashboard();
-setInterval(loadDashboard, POLL_MS);
+pollTimer = setInterval(loadDashboard, POLL_MS);

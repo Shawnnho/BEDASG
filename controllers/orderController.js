@@ -4,7 +4,7 @@ const orderModel = require("../models/orderModel");
 function normStatus(raw) {
   const v = String(raw || "").toLowerCase();
   if (v === "pending_payment") return "pending";
-  if (v === "paid" || v === "processing") return "in-progress";
+  if (v === "processing") return "in-progress";
   if (v === "completed") return "completed";
   if (v === "cancelled") return "cancelled";
   return v;
@@ -56,6 +56,18 @@ function prettyPayMethod(m) {
   if (key === "qr") return "PayNow / NETS QR";
   if (key === "card") return "Card";
   return m || "—";
+}
+
+// Human-readable cancel reasons for the UI
+function prettyCancelReason(r) {
+  const map = {
+    out_of_stock: "Item out of stock",
+    stall_closed: "Stall closed",
+    customer_request: "Customer requested",
+    unable_to_fulfil: "Unable to fulfil",
+    other: "Other",
+  };
+  return map[r] || r || "—";
 }
 
 // Shape one order row + its items into the object the frontend renders
@@ -136,13 +148,26 @@ async function getStallOrders(req, res) {
       (o) => o.paymentMethodKey === "cash" && o.status === "pending_payment",
     );
     const paid = shaped.filter((o) =>
-      ["paid", "processing", "preparing", "ready"].includes(o.status),
+      ["processing", "preparing", "ready"].includes(o.status),
     );
     const completed = shaped.filter((o) => o.status === "completed");
+
+    // Cancelled orders still owing the customer money
+    const refundRows = await orderModel.getPendingRefunds(stallId);
+    const pendingRefunds = refundRows.map((r) => ({
+      orderId: r.OrderId,
+      orderNo: r.OrderNo,
+      customerName: r.CustomerName || r.CustomerEmail || "—",
+      paymentMethod: prettyPayMethod(r.PaymentMethod),
+      amount: Number(r.TotalAmount ?? 0),
+      reason: prettyCancelReason(r.CancelReason),
+      cancelledAt: r.CancelledAt,
+    }));
 
     res.json({
       stallName: stallName || "—",
       ownerName: user.Name || "Owner",
+      pendingRefunds,
       unpaidCash,
       paid,
       completed,
@@ -207,28 +232,13 @@ async function getDashboard(req, res) {
       amount: Number(r.TotalAmount ?? r.Subtotal ?? 0),
       createdAt: r.CreatedAt,
     }));
-
-    // Stats computed from all returned orders
-    const pending = orders.filter((o) => o.status === "pending").length;
-    const inProgress = orders.filter((o) => o.status === "in-progress").length;
-    const cancelled = orders.filter((o) => o.status === "cancelled").length;
-    const sales = orders
-      .filter((o) => o.status === "completed")
-      .reduce((sum, o) => sum + o.amount, 0);
-
-    const unpaidCash = rows.filter(
-      (r) =>
-        String(r.OrderStatus).toLowerCase() === "pending_payment" &&
-        String(r.PaymentMethod || "")
-          .toLowerCase()
-          .includes("cash"),
-    ).length;
+    const stats = await orderModel.getStallStats(stallId);
 
     res.json({
       stallName: stallName || "—",
       ownerName: user.Name || "Owner",
       orders,
-      stats: { pending, inProgress, cancelled, sales, unpaidCash },
+      stats,
     });
   } catch (err) {
     console.error("getDashboard error:", err);
@@ -257,7 +267,19 @@ async function bulkUpdateStatus(req, res) {
 
     let updated = 0;
     for (const oid of orderIds) {
-      updated += await orderModel.updateOrderStatus(oid, stallId, raw);
+      if (raw === "cancelled") {
+        // Route through the same path as the single-order cancel endpoint
+        // so a paid order gets RefundStatus='pending' instead of silently
+        // losing refund tracking when cancelled via bulk action.
+        const order = await orderModel.getOrderForCancel(oid, stallId);
+        if (!order || order.OrderStatus === "cancelled" || order.OrderStatus === "completed") {
+          continue;
+        }
+        const isPaid = String(order.PaymentStatus || "").toLowerCase() === "paid";
+        updated += await orderModel.cancelOrder(oid, stallId, "other", isPaid);
+      } else {
+        updated += await orderModel.updateOrderStatus(oid, stallId, raw);
+      }
     }
 
     res.json({ updated });
@@ -296,10 +318,82 @@ async function completeOrder(req, res) {
   }
 }
 
-// PATCH /api/stall/orders/cancel  { orderId }
+// Reasons a stall owner can give when cancelling. Whitelisted so the client
+// can't write arbitrary text into the DB.
+const CANCEL_REASONS = [
+  "out_of_stock",
+  "stall_closed",
+  "customer_request",
+  "unable_to_fulfil",
+  "other",
+];
+
+// PATCH /api/stall/orders/cancel  { orderId, reason }
+// Unpaid  -> just cancel, nothing to refund.
+// Paid    -> cancel AND flag a refund as pending, so the owner settles it later.
 async function cancelOrder(req, res) {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.UserId || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const user = await orderModel.getUserInfo(userId);
+    if (!user?.StallId) {
+      return res.status(404).json({ error: "No stall linked to this user" });
+    }
+
+    const { orderId, reason } = req.body;
+    if (!orderId) return res.status(400).json({ error: "Missing orderId" });
+
+    if (!CANCEL_REASONS.includes(reason)) {
+      return res.status(400).json({ error: "Please choose a valid reason." });
+    }
+
+    // Read the order first so we know whether money changed hands
+    const order = await orderModel.getOrderForCancel(orderId, user.StallId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found, or not yours." });
+    }
+
+    if (order.OrderStatus === "cancelled") {
+      return res
+        .status(409)
+        .json({ error: "This order is already cancelled." });
+    }
+    if (order.OrderStatus === "completed") {
+      return res
+        .status(409)
+        .json({ error: "Completed orders cannot be cancelled." });
+    }
+
+    const isPaid = String(order.PaymentStatus || "").toLowerCase() === "paid";
+
+    const affected = await orderModel.cancelOrder(
+      orderId,
+      user.StallId,
+      reason,
+      isPaid, // needsRefund
+    );
+
+    if (affected === 0) {
+      return res.status(409).json({ error: "Order could not be cancelled." });
+    }
+
+    res.json({
+      ok: true,
+      refundRequired: isPaid,
+      refundAmount: isPaid ? Number(order.TotalAmount ?? 0) : 0,
+    });
+  } catch (err) {
+    console.error("cancelOrder error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+}
+
+// PATCH /api/stall/orders/refund  { orderId }
+// Owner confirms they've physically refunded the customer.
+async function markRefunded(req, res) {
+  try {
+    const userId = req.user?.UserId || req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const user = await orderModel.getUserInfo(userId);
@@ -310,16 +404,17 @@ async function cancelOrder(req, res) {
     const { orderId } = req.body;
     if (!orderId) return res.status(400).json({ error: "Missing orderId" });
 
-    const affected = await orderModel.cancelOrder(orderId, user.StallId);
+    const affected = await orderModel.markRefunded(orderId, user.StallId);
     if (affected === 0) {
-      return res.status(409).json({
-        error: "Only unpaid orders can be cancelled",
-      });
+      return res
+        .status(409)
+        .json({ error: "No pending refund found for this order." });
     }
+
     res.json({ ok: true });
   } catch (err) {
-    console.error("cancelOrder error:", err);
-    res.status(500).json({ error: "Failed to cancel order" });
+    console.error("markRefunded error:", err);
+    res.status(500).json({ error: "Failed to mark refund" });
   }
 }
 
@@ -329,5 +424,6 @@ module.exports = {
   getStallOrders,
   confirmCash,
   cancelOrder,
+  markRefunded,
   completeOrder,
 };

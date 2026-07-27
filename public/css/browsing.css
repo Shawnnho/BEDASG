@@ -22,7 +22,7 @@
   --hp-ink-45: rgba(43, 27, 14, 0.45);
   --hp-line: rgba(43, 27, 14, 0.14);
   --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Manrope", -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Scope typography + text color to item/menu pages only, including
@@ -137,7 +137,7 @@ body:has(.page.menuPage) .topbar .pill.active {
   background: var(--hp-card);
   border: 1.5px dashed rgba(43, 27, 14, 0.35);
   border-radius: 12px;
-  padding: 10px 16px;
+  padding: 10px 22px;
   min-width: 108px;
   box-shadow: 0 6px 14px rgba(43, 27, 14, 0.1);
 }
@@ -284,6 +284,7 @@ body:has(.page.menuPage) .topbar .pill.active {
   font-family: var(--font-display);
   font-size: 17px;
   min-width: 20px;
+  padding: 0px 4px;
 }
 
 /* Add to cart — sticky on mobile so it's always reachable */
@@ -357,7 +358,6 @@ body:has(.page.menuPage) .topbar .pill.active {
   color: #1f5c1a;
   border: 1.5px dashed #4c9a3f;
   border-radius: 999px;
-  transform: rotate(-2deg);
   font-weight: 800;
   padding: 8px 16px;
 }
@@ -372,12 +372,18 @@ body:has(.page.menuPage) .topbar .pill.active {
   font-weight: 600;
 }
 
+#menuTitle {
+  font-size:22px;
+  border-bottom: none;
+}
+
 .menuSectionTitle {
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
   border-bottom-color: var(--hp-line);
   color: var(--hp-ink);
+  align-self: center;
 }
 
 /* Item cards */
@@ -424,6 +430,8 @@ body:has(.page.menuPage) .topbar .pill.active {
   background: var(--hp-red);
   color: #fff;
   box-shadow: 0 8px 16px rgba(226, 65, 46, 0.3);
+  margin-right:20px;
+  margin-left:auto;
 }
 .menuAddBtn:hover {
   background: var(--hp-red-dark);
@@ -445,4 +453,92 @@ body:has(.page.menuPage) .topbar .pill.active {
     padding: 16px 14px;
     border-radius: 18px;
   }
+}
+
+.variantsSection {
+  margin: 14px 0 4px;
+}
+ 
+.variantsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+ 
+.variantRow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+ 
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.14);
+  background: #fff;
+ 
+  font-weight: 800;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.75);
+ 
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+ 
+.variantRow:hover {
+  border-color: rgba(225, 29, 72, 0.4);
+}
+ 
+.variantRow:active {
+  transform: scale(0.98);
+}
+ 
+/* Hide the native radio but keep it in the DOM for accessibility/labels */
+.variantRow input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+ 
+/* Custom radio dot */
+.variantRow::before {
+  content: "";
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+ 
+/* Selected state */
+.variantRow:has(input:checked) {
+  border-color: #e11d48;
+  background: rgba(225, 29, 72, 0.06);
+  color: #111;
+  box-shadow: 0 4px 10px rgba(225, 29, 72, 0.12);
+}
+ 
+.variantRow:has(input:checked)::before {
+  border-color: #e11d48;
+  background: radial-gradient(circle, #e11d48 0 40%, transparent 44%);
+}
+ 
+/* Keyboard focus ring */
+.variantRow:has(input:focus-visible) {
+  outline: 3px solid rgba(225, 29, 72, 0.35);
+  outline-offset: 2px;
+}
+ 
+.variantPrice {
+  font-weight: 900;
+  color: #e11d48;
 }

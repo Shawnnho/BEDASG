@@ -16,6 +16,8 @@ async function getAllStalls() {
       s.ImageUrl,
       s.[Desc],
       s.UnitNo,
+      s.SupportsAddons,
+      s.SupportsSizePricing,
       c.Name AS CentreName
     FROM dbo.Stalls s
     INNER JOIN dbo.Centres c ON s.CentreId = c.CentreId
@@ -102,7 +104,9 @@ async function getStallById(stallId) {
         s.PrepMax,
         s.RatingCount,
         s.RatingTotal,
-        s.IsPopular
+        s.IsPopular,
+        s.SupportsAddons,
+        s.SupportsSizePricing
       FROM dbo.Stalls s
       WHERE s.StallId = @stallId
         AND s.IsActive = 1
@@ -113,6 +117,21 @@ async function getStallById(stallId) {
 }
 
 
+// Unfiltered by IsActive/IsCanonical — unlike getStallById, this is for
+// ownership checks only (e.g. "does this stallId belong to this centre?"),
+// where a deactivated/archived stall still needs its bills/complaint
+// history to remain reachable by the operator who owns it.
+async function getStallCentreId(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(
+      "SELECT StallId, CentreId, StallName FROM dbo.Stalls WHERE StallId = @stallId",
+    );
+  return result.recordset[0] || null;
+}
+
 async function getStallsByCentre(centreId) {
   const pool = await poolPromise;
   const result = await pool
@@ -120,15 +139,15 @@ async function getStallsByCentre(centreId) {
     .input("centreId", sql.NVarChar, centreId)
     .query(`
       SELECT
-        StallId, PublicStallId, OwnerUid, CentreId,
-        StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location
+        StallId, PublicStallId, OwnerUid, CentreId, StallName, Cuisine, [Desc], ImageUrl, OrderPrefix, Location, UnitNo
       FROM dbo.Stalls
       WHERE CentreId = @centreId
+        AND IsActive = 1
+        AND IsCanonical = 1
       ORDER BY StallName;
     `);
   return result.recordset;
 }
 
 
-module.exports = { getAllStalls, createStall, getStallById, getStallsByCentre};
-
+module.exports = { getAllStalls, createStall, getStallById, getStallCentreId, getStallsByCentre};

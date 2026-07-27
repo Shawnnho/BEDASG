@@ -280,6 +280,7 @@
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
+  box-sizing: border-box;
 }
 .std-input.small {
   width: 220px;
@@ -470,6 +471,61 @@
 }
 .breakdown-item:last-child {
   border-bottom: none;
+}
+
+.gradeLegend {
+  margin-top: 16px;
+}
+
+.gradeLegendBar {
+  display: flex;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.gradeLegendSeg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.segA { background: #16a34a; }
+.segB { background: #2f6bff; }
+.segC { background: #ca8a04; }
+.segD { background: #dc2626; }
+
+.gradeLegendScale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.gradeLegendList {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.gradeLegendItem {
+  font-size: 13px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gradeDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 @keyframes fadeIn {

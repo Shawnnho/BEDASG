@@ -1,7 +1,5 @@
-
 const API_BASE = "/api/operator";
 const LOGIN_PAGE = "signin.html"; 
-
 // State
 let CENTRES = [];
 let SELECTED_CENTRE_ID = null;
@@ -13,7 +11,7 @@ let currentBillMonthKey = null;
 let stallFilter = "all";
 let modalStalls = [];
 
-// Fetch helper — wraps AuthClient.apiFetch (which sends credentials:"include")
+
 async function apiFetch(path, options = {}) {
   const res = await AuthClient.apiFetch(`${API_BASE}${path}`, {
     ...options,
@@ -34,7 +32,6 @@ async function apiFetch(path, options = {}) {
       const body = await res.json();
       if (body?.error) message = body.error;
     } catch {
-      /* response wasn't JSON — keep default message */
     }
     throw new Error(message);
   }
@@ -148,7 +145,7 @@ async function loadCentres() {
     return;
   }
 
-  let options = `<option value="" disabled selected>Select Centre</option>`;
+  let options = `<option value="">All Centres</option>`;
   for (const c of CENTRES) {
     options += `<option value="${c.CentreId}">${c.Name || c.CentreId}</option>`;
   }
@@ -165,7 +162,7 @@ window.onCentreChange = async () => {
   if (title) {
     title.textContent = SELECTED_CENTRE_ID
       ? `Centre — ${centreNameById(SELECTED_CENTRE_ID)}`
-      : "Operator Dashboard";
+      : "Operator Dashboard — All Centres";
   }
 
   try {
@@ -195,8 +192,6 @@ window.switchTab = async (tabName) => {
     updateOverview();
     return;
   }
-
-  if (!SELECTED_CENTRE_ID) return;
 
   try {
     if (tabName === "stalls") await loadStalls();
@@ -302,13 +297,12 @@ async function updateOverview() {
 
 async function loadStalls() {
   const list = document.getElementById("stallList");
-  if (!SELECTED_CENTRE_ID) {
-    if (list) list.innerHTML = "<p>Select a centre first.</p>";
-    return;
-  }
   if (list) list.innerHTML = "<p>Loading stalls...</p>";
 
-  stallsRaw = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  stallsRaw = SELECTED_CENTRE_ID
+    ? await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`)
+    : await apiFetch(`/stalls`);
+
   renderStalls();
 }
 
@@ -356,15 +350,33 @@ window.renderStalls = () => {
 
   list.innerHTML = items
     .map((s) => {
+      const centreLine = !SELECTED_CENTRE_ID
+        ? `<span>Centre: <b>${s.CentreName || s.CentreId || "-"}</b></span>`
+        : "";
+
+      const ratingLabel = s.ReviewCount
+        ? `${Number(s.AvgRating || 0).toFixed(1)} ★ (${s.ReviewCount})`
+        : "No ratings yet";
+
       return `
         <div class="op-item">
           <div class="item-main">
             <h4>${s.StallName || "Unnamed Stall"}</h4>
-            ${badgeForStallActive(true)}
+            <div class="badge-group">
+              <span class="badge blue">Revenue: ${money(s.Revenue || 0)}</span>
+              <span class="badge blue">Rating: ${ratingLabel}</span>
+              ${badgeForStallActive(true)}
+            </div>
           </div>
           <p>Cuisine: ${s.Cuisine || "-"}</p>
           <div class="item-meta">
             <span>Location: <b>${s.Location || "—"}</b></span>
+            ${centreLine}
+          </div>
+          <div class="actions-row">
+            <button class="btn-mini gray" onclick="viewStallComplaints('${s.StallId}', '${(s.StallName || "").replace(/'/g, "\\'")}')">
+              View Complaints
+            </button>
           </div>
         </div>
       `;
@@ -372,16 +384,14 @@ window.renderStalls = () => {
     .join("");
 };
 
-
 async function loadRentals() {
   const list = document.getElementById("rentalList");
-  if (!SELECTED_CENTRE_ID) {
-    if (list) list.innerHTML = "<p>Select a centre first.</p>";
-    return;
-  }
   if (list) list.innerHTML = "<p>Loading agreements...</p>";
 
-  const data = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/rentals`);
+  const data = SELECTED_CENTRE_ID
+    ? await apiFetch(`/centres/${SELECTED_CENTRE_ID}/rentals`)
+    : await apiFetch(`/rentals`);
+
   currentBillMonthKey = data.monthKey;
   rentalsRaw = data.agreements;
 
@@ -432,10 +442,16 @@ window.renderRentals = () => {
       return `
         <div class="ra-card">
           <div class="ra-left">
-            <h4>${ra.StallName || "Unknown Stall"}</h4>
+            <div class="item-main" style="margin-bottom: 6px">
+              <h4>${ra.StallName || "Unknown Stall"}</h4>
+              <span class="badge ${bill.IsPaid ? "green" : "red"}">
+                ${bill.IsPaid ? "Paid" : "Unpaid"}
+              </span>
+            </div>
             <p>Unit No: <b>${ra.UnitNo || "-"}</b></p>
             <p class="muted">Stall ID: <b>${ra.StallId || "-"}</b></p>
             <p class="muted">Owner: <b>${ra.OwnerName || "-"}</b></p>
+            ${!SELECTED_CENTRE_ID ? `<p class="muted">Centre: <b>${ra.CentreName || ra.CentreId || "-"}</b></p>` : ""}
 
             <div class="item-meta">
               <span>Start: ${start}</span>
@@ -452,40 +468,56 @@ window.renderRentals = () => {
           <div class="ra-right">
             <div class="bill-panel">
               <div class="bill-title">Monthly Bill (${currentBillMonthKey})</div>
+              ${
+                bill.IsPaid
+                  ? `<p class="muted" style="margin:0 0 10px;color:#2e7d32;font-weight:700">✔ Paid — locked from editing</p>`
+                  : ""
+              }
 
               <div class="bill-grid">
                 <label class="bill-field bill-span-2">
                   <span>Rent</span>
                   <div class="bill-input-row">
                     <input id="rent-${ra.AgreementId}" type="number"
-                      value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}" />
+                      value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}"
+                      oninput="recomputeBillTotal('${ra.AgreementId}')"
+                      ${bill.IsPaid ? "disabled" : ""} />
                     <small>/month</small>
                   </div>
                 </label>
 
                 <label class="bill-field">
                   <span>Utilities</span>
-                  <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}" />
+                  <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Cleaning</span>
-                  <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}" />
+                  <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Penalty</span>
-                  <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}" />
+                  <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Other</span>
-                  <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}" />
+                  <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}"
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
               </div>
 
-              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}')">
-                Save Monthly Bill
+              <div class="bill-total">
+                Total: <span id="total-${ra.AgreementId}">${money(bill.TotalAmount ?? ra.MonthlyRent ?? 0)}</span>
+              </div>
+
+              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')"
+                ${bill.IsPaid ? "disabled" : ""}>
+                ${bill.IsPaid ? "Paid — Cannot Edit" : "Save Monthly Bill"}
               </button>
             </div>
           </div>
@@ -495,7 +527,19 @@ window.renderRentals = () => {
     .join("");
 };
 
-window.saveMonthlyBill = async (stallId, agreementId) => {
+window.recomputeBillTotal = (agreementId) => {
+  const rent = Number(document.getElementById(`rent-${agreementId}`)?.value || 0);
+  const utilities = Number(document.getElementById(`util-${agreementId}`)?.value || 0);
+  const cleaningFee = Number(document.getElementById(`clean-${agreementId}`)?.value || 0);
+  const penalty = Number(document.getElementById(`pen-${agreementId}`)?.value || 0);
+  const other = Number(document.getElementById(`other-${agreementId}`)?.value || 0);
+
+  const total = rent + utilities + cleaningFee + penalty + other;
+  const el = document.getElementById(`total-${agreementId}`);
+  if (el) el.textContent = money(total);
+};
+
+window.saveMonthlyBill = async (stallId, agreementId, centreId) => {
   try {
     const rent = Number(document.getElementById(`rent-${agreementId}`)?.value || 0);
     const utilities = Number(document.getElementById(`util-${agreementId}`)?.value || 0);
@@ -506,7 +550,8 @@ window.saveMonthlyBill = async (stallId, agreementId) => {
     await apiFetch(`/bills/${stallId}/${currentBillMonthKey}`, {
       method: "PUT",
       body: JSON.stringify({
-        centreId: SELECTED_CENTRE_ID,
+        centreId: centreId || SELECTED_CENTRE_ID,
+        agreementId,
         rent,
         utilities,
         cleaningFee,
@@ -547,14 +592,7 @@ window.deleteRentalAgreement = async (agreementId) => {
   }
 };
 
-// Add Rental Agreement (Modal)
-
 window.openAddRentalModal = async () => {
-  if (!SELECTED_CENTRE_ID) {
-    alert("Select a centre first.");
-    return;
-  }
-
   const modal = document.getElementById("addRentalModal");
   if (modal) modal.style.display = "grid";
 
@@ -565,12 +603,68 @@ window.openAddRentalModal = async () => {
   const startInput = document.getElementById("addRentalStartDate");
   if (startInput) startInput.value = `${y}-${m}-${day}`;
 
+  ["addRentalUtilities", "addRentalCleaningFee", "addRentalPenalty", "addRentalOther"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = 0;
+  });
+  const rentInput = document.getElementById("addRentalMonthlyRent");
+  if (rentInput) rentInput.value = "";
+  const unitNoInput = document.getElementById("addRentalUnitNo");
+  if (unitNoInput) unitNoInput.value = "";
+  recomputeAddRentalTotal();
+
+  populateModalCentreSelect();
+
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const stallSel = document.getElementById("addRentalStallSelect");
+
+  if (centreSel && centreSel.value) {
+    try {
+      await loadStallsForModal(centreSel.value);
+    } catch (err) {
+      console.error("loadStallsForModal failed:", err);
+      alert(`Failed to load stalls: ${err.message}`);
+    }
+  } else if (stallSel) {
+    stallSel.innerHTML = `<option value="" disabled selected>Select a centre first...</option>`;
+  }
+};
+
+function populateModalCentreSelect() {
+  const sel = document.getElementById("addRentalCentreSelect");
+  if (!sel) return;
+
+  let options = `<option value="" disabled ${SELECTED_CENTRE_ID ? "" : "selected"}>Select centre...</option>`;
+  for (const c of CENTRES) {
+    const isSelected = c.CentreId === SELECTED_CENTRE_ID ? "selected" : "";
+    options += `<option value="${c.CentreId}" ${isSelected}>${c.Name || c.CentreId}</option>`;
+  }
+  sel.innerHTML = options;
+}
+
+window.onModalCentreChange = async () => {
+  const sel = document.getElementById("addRentalCentreSelect");
+  const centreId = sel?.value;
+  if (!centreId) return;
+
   try {
-    await loadStallsForModal();
+    await loadStallsForModal(centreId);
   } catch (err) {
     console.error("loadStallsForModal failed:", err);
     alert(`Failed to load stalls: ${err.message}`);
   }
+};
+
+window.recomputeAddRentalTotal = () => {
+  const rent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
+  const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
+  const cleaningFee = Number(document.getElementById("addRentalCleaningFee")?.value || 0);
+  const penalty = Number(document.getElementById("addRentalPenalty")?.value || 0);
+  const other = Number(document.getElementById("addRentalOther")?.value || 0);
+
+  const total = rent + utilities + cleaningFee + penalty + other;
+  const el = document.getElementById("addRentalTotal");
+  if (el) el.textContent = money(total);
 };
 
 window.closeAddRentalModal = () => {
@@ -578,13 +672,38 @@ window.closeAddRentalModal = () => {
   if (modal) modal.style.display = "none";
 };
 
-async function loadStallsForModal() {
+async function loadStallsForModal(centreId) {
   const sel = document.getElementById("addRentalStallSelect");
   if (!sel) return;
 
   sel.innerHTML = `<option value="" disabled selected>Loading stalls...</option>`;
 
-  modalStalls = await apiFetch(`/centres/${SELECTED_CENTRE_ID}/stalls`);
+  const [rawStalls, rentalsData] = await Promise.all([
+    apiFetch(`/centres/${centreId}/stalls`),
+    apiFetch(`/centres/${centreId}/rentals`),
+  ]);
+
+  const currentMonthKey = getCurrentMonthKeyClient();
+  const blockedStallIds = new Set();
+
+  for (const ra of rentalsData.agreements) {
+    const bill = ra.bill || {};
+    const isPaid = bill.IsPaid === true || bill.IsPaid === 1;
+    const isPastDue = !bill.DueDate || new Date() > new Date(bill.DueDate);
+
+    if (!isPaid || !isPastDue) {
+      blockedStallIds.add(ra.StallId);
+    }
+  }
+
+  const seen = new Set();
+  modalStalls = [];
+  for (const s of rawStalls) {
+    const key = (s.StallName || s.StallId || "").trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    modalStalls.push(s);
+  }
 
   if (modalStalls.length === 0) {
     sel.innerHTML = `<option value="" disabled selected>No stalls found for this centre</option>`;
@@ -593,14 +712,28 @@ async function loadStallsForModal() {
 
   sel.innerHTML = `<option value="" disabled selected>Select stall...</option>`;
   for (const s of modalStalls) {
-    sel.innerHTML += `<option value="${s.StallId}">${s.StallName || s.StallId}</option>`;
+    const isBlocked = blockedStallIds.has(s.StallId);
+    const label = isBlocked
+      ? `${s.StallName || s.StallId} (unpaid or not yet due)`
+      : s.StallName || s.StallId;
+
+    sel.innerHTML += `<option value="${s.StallId}" ${isBlocked ? "disabled" : ""}>${label}</option>`;
   }
 
-  sel.onchange = null;
+  sel.onchange = () => {
+    const picked = modalStalls.find((s) => s.StallId === sel.value);
+    const unitNoInput = document.getElementById("addRentalUnitNo");
+    if (unitNoInput) unitNoInput.value = picked?.UnitNo || "";
+  };
 }
 
 window.createRentalAgreementFromModal = async () => {
-  if (!SELECTED_CENTRE_ID) return;
+  const centreSel = document.getElementById("addRentalCentreSelect");
+  const centreId = centreSel?.value;
+  if (!centreId) {
+    alert("Please select a centre.");
+    return;
+  }
 
   const sel = document.getElementById("addRentalStallSelect");
   const stallId = sel?.value;
@@ -610,8 +743,14 @@ window.createRentalAgreementFromModal = async () => {
   }
 
   const ownerName = document.getElementById("addRentalOwnerName")?.value?.trim() || "";
+  const pickedStall = modalStalls.find((s) => s.StallId === stallId);
+  const unitNo = pickedStall?.UnitNo || "";
   const monthlyRent = Number(document.getElementById("addRentalMonthlyRent")?.value || 0);
   const startDate = document.getElementById("addRentalStartDate")?.value || "";
+  const utilities = Number(document.getElementById("addRentalUtilities")?.value || 0);
+  const cleaningFee = Number(document.getElementById("addRentalCleaningFee")?.value || 0);
+  const penalty = Number(document.getElementById("addRentalPenalty")?.value || 0);
+  const other = Number(document.getElementById("addRentalOther")?.value || 0);
 
   if (!ownerName) return alert("Owner name is required.");
   if (!startDate) return alert("Start date is required.");
@@ -623,11 +762,16 @@ window.createRentalAgreementFromModal = async () => {
     await apiFetch("/rentals", {
       method: "POST",
       body: JSON.stringify({
-        centreId: SELECTED_CENTRE_ID,
+        centreId,
         stallId,
         ownerName,
+        unitNo,
         monthlyRent,
         startDate,
+        utilities,
+        cleaningFee,
+        penalty,
+        other,
       }),
     });
   } catch (err) {
@@ -644,6 +788,120 @@ window.createRentalAgreementFromModal = async () => {
   } catch (err) {
     console.warn("Agreement created, but refresh failed:", err.message);
   }
+};
+
+function downloadCsv(filename, rows, columns) {
+  if (!rows.length) {
+    alert("Nothing to export.");
+    return;
+  }
+
+  const escapeCell = (value) => {
+    const str = String(value ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const header = columns.map((c) => escapeCell(c.label)).join(",");
+  const body = rows
+    .map((row) => columns.map((c) => escapeCell(c.value(row))).join(","))
+    .join("\n");
+
+  const csv = `${header}\n${body}`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function getCurrentMonthKeyClient() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+window.exportStallsCsv = () => {
+  const scope = SELECTED_CENTRE_ID ? centreNameById(SELECTED_CENTRE_ID) : "all-centres";
+  downloadCsv(`stall-revenue-${scope}-${getCurrentMonthKeyClient()}.csv`, stallsRaw, [
+    { label: "Stall Name", value: (s) => s.StallName || s.StallId || "" },
+    { label: "Cuisine", value: (s) => s.Cuisine || "" },
+    { label: "Location", value: (s) => s.Location || "" },
+    { label: "Centre", value: (s) => s.CentreName || s.CentreId || "" },
+    { label: "Revenue (SGD)", value: (s) => Number(s.Revenue || 0).toFixed(2) },
+  ]);
+};
+
+window.exportBillsCsv = () => {
+  const scope = SELECTED_CENTRE_ID ? centreNameById(SELECTED_CENTRE_ID) : "all-centres";
+  downloadCsv(`monthly-bills-${scope}-${currentBillMonthKey || getCurrentMonthKeyClient()}.csv`, rentalsRaw, [
+    { label: "Stall Name", value: (ra) => ra.StallName || ra.StallId || "" },
+    { label: "Unit No", value: (ra) => ra.UnitNo || "" },
+    { label: "Owner", value: (ra) => ra.OwnerName || "" },
+    { label: "Centre", value: (ra) => ra.CentreName || ra.CentreId || "" },
+    { label: "Bill Month", value: () => currentBillMonthKey || "" },
+    { label: "Rent (SGD)", value: (ra) => Number(ra.bill?.RentAmount ?? ra.MonthlyRent ?? 0).toFixed(2) },
+    { label: "Utilities (SGD)", value: (ra) => Number(ra.bill?.Utilities ?? 0).toFixed(2) },
+    { label: "Cleaning (SGD)", value: (ra) => Number(ra.bill?.CleaningFee ?? 0).toFixed(2) },
+    { label: "Penalty (SGD)", value: (ra) => Number(ra.bill?.Penalty ?? 0).toFixed(2) },
+    { label: "Other (SGD)", value: (ra) => Number(ra.bill?.OtherCharges ?? 0).toFixed(2) },
+    {
+      label: "Total (SGD)",
+      value: (ra) => Number(ra.bill?.TotalAmount ?? ra.MonthlyRent ?? 0).toFixed(2),
+    },
+  ]);
+};
+
+window.viewStallComplaints = async (stallId, stallName) => {
+  const modal = document.getElementById("complaintHistoryModal");
+  const title = document.getElementById("complaintHistoryTitle");
+  const list = document.getElementById("complaintHistoryList");
+
+  if (title) title.textContent = `Complaint History — ${stallName}`;
+  if (list) list.innerHTML = "<p>Loading...</p>";
+  if (modal) modal.style.display = "grid";
+
+  try {
+    const complaints = await apiFetch(`/stalls/${stallId}/complaints`);
+
+    if (!complaints.length) {
+      list.innerHTML = "<p>No complaints found for this stall.</p>";
+      return;
+    }
+
+    list.innerHTML = complaints
+      .map((c) => {
+        const when = c.CreatedAt ? new Date(c.CreatedAt).toLocaleString() : "-";
+        return `
+          <div class="op-item">
+            <div class="item-main">
+              <h4>${c.ComplaintType || "Complaint"}</h4>
+              <span class="badge red">${c.Status || "unknown"}</span>
+            </div>
+            <p>${c.Message || ""}</p>
+            <div class="item-meta">
+              <span>By: <b>${c.UserName || "-"}</b></span>
+              <span>${when}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error("viewStallComplaints failed:", err);
+    list.innerHTML = `<p>Failed to load complaint history: ${err.message}</p>`;
+  }
+};
+
+window.closeComplaintHistoryModal = () => {
+  const modal = document.getElementById("complaintHistoryModal");
+  if (modal) modal.style.display = "none";
 };
 
 // Logout

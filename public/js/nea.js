@@ -17,6 +17,17 @@ let complaintFilter = "all"; // all | new | under_review | resolved
 
 let completingInspectionId = null;
 
+function formatDateDMY(value) {
+  if (!value) return "Unknown Date";
+  const isPlainDate = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const d = new Date(isPlainDate ? `${value}T00:00:00` : value);
+  if (isNaN(d)) return "Unknown Date";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+
 /* ---------- fetch helper ---------- */
 async function api(path, options = {}) {
   const res = await AuthClient.apiFetch(`/api/nea${path}`, {
@@ -201,7 +212,7 @@ window.renderInspections = () => {
     .map((x) => {
       const st = (x.status || "scheduled").toLowerCase();
       const statusBadge = badgeForInspectionStatus(st);
-      const dateText = x.date || "Unknown Date";
+      const dateText = formatDateDMY(x.date);
 
       let extra = "";
       if (st === "completed") {
@@ -228,16 +239,22 @@ window.renderInspections = () => {
           `;
         }
       }
-
       const canAct = st === "scheduled";
-      const actions = canAct
-        ? `
+      let actions = "";
+      if (canAct) {
+        actions = `
           <div class="actions-row">
             <button class="btn-mini primary" onclick="openCompleteModalForInspection('${x.id}')">Complete</button>
             <button class="btn-mini red" onclick="cancelInspection('${x.id}')">Cancel</button>
           </div>
-        `
-        : "";
+        `;
+      } else if (st === "cancelled") {
+        actions = `
+          <div class="actions-row">
+            <button class="btn-mini red" onclick="deleteInspection('${x.id}')">Delete</button>
+          </div>
+        `;
+      }
 
       return `
         <div class="nea-item">
@@ -266,6 +283,23 @@ window.cancelInspection = async (inspectionId) => {
   } catch (e) {
     console.error(e);
     alert("Could not cancel inspection.");
+  }
+};
+
+window.deleteInspection = async (inspectionId) => {
+  const sure = confirm(
+    "Permanently delete this cancelled inspection? This cannot be undone.",
+  );
+  if (!sure) return;
+ 
+  try {
+    await api(`/inspections/${encodeURIComponent(inspectionId)}`, {
+      method: "DELETE",
+    });
+    await loadInspections();
+  } catch (e) {
+    console.error(e);
+    alert(e.message || "Could not delete inspection.");
   }
 };
 
@@ -336,9 +370,7 @@ window.renderComplaints = () => {
 
   list.innerHTML = items
     .map((x) => {
-      const date = x.createdAt
-        ? new Date(x.createdAt).toLocaleDateString()
-        : "Unknown Date";
+      const date = formatDateDMY(x.createdAt);
       const imgHtml = x.imageUrl
         ? `<a href="${x.imageUrl}" target="_blank" class="evidence-link">View Evidence</a>`
         : "";

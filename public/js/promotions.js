@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
         code: item.PromoCode || item.promoCode || "NOCODE",
         img: item.ImageUrl || item.imageUrl || item.img || "images/promo_placeholder.png",
         popular: item.IsPopular == 1 || item.isPopular == 1 || item.IsPopular === true || item.isPopular === true,
+        isHidden: item.IsHidden == 1 || item.isHidden == 1 || item.IsHidden === true || item.isHidden === true,
         redemptionsLeft: item.RedemptionsLeft ?? item.redemptionsLeft,
         type: (item.PromoType || item.promoType || 'cash').toLowerCase(),
         expiresAt: new Date(item.ExpiresAt || item.expiresAt || '2099-12-31').getTime(),
@@ -70,8 +71,18 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast._t = setTimeout(() => toast.classList.remove("show"), 1400);
   }
 
+  function isPromoRevealed(p) {
+    const safeCode = String(p.code).toUpperCase();
+    const dailyIdUpper = `${safeCode}_${todayKey()}`.toUpperCase();
+    const isClaimed = p.claimOnce === false ? claimedDailyIds.has(dailyIdUpper) : claimedCodes.has(safeCode);
+    const isApplied = localStorage.getItem("hawkerpoint_applied_promo") === safeCode;
+    return p.isHidden && (isClaimed || isApplied);
+  }
+
   function matches(p) {
     if (isExpired(p)) return false;
+
+    if (p.isHidden && !isPromoRevealed(p)) return false;
 
     const q = (promoSearch.value || "").trim().toLowerCase();
     const t = typeFilter.value;
@@ -90,14 +101,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function sortPromos(arr) {
     const mode = sortFilter.value;
-    if (mode === "expSoon") {
-      return [...arr].sort((a, b) => daysLeft(a) - daysLeft(b));
-    }
-    if (mode === "best") {
-      const score = (p) => p.type === "percent" ? 3 : p.type === "cash" ? 2 : 1;
-      return [...arr].sort((a, b) => score(b) - score(a));
-    }
-    return [...arr].sort((a, b) => (b.popular === true) - (a.popular === true));
+    
+    return [...arr].sort((a, b) => {
+      const aRevealed = isPromoRevealed(a);
+      const bRevealed = isPromoRevealed(b);
+      
+      if (aRevealed && !bRevealed) return -1;
+      if (!aRevealed && bRevealed) return 1;
+
+      if (mode === "expSoon") {
+        return daysLeft(a) - daysLeft(b);
+      }
+      if (mode === "best") {
+        const score = (p) => p.type === "percent" ? 3 : p.type === "cash" ? 2 : 1;
+        return score(b) - score(a);
+      }
+      return (b.popular === true) - (a.popular === true);
+    });
   }
 
   function claimVoucher(codeRaw) {
@@ -167,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <div class="cardBottom">
-          <div class="promoCodeRow" style="width:100%;">
+          <div class="promoCodeRow promoCodeRowFullWidth">
             <div class="promoCodeBox" data-codebox>${safeCode}</div>
 
             <button class="copyBtn" data-copy="${safeCode}">Copy</button>
@@ -227,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function redeem(codeRaw) {
+  async function redeem(codeRaw) {
     const code = (codeRaw || "").trim().toUpperCase();
     redeemMsg.textContent = "";
 
@@ -250,9 +270,51 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    localStorage.setItem("hawkerpoint_applied_promo", code);
-    redeemMsg.textContent = `Applied: ${code} (saved for checkout)`;
-    showToast(`Applied: ${code}`);
+    try {
+      const response = await fetch('/api/promotions/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: promo.code })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          redeemMsg.textContent = "Please log in to redeem promo codes.";
+          showToast("Log in required");
+          return;
+        }
+        if (response.status === 409) {
+          redeemMsg.textContent = "You've already claimed this promo code.";
+          showToast("Already claimed");
+          return;
+        }
+        redeemMsg.textContent = data.error || "Could not redeem this code.";
+        showToast("Redemption failed");
+        return;
+      }
+
+      localStorage.setItem("hawkerpoint_applied_promo", code);
+      redeemMsg.textContent = `Applied: ${code} (saved for checkout)`;
+      showToast(`Applied: ${code}`);
+
+      const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
+      if (promo.claimOnce === false) {
+        claimedDailyIds.add(dailyIdUpper);
+        localStorage.setItem("hp_claimedDailyIds", JSON.stringify([...claimedDailyIds]));
+      } else {
+        claimedCodes.add(code);
+        localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
+      }
+
+      loadPromos();
+    } catch (error) {
+      redeemMsg.textContent = "Error saving to database.";
+      showToast("Redemption failed");
+    }
   }
 
   promoSearch.addEventListener("input", render);

@@ -6,7 +6,7 @@
     <title>Hawker Point — Payment Received</title>
 
     <link rel="stylesheet" href="css/styles.css" />
-  </head>
+    <link rel="stylesheet" href="css/payment-qr.css" />
 
   <body>
     <header class="topbar">
@@ -141,11 +141,20 @@
           </div>
         </div>
 
+        <div id="inlineQrContainer" class="inline-qr-wrap" hidden>
+          <h3>Show this at the stall</h3>
+          <div class="inline-qr-order" id="inlineQrOrderNo">Order No. —</div>
+          <img id="inlineQrImg" class="inline-qr-img" alt="Order QR code" />
+        </div>
+
         <h2 class="pr-h2">Order Summary</h2>
 
         <div id="prItems" class="pr-items"></div>
 
         <div class="pr-actions">
+          <button id="btnCancel" class="pr-btn pr-btn-danger" type="button" hidden>
+            Cancel Order
+          </button>
           <a id="btnStatus" class="pr-btn pr-btn-primary" href="orders.html">
             View Order Status
           </a>

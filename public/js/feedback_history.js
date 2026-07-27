@@ -1,14 +1,3 @@
-/*
-  feedback_history.js — uses AuthClient (cookie-based auth) instead of
-  localStorage/JWT decoding. Requires authClient.js loaded BEFORE this
-  script on feedback_history.html:
-    <script src="authClient.js"></script>
-    <script src="feedback_history.js"></script>
-
-  Same element ids as your original feedback_history.html, so no other
-  HTML changes needed.
-*/
-
 const listEl = document.getElementById("historyList");
 const statusEl = document.getElementById("historyStatus");
 const emptyEl = document.getElementById("historyEmpty");
@@ -17,7 +6,10 @@ const tabsWrap = document.querySelector(".historyTabs");
 let activeTab = "all";
 
 const sortEl = document.getElementById("historySort");
-let activeSort = "relevant"; // relevant | newest | starsDesc | starsAsc
+let activeSort = "relevant"; 
+let ALL_ITEMS = [];
+let USER_META = null;
+const editRatingState = {};
 
 function fmtDate(ts) {
   if (!ts) return "";
@@ -89,6 +81,30 @@ function cardHtml(item, userMeta) {
 
   const body = item.type === "review" ? escapeHtml(item.text || "") : escapeHtml(item.message || "");
 
+  const starPicker = item.type === "review" ? `
+    <div class="historyEditStars" id="editStars-${item.id}">
+      ${[1, 2, 3, 4, 5].map((n) => `<span class="editStar" data-value="${n}" onclick="setEditRating('${item.id}', ${n})">★</span>`).join("")}
+    </div>
+  ` : "";
+
+  const editForm = `
+    <div class="historyEditForm" id="editForm-${item.id}" hidden>
+      ${starPicker}
+      <textarea class="std-input historyEditTextarea" id="editText-${item.id}">${escapeHtml(item.type === "review" ? item.text || "" : item.message || "")}</textarea>
+      <div class="historyEditBtns">
+        <button type="button" class="historySaveBtn" onclick="saveEdit('${item.id}', '${item.type}')">Save</button>
+        <button type="button" class="historyCancelBtn" onclick="cancelEdit('${item.id}')">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  const actionsRow = `
+    <div class="historyActions">
+      <button type="button" class="historyEditBtn" onclick="startEdit('${item.id}')">Edit</button>
+      <button type="button" class="historyDeleteBtn" onclick="deleteItem('${item.id}', '${item.type}')">Delete</button>
+    </div>
+  `;
+
   return `
     <div class="historyCard" data-type="${item.type}">
       <div class="historyTop">
@@ -107,8 +123,10 @@ function cardHtml(item, userMeta) {
 
       ${tags}
 
-      <div class="historyBody">${body}</div>
+      <div class="historyBody" id="historyBody-${item.id}">${body}</div>
       ${img}
+      ${actionsRow}
+      ${editForm}
     </div>
   `;
 }
@@ -156,6 +174,9 @@ function sortItems(arr) {
 }
 
 function render(items, userMeta) {
+  ALL_ITEMS = items;
+  USER_META = userMeta;
+
   const filtered = activeTab === "all" ? items : items.filter((x) => x.type === activeTab.slice(0, -1));
   const sorted = sortItems(filtered);
 
@@ -259,6 +280,125 @@ async function loadHistory(user) {
     statusEl.textContent = err?.message || "Failed to load history.";
   }
 })();
+
+function updateEditStarsUI(id, value) {
+  const container = document.getElementById(`editStars-${id}`);
+  if (!container) return;
+  container.querySelectorAll(".editStar").forEach((star) => {
+    star.classList.toggle("active", Number(star.dataset.value) <= value);
+  });
+}
+ 
+window.startEdit = (id) => {
+  const bodyEl = document.getElementById(`historyBody-${id}`);
+  const formEl = document.getElementById(`editForm-${id}`);
+  if (bodyEl) bodyEl.hidden = true;
+  if (formEl) formEl.hidden = false;
+ 
+  const item = ALL_ITEMS.find((x) => x.id === id);
+  if (item && item.type === "review") {
+    editRatingState[id] = item.rating;
+    updateEditStarsUI(id, item.rating);
+  }
+};
+ 
+window.cancelEdit = (id) => {
+  const bodyEl = document.getElementById(`historyBody-${id}`);
+  const formEl = document.getElementById(`editForm-${id}`);
+  if (bodyEl) bodyEl.hidden = false;
+  if (formEl) formEl.hidden = true;
+};
+ 
+window.setEditRating = (id, value) => {
+  editRatingState[id] = value;
+  updateEditStarsUI(id, value);
+};
+ 
+window.saveEdit = async (id, type) => {
+  const textEl = document.getElementById(`editText-${id}`);
+  const text = textEl?.value.trim() || "";
+ 
+  if (!text) {
+    alert(type === "review" ? "Review cannot be empty." : "Message cannot be empty.");
+    return;
+  }
+ 
+  try {
+    if (type === "review") {
+      const rating = editRatingState[id];
+      if (!rating) {
+        alert("Please select a rating.");
+        return;
+      }
+ 
+      const item = ALL_ITEMS.find((x) => x.id === id);
+ 
+      const res = await AuthClient.apiFetch(`/api/reviews/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating,
+          reviewText: text,
+          isAnonymous: false,
+          tags: item?.tags || [],
+        }),
+      });
+ 
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update review.");
+      }
+ 
+      const item2 = ALL_ITEMS.find((x) => x.id === id);
+      if (item2) {
+        item2.text = text;
+        item2.rating = rating;
+      }
+    } else {
+      const res = await AuthClient.apiFetch(`/api/complaints/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+ 
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update complaint.");
+      }
+ 
+      const item2 = ALL_ITEMS.find((x) => x.id === id);
+      if (item2) item2.message = text;
+    }
+ 
+    render(ALL_ITEMS, USER_META); 
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Failed to save changes.");
+  }
+};
+ 
+
+ 
+window.deleteItem = async (id, type) => {
+  if (!confirm(`Delete this ${type}? This cannot be undone.`)) return;
+ 
+  try {
+    const url = type === "review" ? `/api/reviews/${id}` : `/api/complaints/${id}`;
+    const res = await AuthClient.apiFetch(url, { method: "DELETE" });
+ 
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Failed to delete.");
+    }
+ 
+    ALL_ITEMS = ALL_ITEMS.filter((x) => x.id !== id);
+    render(ALL_ITEMS, USER_META);
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Failed to delete.");
+  }
+};
+ 
 
 /* ================= Image Click → Full Preview ================= */
 

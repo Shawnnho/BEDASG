@@ -126,6 +126,16 @@ async function login(req, res) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    // Account has been deactivated (stallholder or customer) — refuse to
+    // issue tokens and tell the front-end to show the "contact support" popup.
+    if (user.IsDeactivated) {
+      return res.status(403).json({
+        error: "This account has been deactivated.",
+        deactivated: true,
+        role: user.UserRole,
+      });
+    }
+
     await issueTokens(res, user);
     res.json({ user: toPublicUser(user) });
   } catch (err) {
@@ -142,13 +152,11 @@ async function refresh(req, res) {
     }
 
     const tokenHash = hashToken(token);
-    const record = await refreshTokenModel.findValidRefreshToken(tokenHash);
+    const record = await refreshTokenModel.claimRefreshToken(tokenHash);
     if (!record) {
       clearAuthCookies(res);
       return res.status(403).json({ error: "Invalid or expired refresh token" });
     }
-
-    await refreshTokenModel.revokeRefreshToken(tokenHash);
 
     const user = await userModel.getUserById(record.UserId);
     if (!user) {

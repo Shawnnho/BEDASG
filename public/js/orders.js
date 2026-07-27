@@ -1,11 +1,3 @@
-/*************************************************
- * orders.js — Hawker Point
- * - Auth gate (must be signed in)
- * - Loads the logged-in user's orders from the SQL backend
- *   via GET /api/orders (optional ?checkoutId= filter)
- * - Renders order cards into #ordersList
- *************************************************/
-
 async function checkLogin() {
   try {
     const res = await fetch("/api/auth/me");
@@ -69,6 +61,7 @@ function isPendingStatus(status) {
 function statusClass(status) {
   const s = String(status || "").toLowerCase();
   if (s === "completed" || s === "collected" || s === "done") return "stDone";
+  if (s === "cancelled") return "stCancelled";
   if (s.includes("pending_payment") || s.includes("pending")) return "stPay";
   if (s.includes("paid") || s.includes("processing")) return "stPaid";
   if (s.includes("preparing")) return "stPrep";
@@ -95,6 +88,190 @@ function wireTabs() {
 
   setTab("pending");
 }
+
+// Merge sibling orders that share a CheckoutId (multi-stall checkout) into
+// a single display entry: combined total, combined items, combined stall
+// names, and the least-advanced status among them.
+function combineOrdersByCheckout(orders) {
+  const groups = new Map();
+  for (const o of orders) {
+    const key = o.checkoutId || o.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(o);
+  }
+
+  const STATUS_PRIORITY = [
+    "pending_payment",
+    "pending",
+    "cancelled",
+    "paid",
+    "processing",
+    "preparing",
+    "ready",
+    "completed",
+    "collected",
+    "done",
+  ];
+
+  function leastAdvancedStatus(list) {
+    let best = list[0]?.status ?? null;
+    let bestRank = Infinity;
+    for (const o of list) {
+      const s = String(o.status || "").toLowerCase();
+      const rank = STATUS_PRIORITY.indexOf(s);
+      const effectiveRank = rank === -1 ? STATUS_PRIORITY.length : rank;
+      if (effectiveRank < bestRank) {
+        bestRank = effectiveRank;
+        best = o.status;
+      }
+    }
+    return best;
+  }
+
+  const merged = [];
+  for (const list of groups.values()) {
+    if (list.length === 1) {
+      merged.push(list[0]);
+      continue;
+    }
+
+    const stallNames = Array.from(new Set(list.map((o) => o.stallName).filter(Boolean)));
+    const stallNameDisplay =
+      stallNames.length > 2
+        ? `${stallNames.slice(0, 2).join(", ")} +${stallNames.length - 2} more`
+        : stallNames.join(", ");
+
+    const orderNos = list.map((o) => o.orderNo).filter(Boolean);
+    const allItems = list.flatMap((o) => o.items || []);
+    const total = list.reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
+    const allCompleted = list.every((o) => isCompletedStatus(o.status));
+
+    merged.push({
+      id: list[0].id,
+      orderNo: orderNos[0] || null,
+      stallName: stallNameDisplay,
+      stallNameFull: stallNames.join(", "),
+      status: allCompleted ? "completed" : leastAdvancedStatus(list),
+      checkoutId: list[0].checkoutId,
+      payment: list[0].payment,
+      pricing: { total },
+      fulfillment: list[0].fulfillment,
+      createdAt: list[0].createdAt,
+      items: allItems,
+    });
+  }
+
+  return merged;
+}
+
+// Combine two cart arrays, merging quantities for items that match on
+// stall + item + variant instead of creating duplicate line entries.
+function mergeCartItems(existing, incoming) {
+  const merged = existing.map((it) => ({ ...it }));
+
+  const keyOf = (it) =>
+    `${it.stallId ?? it.StallId ?? ""}|${it.itemId ?? it.ItemId ?? ""}|${it.variantKey ?? it.VariantKey ?? ""}`;
+
+  for (const inItem of incoming) {
+    const idx = merged.findIndex((it) => keyOf(it) === keyOf(inItem));
+    if (idx >= 0) {
+      const currentQty = Number(merged[idx].qty ?? merged[idx].Qty ?? 0);
+      const addQty = Number(inItem.qty ?? inItem.Qty ?? 0);
+      const newQty = currentQty + addQty;
+      const unitPrice = Number(
+        merged[idx].unitPrice ?? merged[idx].UnitPrice ?? inItem.unitPrice ?? 0,
+      );
+
+      merged[idx].qty = newQty;
+      merged[idx].Qty = newQty;
+      merged[idx].totalPrice = newQty * unitPrice;
+      merged[idx].TotalPrice = newQty * unitPrice;
+    } else {
+      merged.push({ ...inItem });
+    }
+  }
+
+  return merged;
+}
+
+window.deleteOrder = async function (orderId, checkoutId) {
+  if (!confirm("Delete this order from your history? This cannot be undone.")) {
+    return;
+  }
+
+  try {
+    const idToDelete = checkoutId || orderId;
+    const res = await fetch(`/api/orders/${encodeURIComponent(idToDelete)}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Delete failed");
+    }
+
+    // Remove the deleted order(s) from the in-memory list and re-render
+    // without needing a full page reload.
+    window.__ALL_ORDERS = (window.__ALL_ORDERS || []).filter((o) => {
+      if (checkoutId) return o.checkoutId !== checkoutId;
+      return String(o.id) !== String(orderId);
+    });
+
+    renderOrders(window.__ALL_ORDERS, window.__CHECKOUT_FILTER || null);
+  } catch (err) {
+    console.error(err);
+    alert("Could not delete this order. Please try again.");
+  }
+};
+
+window.reorderOrder = async function (orderId) {
+  try {
+    const orders = window.__ALL_ORDERS || [];
+    const order = orders.find((o) => String(o.id) === String(orderId));
+
+    if (!order) {
+      alert("Could not find that order.");
+      return;
+    }
+
+    const items = order.items || [];
+    if (!items.length) {
+      alert("This order has no items to reorder.");
+      return;
+    }
+
+    const user = await checkLogin();
+    const CART_KEY = "hp_cart"; // must match cart.js's CART_KEY
+
+    if (!user) {
+      let cart = [];
+      try {
+        cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+        if (!Array.isArray(cart)) cart = [];
+      } catch {
+        cart = [];
+      }
+      localStorage.setItem(CART_KEY, JSON.stringify(mergeCartItems(cart, items)));
+    } else {
+      const existingRes = await fetch(`/api/cart/${user.uid}`);
+      let existing = [];
+      if (existingRes.ok) {
+        existing = await existingRes.json();
+        if (!Array.isArray(existing)) existing = [];
+      }
+
+      await fetch(`/api/cart/${user.uid}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: mergeCartItems(existing, items) }),
+      });
+    }
+
+    window.location.href = "cart.html";
+  } catch (err) {
+    console.error(err);
+    alert("Could not reorder. Please try again.");
+  }
+};
 
 function renderOrders(orders, checkoutIdFilter) {
   const bannerEl = document.getElementById("ordersBanner");
@@ -157,6 +334,7 @@ function renderOrders(orders, checkoutIdFilter) {
 
   function cardHtml(o) {
     const stallName = String(o.stallName || "").trim() || "Unknown Stall";
+    const stallTitle = o.stallNameFull ? ` title="${o.stallNameFull}"` : "";
     const paymentType = prettyPayMethod(o.payment?.method);
     const total = o.pricing?.total ?? 0;
     const fulfill = o.fulfillment?.type === "delivery" ? "Delivery" : "Pickup";
@@ -176,7 +354,7 @@ function renderOrders(orders, checkoutIdFilter) {
             <span class="orderStatusPill ${statusClass(o.status)}">${statusText || "pending"}</span>
           </div>
 
-          <div class="orderMainTitle">${stallName}</div>
+          <div class="orderMainTitle"${stallTitle}>${stallName}</div>
 
           <div class="orderMetaRow">
             <span class="chip">${fulfill}</span>
@@ -185,7 +363,11 @@ function renderOrders(orders, checkoutIdFilter) {
           </div>
         </div>
 
-        <a class="orderBtn" href="${href}">View</a>
+        <div class="orderActions">
+          <button type="button" class="orderBtn" onclick="reorderOrder('${o.id}')">Reorder</button>
+          <button type="button" class="orderBtn deleteBtn" onclick="deleteOrder('${o.id}', '${o.checkoutId || ""}')">Delete</button>
+          <a class="orderBtn" href="${href}">View</a>
+        </div>
       </div>
     `;
   }
@@ -215,15 +397,19 @@ function wireFilters(latestOrdersRef) {
   }
 
   const checkoutIdFilter = getQueryParam("checkoutId");
+  window.__CHECKOUT_FILTER = checkoutIdFilter;
 
   try {
     const orders = await loadOrdersForOwner(checkoutIdFilter);
-    const state = { orders, checkoutId: checkoutIdFilter };
+    const merged = combineOrdersByCheckout(orders);
+    window.__ALL_ORDERS = merged;
+    const state = { orders: merged, checkoutId: checkoutIdFilter };
     wireFilters(state);
     wireTabs();
     renderOrders(state.orders, state.checkoutId);
   } catch (err) {
     console.error(err);
+    window.__ALL_ORDERS = [];
     const state = { orders: [], checkoutId: checkoutIdFilter };
     wireFilters(state);
     wireTabs();

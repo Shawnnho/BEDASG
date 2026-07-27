@@ -1,29 +1,48 @@
 const analyticsModel = require("../models/stallAnalyticsModel");
 const orderModel = require("../models/orderModel"); // reuse getUserInfo / getStallName
 
-/* ===== date helpers (server-local time) ===== */
+/* ===== date helpers =====
+   Orders.CreatedAt is stored in UTC (SYSUTCDATETIME()), but "today" / "this
+   month" etc. should mean an Asia/Singapore (UTC+8, no DST) calendar day —
+   computed here independent of the Node process's own timezone, since that
+   can differ between a dev machine and a deployment container. */
+
+const SGT_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+// Returns a Date whose UTC fields read as Singapore wall-clock time, so
+// getUTCFullYear/getUTCMonth/setUTCHours etc. all operate on the SGT
+// calendar regardless of the host's own timezone.
+function toSgt(d) {
+  return new Date(d.getTime() + SGT_OFFSET_MS);
+}
+
+// Converts an SGT-shifted Date (from toSgt) back to the real UTC instant.
+function fromSgt(d) {
+  return new Date(d.getTime() - SGT_OFFSET_MS);
+}
 
 function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+  const x = toSgt(d);
+  x.setUTCHours(0, 0, 0, 0);
+  return fromSgt(x);
 }
 
 function endOfDay(d) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
+  const x = toSgt(d);
+  x.setUTCHours(23, 59, 59, 999);
+  return fromSgt(x);
 }
 
 function addDays(d, n) {
   const x = new Date(d);
-  x.setDate(x.getDate() + n);
+  x.setUTCDate(x.getUTCDate() + n);
   return x;
 }
 
 // Resolve a preset into { start, end, granularity, label }
 function rangeFromPreset(preset) {
   const now = new Date();
+  const nowSgt = toSgt(now);
   const p = String(preset || "today").toLowerCase();
 
   if (p === "alltime") {
@@ -64,7 +83,9 @@ function rangeFromPreset(preset) {
   }
 
   if (p === "thismonth") {
-    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    const s = fromSgt(
+      new Date(Date.UTC(nowSgt.getUTCFullYear(), nowSgt.getUTCMonth(), 1)),
+    );
     return {
       start: startOfDay(s),
       end: endOfDay(now),
@@ -74,8 +95,12 @@ function rangeFromPreset(preset) {
   }
 
   if (p === "lastmonth") {
-    const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const e = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+    const s = fromSgt(
+      new Date(Date.UTC(nowSgt.getUTCFullYear(), nowSgt.getUTCMonth() - 1, 1)),
+    );
+    const e = fromSgt(
+      new Date(Date.UTC(nowSgt.getUTCFullYear(), nowSgt.getUTCMonth(), 0)),
+    ); // last day of prev month
     return {
       start: startOfDay(s),
       end: endOfDay(e),

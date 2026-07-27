@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hawker Point - Report Feedback</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/upload-feedback.css" />
+    <link rel="stylesheet" href="css/general-feedback.css" />
+  </head>
+
+  <body class="feedbackFormPage">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill" href="home.html">Home</a>
+          <a class="pill" href="promotions.html" id="navPromotions">Promotions</a>
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill active" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
+          </a>
+          <a class="pill account" href="account.html">Account</a>
+        </nav>
+
+        <button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+      </div>
+
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html" id="mNavPromotions">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink active" href="feedback.html" style="background: #df8f3b; color: white">Feedback</a>
+        <a class="mLink" href="hygiene.html" id="mNavHygiene">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+        <a class="mLink" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="review-container">
+      <div class="review-card">
+        <a href="general-feedback.html" class="gfBackLink">← Back to All Feedback</a>
+
+        <div class="complaint-header">
+          <h2>Report This Review</h2>
+          <p>Help us keep feedback on Hawker Point genuine and respectful.</p>
+        </div>
+
+        <div id="reportReviewPreview" class="reportReviewPreview">
+          <p>Loading review...</p>
+        </div>
+
+        <div class="form-group">
+          <label class="fieldLabel" for="reportReason">Reason</label>
+          <select id="reportReason" class="std-input full-width">
+            <option value="" disabled selected>Select a reason</option>
+            <option value="Spam">Spam</option>
+            <option value="Inappropriate Content">Inappropriate Content</option>
+            <option value="Fake Review">Fake Review</option>
+            <option value="Harassment">Harassment</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="fieldLabel" for="reportDetails">Additional details (optional)</label>
+          <textarea
+            id="reportDetails"
+            class="review-input std-input full-width"
+            placeholder="Anything else we should know?"
+          ></textarea>
+        </div>
+
+        <div id="reportError" class="error-text" style="display: none"></div>
+        <div id="reportSuccess" class="reportSuccess" style="display: none">
+          ✅ Report submitted. Thank you for helping keep feedback genuine.
+        </div>
+
+        <button id="reportSubmitBtn" type="button" class="submit-btn" onclick="submitReport()">
+          Submit Report
+        </button>
+      </div>
+    </main>
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
+          </div>
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            <a href="pricing.html">Pricing</a>
+          </div>
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/authClient.js"></script>
+    <script src="js/report.js"></script>
+  </body>
+</html>
