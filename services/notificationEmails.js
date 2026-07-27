@@ -1,56 +1,105 @@
 const { sendMail } = require("./mailer");
+const path = require("path");
+
+const LOGO_PATH = path.join(__dirname, "..", "public", "images", "logo.png");
+const LOGO_CID = "hawkerpointlogo";
+
+const LOGO_ATTACHMENT = {
+  filename: "logo.png",
+  path: LOGO_PATH,
+  cid: LOGO_CID,
+};
+
+const BRAND = "#e67e22";
+const INK = "#1c1c1c";
+const MUTED = "#6b7280";
+const BORDER = "#eee";
 
 function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
-// order shape expected here, matching the receipt page:
-// {
-//   orderId, paidAt, stallName, paymentMethod, totalPaid,
-//   pickupStart, pickupEnd,
-//   items: [{ name, qty, addons: [], note }]
-// }
-function orderInfoRows(order) {
+function wrapEmail({ heading, subheading, bodyHtml }) {
   return `
-    <tr>
-      <td style="padding:6px 0;color:#555">Order No.</td>
-      <td style="padding:6px 0;text-align:right"><b>${order.orderId || ""}</b></td>
-    </tr>
-    <tr>
-      <td style="padding:6px 0;color:#555">Paid At</td>
-      <td style="padding:6px 0;text-align:right"><b>${order.paidAt || ""}</b></td>
-    </tr>
-    <tr>
-      <td style="padding:6px 0;color:#555">Stall</td>
-      <td style="padding:6px 0;text-align:right"><b>${order.stallName || ""}</b></td>
-    </tr>
-    <tr>
-      <td style="padding:6px 0;color:#555">Payment</td>
-      <td style="padding:6px 0;text-align:right"><b>${order.paymentMethod || ""}</b></td>
-    </tr>
-    <tr>
-      <td style="padding:6px 0;color:#555;border-top:1px solid #eee">Total Paid</td>
-      <td style="padding:6px 0;text-align:right;border-top:1px solid #eee"><b>${money(order.totalPaid)}</b></td>
-    </tr>
+    <div style="background:#f4f7f6;padding:24px 12px;font-family:'Segoe UI',Arial,sans-serif;color:${INK}">
+      <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.06)">
+
+        <div style="background:${BRAND};padding:18px 28px">
+          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+            <tr>
+              <td style="vertical-align:middle;padding-right:10px">
+                <img src="cid:${LOGO_CID}" width="32" height="32" alt="HawkerPoint" style="width:32px;height:32px;border-radius:8px;display:block" />
+              </td>
+              <td style="vertical-align:middle;color:#fff;font-weight:900;font-size:15px;letter-spacing:.5px">
+                HAWKERPOINT
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="padding:26px 28px 30px">
+          <h2 style="margin:0 0 4px;font-size:20px">${heading}</h2>
+          ${subheading ? `<p style="margin:0 0 20px;color:${MUTED};font-size:13.5px">${subheading}</p>` : `<div style="margin-bottom:14px"></div>`}
+          ${bodyHtml}
+        </div>
+
+        <div style="background:#fafafa;padding:14px 28px;border-top:1px solid ${BORDER};color:${MUTED};font-size:11.5px">
+          This is an automated message from HawkerPoint — please don't reply directly to this email.
+        </div>
+      </div>
+    </div>
   `;
 }
 
-function pickupLine(order) {
-  if (!order.pickupStart && !order.pickupEnd) return "";
-  return `<p style="color:#555">⏳ Estimated pickup time: <b>${order.pickupStart || ""}${order.pickupEnd ? ` – ${order.pickupEnd}` : ""}</b></p>`;
+function orderInfoCard(order) {
+  const rows = [
+    ["Order No.", order.orderId],
+    ["Paid At", order.paidAt],
+    ["Stall", order.stallName],
+    ["Payment", order.paymentMethod],
+  ];
+
+  const rowsHtml = rows
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td style="padding:7px 0;color:${MUTED};font-size:13.5px">${label}</td>
+          <td style="padding:7px 0;text-align:right;font-weight:700;font-size:13.5px">${value || ""}</td>
+        </tr>`,
+    )
+    .join("");
+
+  return `
+    <div style="border:1px solid ${BORDER};border-radius:12px;padding:18px 20px;margin-bottom:22px">
+      <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
+        ${rowsHtml}
+        <tr>
+          <td style="padding:10px 0 0;border-top:1px solid ${BORDER};font-size:14px">Total Paid</td>
+          <td style="padding:10px 0 0;border-top:1px solid ${BORDER};text-align:right;font-weight:900;font-size:16px;color:${BRAND}">
+            ${money(order.totalPaid)}
+          </td>
+        </tr>
+      </table>
+      ${
+        order.pickupStart || order.pickupEnd
+          ? `<p style="margin:14px 0 0;color:${MUTED};font-size:13px">
+               ⏳ Estimated pickup: <b style="color:${INK}">${order.pickupStart || ""}${order.pickupEnd ? ` – ${order.pickupEnd}` : ""}</b>
+             </p>`
+          : ""
+      }
+    </div>
+  `;
 }
 
 function itemCards(order) {
   return (order.items || [])
     .map(
       (i) => `
-        <div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px">
-          <h3 style="margin:0 0 8px">${i.name}</h3>
-          <p style="margin:2px 0"><b>Order No:</b> ${order.orderId || ""}</p>
-          <p style="margin:2px 0"><b>Stall:</b> ${order.stallName || ""}</p>
-          <p style="margin:2px 0"><b>${i.qty || 1} x ${i.name}</b></p>
-          ${i.addons && i.addons.length ? `<p style="margin:2px 0"><b>Add-ons:</b> ${i.addons.join(", ")}</p>` : ""}
-          ${i.note ? `<p style="margin:2px 0"><b>Note:</b> ${i.note}</p>` : ""}
+        <div style="border:1px solid ${BORDER};border-radius:12px;padding:14px 16px;margin-bottom:12px">
+          <div style="font-weight:800;font-size:14.5px;margin-bottom:6px">${i.name}</div>
+          <div style="font-size:13px;color:${MUTED};margin-bottom:2px">${i.qty || 1} × ${i.name}</div>
+          ${i.addons && i.addons.length ? `<div style="font-size:12.5px;color:${MUTED};margin-top:4px"><b style="color:${INK}">Add-ons:</b> ${i.addons.join(", ")}</div>` : ""}
+          ${i.note ? `<div style="font-size:12.5px;color:${MUTED};margin-top:2px"><b style="color:${INK}">Note:</b> ${i.note}</div>` : ""}
         </div>`,
     )
     .join("");
@@ -61,17 +110,15 @@ async function sendOrderConfirmation(customerEmail, order) {
   await sendMail({
     to: customerEmail,
     subject: `Order Confirmed — ${order.orderId}`,
-    html: `
-      <h2>Thank you! Your order has been placed successfully</h2>
-      <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:20px">
-        <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
-          ${orderInfoRows(order)}
-        </table>
-        ${pickupLine(order)}
-      </div>
-      <h3>Order Summary</h3>
-      ${itemCards(order)}
-    `,
+    html: wrapEmail({
+      heading: "Thank you! Your order has been placed successfully",
+      bodyHtml: `
+        ${orderInfoCard(order)}
+        <h3 style="margin:0 0 12px;font-size:15px">Order Summary</h3>
+        ${itemCards(order)}
+      `,
+    }),
+    attachments: [LOGO_ATTACHMENT],
   });
 }
 
@@ -80,17 +127,16 @@ async function sendNewOrderAlert(stallOwnerEmail, order) {
   await sendMail({
     to: stallOwnerEmail,
     subject: `New Order Received — ${order.orderId}`,
-    html: `
-      <h2>You've got a new order!</h2>
-      <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:20px">
-        <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
-          ${orderInfoRows(order)}
-        </table>
-      </div>
-      <h3>Order Summary</h3>
-      ${itemCards(order)}
-      <p>Log in to your stall dashboard to view and prepare it.</p>
-    `,
+    html: wrapEmail({
+      heading: "You've got a new order!",
+      subheading: "Log in to your stall dashboard to view and prepare it.",
+      bodyHtml: `
+        ${orderInfoCard(order)}
+        <h3 style="margin:0 0 12px;font-size:15px">Order Summary</h3>
+        ${itemCards(order)}
+      `,
+    }),
+    attachments: [LOGO_ATTACHMENT],
   });
 }
 
@@ -99,12 +145,17 @@ async function sendComplaintAlert(stallOwnerEmail, complaint) {
   await sendMail({
     to: stallOwnerEmail,
     subject: `New Complaint Filed — ${complaint.stallName || "Your Stall"}`,
-    html: `
-      <h2>A customer has filed a complaint</h2>
-      <p><b>Type:</b> ${complaint.complaintType || "General"}</p>
-      <p><b>Message:</b> ${complaint.message || ""}</p>
-      <p>Please review this in your stall dashboard.</p>
-    `,
+    html: wrapEmail({
+      heading: "A customer has filed a complaint",
+      subheading: "Please review this in your stall dashboard.",
+      bodyHtml: `
+        <div style="border:1px solid ${BORDER};border-radius:12px;padding:18px 20px">
+          <p style="margin:0 0 8px;font-size:13.5px"><b>Type:</b> ${complaint.complaintType || "General"}</p>
+          <p style="margin:0;font-size:13.5px;color:${MUTED}">${complaint.message || ""}</p>
+        </div>
+      `,
+    }),
+    attachments: [LOGO_ATTACHMENT],
   });
 }
 
