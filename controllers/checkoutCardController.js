@@ -8,8 +8,7 @@ const { sendOrderConfirmation, sendNewOrderAlert } = require("../services/notifi
 // flow. But if the checkout DOES belong to a registered user, block anyone
 // else (including a different logged-in user) from viewing/paying it.
 function ownsCheckoutOrForbid(req, res, checkout) {
-  const currentUserId = req.user?.UserId || req.user?.userId;
-  if (checkout?.UserId && checkout.UserId !== currentUserId) {
+  if (checkout?.UserId && checkout.UserId !== req.user?.userId) {
     res.status(403).json({ error: "You don't have access to this checkout." });
     return false;
   }
@@ -102,13 +101,13 @@ const payCheckout = async (req, res) => {
       }
     }
 
-  
     if (Array.isArray(summary.orders)) {
       for (const order of summary.orders) {
         const orderItems = (summary.items || [])
           .filter((it) => it.OrderId === order.OrderId)
           .map((it) => ({
             name: it.ItemName || "Item",
+            img: it.ImageUrl || null,
             qty: Number(it.Quantity) || 1,
             addons: parseAddonLabels(it.AddonsJson),
             note: it.ItemNote || "",

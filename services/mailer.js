@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendMail({ to, subject, html }) {
+async function sendMail({ to, subject, html, attachments }) {
   if (!to) {
     console.warn("sendMail skipped — no recipient email provided.");
     return;
@@ -20,6 +20,7 @@ async function sendMail({ to, subject, html }) {
       to,
       subject,
       html,
+      attachments,
     });
   } catch (err) {
     console.error("sendMail failed:", err.message);
