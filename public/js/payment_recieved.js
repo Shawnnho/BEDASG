@@ -1,12 +1,3 @@
-/*************************************************
- * payment_recieved.js
- * Reads order/checkout data from the SQL Server backend
- * (dbo.Checkouts / dbo.Orders / dbo.OrderItems) via:
- *   GET /api/checkoutCard/:id
- * Works with either ?checkoutId=XXXX or ?orderId=YYYY —
- * the backend resolves either one to the same summary shape.
- *************************************************/
-
 async function api(endpoint) {
   const res = await fetch(`/api${endpoint}`);
   if (!res.ok) throw new Error("API Error");
@@ -97,14 +88,13 @@ function setPaidAtAndPickup(paidAtRaw, isCash, createdAtRaw) {
     }
   }
 
-  // Cash orders have no PaidAt yet, so estimate pickup off CreatedAt instead.
   const anchorDate = paidDate || (isCash ? tsToDate(createdAtRaw) : null);
 
   const pickupEl = document.getElementById("prPickupTime");
   if (pickupEl) {
     if (anchorDate) {
-      const from = addMinutes(anchorDate, 15);
-      const to = addMinutes(anchorDate, 20);
+      const from = addMinutes(anchorDate, 1);
+      const to = addMinutes(anchorDate, 3);
       pickupEl.textContent = `${formatTimeOnly(from)} – ${formatTimeOnly(to)}`;
     } else {
       pickupEl.textContent = "—";
@@ -177,7 +167,6 @@ function getQueryParam(name) {
 function prettyCancelReason(reason) {
   const x = String(reason || "").trim();
   if (!x) return "";
-  // "out_of_stock" -> "Out of stock"
   const spaced = x.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -188,9 +177,10 @@ function applyRefundState(orders) {
   );
   const cancelledOrder = orders.find((o) => !!o.CancelledAt);
 
-  // Refund takes priority if somehow both are set on the same order.
   const target = refundedOrder || cancelledOrder;
   if (!target) return;
+
+  hideInlineQr();
 
   const isRefund = !!refundedOrder;
 
@@ -224,6 +214,32 @@ function applyRefundState(orders) {
         : `Sorry! This order has been cancelled.${reasonText}`;
     }
   }
+}
+
+const QR_REVEAL_DELAY_MS = 60000;
+
+function setupInlineQr(id, orderNo) {
+  const container = document.getElementById("inlineQrContainer");
+  const img = document.getElementById("inlineQrImg");
+  const orderEl = document.getElementById("inlineQrOrderNo");
+  
+  if (!container || !img) return;
+
+  if (container._qrTimer) clearTimeout(container._qrTimer);
+
+  container.hidden = true;
+  container._qrTimer = setTimeout(() => {
+    if (orderEl) orderEl.textContent = `Order No. ${orderNo || "—"}`;
+    img.src = `/api/checkoutCard/${encodeURIComponent(id)}/qr?ts=${Date.now()}`;
+    container.hidden = false;
+  }, QR_REVEAL_DELAY_MS);
+}
+
+function hideInlineQr() {
+  const container = document.getElementById("inlineQrContainer");
+  if (!container) return;
+  if (container._qrTimer) clearTimeout(container._qrTimer);
+  container.hidden = true;
 }
 
 function setupCancelButton(id, orders) {
@@ -272,12 +288,11 @@ async function loadSummary(id) {
 
   if (!orders || !orders.length) throw new Error("Order not found.");
 
-  // Order No. display — just show one, the same way orders.html does
+  const orderNos = orders.map((o) => o.OrderNo || o.OrderId);
+  const primaryOrderNo = orderNos[0] || "—";
+
   const orderIdEl = document.getElementById("prOrderId");
-  if (orderIdEl) {
-    const nos = orders.map((o) => o.OrderNo || o.OrderId);
-    orderIdEl.textContent = nos[0] || "—";
-  }
+  if (orderIdEl) orderIdEl.textContent = primaryOrderNo;
 
   const fulfillmentType = checkout?.FulfillmentType || orders[0].FulfillmentType;
   const address = {
@@ -326,6 +341,7 @@ async function loadSummary(id) {
   renderItems(orders, items || []);
   applyRefundState(orders);
   setupCancelButton(id, orders);
+  setupInlineQr(id, primaryOrderNo);
 
   const loading = document.getElementById("prLoading");
   const errBox = document.getElementById("prError");

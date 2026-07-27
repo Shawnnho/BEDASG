@@ -10,6 +10,7 @@ router.use(optionalAuth);
 
 router.post('/create', checkoutCardController.createCheckout);
 router.get('/:checkoutId', checkoutCardController.getCheckout);
+router.get('/:checkoutId/qr', checkoutCardController.getCheckoutQr);
 router.post('/:checkoutId/pay', checkoutCardController.payCheckout);
 
 module.exports = router;
