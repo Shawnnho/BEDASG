@@ -2,6 +2,7 @@ const checkoutCardModel = require("../models/checkoutCardModel");
 const CartModel = require("../models/cartModel");
 const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
 const { sendOrderConfirmation, sendNewOrderAlert } = require("../services/notificationEmails");
+const QRCode = require("qrcode");
 
 // Guest checkouts (checkout.UserId is null) are viewable/payable by anyone
 // holding the unguessable checkoutId — that's the intended guest-checkout
@@ -146,8 +147,37 @@ const payCheckout = async (req, res) => {
   }
 };
 
+// Same lookup + ownership rules as getCheckout — this just streams a PNG
+// instead of JSON. Encodes the order number (same value shown in prOrderId
+// on the front end) so stall staff can scan it against the order.
+const getCheckoutQr = async (req, res) => {
+  try {
+    const id = req.params.checkoutId;
+    const summary = await checkoutCardModel.getCheckoutSummary(id);
+    if (!summary || !summary.orders?.length) {
+      return res.status(404).json({ error: "Checkout not found" });
+    }
+    if (!ownsCheckoutOrForbid(req, res, summary.checkout)) return;
+
+    const orderNo = summary.orders[0].OrderNo || summary.orders[0].OrderId;
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+
+    await QRCode.toFileStream(res, String(orderNo), {
+      type: "png",
+      width: 300,
+      margin: 1,
+    });
+  } catch (error) {
+    console.error("getCheckoutQr error:", error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+};
+
 module.exports = {
   createCheckout,
   getCheckout,
   payCheckout,
+  getCheckoutQr,
 };
