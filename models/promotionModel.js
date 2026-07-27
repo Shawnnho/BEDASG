@@ -20,6 +20,7 @@ async function getAllPromotions() {
  * Returns one of:
  *   { success: true }
  *   { success: false, reason: 'not_found' }
+ *   { success: false, reason: 'expired' }
  *   { success: false, reason: 'exhausted' }
  *   { success: false, reason: 'already_claimed' }
  */
@@ -32,7 +33,7 @@ async function redeemPromotion(promoCode, userId) {
     const promoRes = await transaction.request()
       .input('promoCode', sql.NVarChar(255), promoCode)
       .query(`
-        SELECT PromotionId, RedemptionsLeft
+        SELECT PromotionId, RedemptionsLeft, ClaimOnce, ExpiresAt
         FROM dbo.Promotions
         WHERE PromoCode = @promoCode
       `);
@@ -43,22 +44,32 @@ async function redeemPromotion(promoCode, userId) {
       return { success: false, reason: 'not_found' };
     }
 
+    if (promo.ExpiresAt && new Date(promo.ExpiresAt) < new Date()) {
+      await transaction.rollback();
+      return { success: false, reason: 'expired' };
+    }
+
     if (promo.RedemptionsLeft != null && promo.RedemptionsLeft <= 0) {
       await transaction.rollback();
       return { success: false, reason: 'exhausted' };
     }
 
-    const claimRes = await transaction.request()
-      .input('userId', sql.NVarChar(255), userId)
-      .input('promotionId', sql.NVarChar(255), promo.PromotionId)
-      .query(`
-        SELECT ClaimId FROM dbo.UserPromoClaims
-        WHERE UserId = @userId AND PromotionId = @promotionId
-      `);
+    // Only enforce one-claim-per-user when the promo is actually flagged
+    // ClaimOnce — otherwise a repeatably-claimable promo would incorrectly
+    // block every user after their first redemption.
+    if (promo.ClaimOnce) {
+      const claimRes = await transaction.request()
+        .input('userId', sql.NVarChar(255), userId)
+        .input('promotionId', sql.NVarChar(255), promo.PromotionId)
+        .query(`
+          SELECT ClaimId FROM dbo.UserPromoClaims
+          WHERE UserId = @userId AND PromotionId = @promotionId
+        `);
 
-    if (claimRes.recordset.length > 0) {
-      await transaction.rollback();
-      return { success: false, reason: 'already_claimed' };
+      if (claimRes.recordset.length > 0) {
+        await transaction.rollback();
+        return { success: false, reason: 'already_claimed' };
+      }
     }
 
     const updateRes = await transaction.request()

@@ -46,7 +46,14 @@ function capitalize(s) {
 
 const createCheckout = async (req, res) => {
   try {
-    const result = await checkoutCardModel.createCheckoutOrder(req.body);
+    // userId always comes from the verified JWT (or "guest" when
+    // anonymous) — never from the request body, otherwise a caller could
+    // attach an order to any other account just by naming its id.
+    const userId = req.user?.userId || "guest";
+    const result = await checkoutCardModel.createCheckoutOrder({
+      ...req.body,
+      userId,
+    });
     res.status(201).json({
       success: true,
       checkoutId: result.checkoutId,

@@ -71,6 +71,10 @@ async function getOverview(req, res) {
 async function getStallsForCentre(req, res) {
   try {
     const { centreId } = req.params;
+    const operatorId = req.user.userId;
+    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
     const stalls = await stallModel.getStallsByCentre(centreId);
 
     const stallIds = stalls.map((s) => s.StallId);
@@ -96,6 +100,10 @@ async function getStallsForCentre(req, res) {
 async function getRentalsForCentre(req, res) {
   try {
     const { centreId } = req.params;
+    const operatorId = req.user.userId;
+    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
     const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(centreId);
     const monthKey = getCurrentMonthKey();
 
@@ -200,8 +208,14 @@ async function createRental(req, res) {
     if (!Number.isFinite(Number(monthlyRent)) || Number(monthlyRent) < 0)
       return res.status(400).json({ error: "Monthly rent must be 0 or more." });
 
+    const operatorId = req.user.userId;
+    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
     const stall = await stallModel.getStallById(stallId);
     if (!stall) return res.status(404).json({ error: "Stall not found." });
+    if (stall.CentreId !== centreId)
+      return res.status(400).json({ error: "Stall does not belong to this centre." });
 
     const existing = await rentalAgreementModel.getRentalAgreementByStallId(stall.StallId);
     if (existing) {
@@ -261,8 +275,16 @@ async function createRental(req, res) {
 async function deleteRental(req, res) {
   try {
     const { agreementId } = req.params;
-    const deleted = await rentalAgreementModel.deleteRentalAgreement(agreementId);
+    const operatorId = req.user.userId;
 
+    const agreement = await rentalAgreementModel.getRentalAgreementById(agreementId);
+    if (!agreement) {
+      return res.status(404).json({ error: "Rental agreement not found." });
+    }
+    const centre = await centreModel.getCentreForOperator(agreement.CentreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
+    const deleted = await rentalAgreementModel.deleteRentalAgreement(agreementId);
     if (!deleted) {
       return res.status(404).json({ error: "Rental agreement not found." });
     }
@@ -282,6 +304,15 @@ async function saveBill(req, res) {
     const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
 
     if (!centreId) return res.status(400).json({ error: "centreId is required." });
+
+    const operatorId = req.user.userId;
+    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
+    const stall = await stallModel.getStallCentreId(stallId);
+    if (!stall) return res.status(404).json({ error: "Stall not found." });
+    if (stall.CentreId !== centreId)
+      return res.status(400).json({ error: "Stall does not belong to this centre." });
 
     const bill = await operatorBillModel.updateBill(stallId, billMonth, centreId, {
       rent: Number(rent || 0),
@@ -306,6 +337,13 @@ async function saveBill(req, res) {
 async function getStallComplaints(req, res) {
   try {
     const { stallId } = req.params;
+    const operatorId = req.user.userId;
+
+    const stall = await stallModel.getStallCentreId(stallId);
+    if (!stall) return res.status(404).json({ error: "Stall not found." });
+    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
     const complaints = await stallComplaintHistoryModel.getComplaintsByStall(stallId);
     res.json(complaints);
   } catch (err) {

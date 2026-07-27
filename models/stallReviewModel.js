@@ -29,7 +29,7 @@ async function createReview({
       INSERT INTO dbo.StallReviews
         (ReviewId, StallId, UserId, UserName, Rating, ReviewText, IsAnonymous, ImageUrl, TagsJson, CreatedAt)
       VALUES
-        (@reviewId, @stallId, @userId, @userName, @rating, @reviewText, @isAnonymous, @imageUrl, @tagsJson, GETDATE());
+        (@reviewId, @stallId, @userId, @userName, @rating, @reviewText, @isAnonymous, @imageUrl, @tagsJson, SYSUTCDATETIME());
     `);
 
   return { reviewId };

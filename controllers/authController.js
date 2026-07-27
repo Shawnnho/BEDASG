@@ -152,13 +152,11 @@ async function refresh(req, res) {
     }
 
     const tokenHash = hashToken(token);
-    const record = await refreshTokenModel.findValidRefreshToken(tokenHash);
+    const record = await refreshTokenModel.claimRefreshToken(tokenHash);
     if (!record) {
       clearAuthCookies(res);
       return res.status(403).json({ error: "Invalid or expired refresh token" });
     }
-
-    await refreshTokenModel.revokeRefreshToken(tokenHash);
 
     const user = await userModel.getUserById(record.UserId);
     if (!user) {

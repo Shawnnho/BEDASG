@@ -117,6 +117,21 @@ async function getStallById(stallId) {
 }
 
 
+// Unfiltered by IsActive/IsCanonical — unlike getStallById, this is for
+// ownership checks only (e.g. "does this stallId belong to this centre?"),
+// where a deactivated/archived stall still needs its bills/complaint
+// history to remain reachable by the operator who owns it.
+async function getStallCentreId(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(
+      "SELECT StallId, CentreId, StallName FROM dbo.Stalls WHERE StallId = @stallId",
+    );
+  return result.recordset[0] || null;
+}
+
 async function getStallsByCentre(centreId) {
   const pool = await poolPromise;
   const result = await pool
@@ -135,4 +150,4 @@ async function getStallsByCentre(centreId) {
 }
 
 
-module.exports = { getAllStalls, createStall, getStallById, getStallsByCentre};
+module.exports = { getAllStalls, createStall, getStallById, getStallCentreId, getStallsByCentre};

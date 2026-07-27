@@ -1,6 +1,5 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
-
 async function getRentalAgreementsByCentre(centreId) {
   const pool = await poolPromise;
   const result = await pool
@@ -14,7 +13,6 @@ async function getRentalAgreementsByCentre(centreId) {
     `);
   return result.recordset;
 }
-
 async function getRentalAgreementById(agreementId) {
   const pool = await poolPromise;
   const result = await pool
@@ -23,16 +21,21 @@ async function getRentalAgreementById(agreementId) {
     .query("SELECT * FROM dbo.RentalAgreements WHERE AgreementId = @agreementId");
   return result.recordset[0] || null;
 }
-
+// Most recent agreement for a stall, if any — used by createRental to
+// detect whether a stall already has an (unexpired/unrenewed) agreement.
 async function getRentalAgreementByStallId(stallId) {
   const pool = await poolPromise;
   const result = await pool
     .request()
     .input("stallId", sql.NVarChar, stallId)
-    .query("SELECT TOP 1 * FROM dbo.RentalAgreements WHERE StallId = @stallId");
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.RentalAgreements
+      WHERE StallId = @stallId
+      ORDER BY CreatedAt DESC
+    `);
   return result.recordset[0] || null;
 }
-
 async function createRentalAgreement({
   stallId,
   ownerUid,
@@ -47,7 +50,6 @@ async function createRentalAgreement({
 }) {
   const pool = await poolPromise;
   const agreementId = crypto.randomUUID();
-
   await pool
     .request()
     .input("agreementId", sql.NVarChar, agreementId)
@@ -69,10 +71,8 @@ async function createRentalAgreement({
         (@agreementId, @stallId, @ownerUid, @billingUid, @centreId, @stallCentreDocId,
          @ownerName, @stallName, @unitNo, @monthlyRent, @startDate, GETDATE(), GETDATE());
     `);
-
   return { agreementId };
 }
-
 async function deleteRentalAgreement(agreementId) {
   const pool = await poolPromise;
   const result = await pool
@@ -81,7 +81,6 @@ async function deleteRentalAgreement(agreementId) {
     .query("DELETE FROM dbo.RentalAgreements WHERE AgreementId = @agreementId");
   return result.rowsAffected[0] > 0;
 }
-
 async function updateMonthlyRent(agreementId, monthlyRent) {
   const pool = await poolPromise;
   await pool
@@ -94,7 +93,6 @@ async function updateMonthlyRent(agreementId, monthlyRent) {
       WHERE AgreementId = @agreementId;
     `);
 }
-
 module.exports = {
   getRentalAgreementsByCentre,
   getRentalAgreementById,

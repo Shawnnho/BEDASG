@@ -7,6 +7,18 @@ function isEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || "");
 }
 
+// Parses a route :id param, or sends a 400 and returns null if it isn't a
+// number — otherwise a non-numeric id reaches the DB driver and comes back
+// as a generic 500 instead of a client error.
+function parseIdOr400(req, res) {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return null;
+  }
+  return id;
+}
+
 async function getAllMessages(req, res) {
   try {
     const messages = await contactModel.getAllMessages();
@@ -19,7 +31,9 @@ async function getAllMessages(req, res) {
 
 async function getMessageById(req, res) {
   try {
-    const msg = await contactModel.getMessageById(parseInt(req.params.id));
+    const id = parseIdOr400(req, res);
+    if (id === null) return;
+    const msg = await contactModel.getMessageById(id);
     if (!msg) return res.status(404).json({ error: "Message not found" });
     res.json(msg);
   } catch (err) {
@@ -72,10 +86,9 @@ async function updateStatus(req, res) {
     if (!["new", "read", "resolved"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    const updated = await contactModel.updateStatus(
-      parseInt(req.params.id),
-      status,
-    );
+    const id = parseIdOr400(req, res);
+    if (id === null) return;
+    const updated = await contactModel.updateStatus(id, status);
     if (!updated) return res.status(404).json({ error: "Message not found" });
     res.json(updated);
   } catch (err) {
@@ -86,7 +99,9 @@ async function updateStatus(req, res) {
 
 async function deleteMessage(req, res) {
   try {
-    const deleted = await contactModel.deleteMessage(parseInt(req.params.id));
+    const id = parseIdOr400(req, res);
+    if (id === null) return;
+    const deleted = await contactModel.deleteMessage(id);
     if (!deleted) return res.status(404).json({ error: "Message not found" });
     res.json({ message: "Message deleted", messageId: deleted.messageId });
   } catch (err) {
