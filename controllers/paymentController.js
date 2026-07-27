@@ -18,6 +18,23 @@ function num(v) {
 
 // Shape an OperatorBills row into the flat JSON the frontend expects.
 function shapeBill(row) {
+  if (!row) {
+    return {
+      billId: null,
+      month: null,
+      rent: 0,
+      utilities: 0,
+      cleaningFee: 0,
+      penalty: 0,
+      other: 0,
+      total: 0,
+      dueDate: null,
+      status: "none",
+      isPaid: true,
+      paidAt: null,
+    };
+  }
+
   const rent = num(row.RentAmount);
   const utilities = num(row.Utilities);
   const cleaningFee = num(row.CleaningFee);
@@ -146,6 +163,13 @@ async function payOperator(req, res) {
       stall.CentreId,
       month,
     );
+
+    if (!billRow) {
+      return res
+        .status(404)
+        .json({ error: "No bill exists yet for this stall — there's nothing to pay." });
+    }
+
     const bill = shapeBill(billRow);
 
     if (bill.isPaid) {

@@ -83,56 +83,8 @@ async function getOperatorBill(stallId, month) {
   return result.recordset[0] || null;
 }
 
-/**
- * Ensure an operator bill row exists for the month. If missing, seed one
- * from the rental agreement's MonthlyRent, using the agreement's DueDay.
- * If the bill being created is for the CURRENT month and its due day has
- * already passed (e.g. a mid-month first run), the due date rolls to the
- * next month so the owner is never instantly overdue on a bill that never
- * existed until now. Bills back-filled for past months keep their real,
- * historical due date instead.
- * Returns the (existing or newly created) bill row.
- */
 async function ensureOperatorBill(stallId, centreId, month) {
-  const existing = await getOperatorBill(stallId, month);
-  if (existing) return existing;
-
-  const pool = await poolPromise;
-  const agreement = await getAgreementByStallId(stallId);
-  const rent = Number(agreement?.MonthlyRent) || 0;
-  const dueDay = Number(agreement?.DueDay) || 1;
-
-  const [y, m] = month.split("-").map(Number);
-  let dueDate = new Date(y, m - 1, dueDay, 23, 59, 59, 999);
-
-  const now = new Date();
-  const isCurrentMonth = month === serverMonthKey();
-  if (isCurrentMonth && now > dueDate) {
-    dueDate = new Date(y, m, dueDay, 23, 59, 59, 999);
-  }
-
-  const billId = crypto.randomUUID();
-
-  await pool
-    .request()
-    .input("billId", sql.NVarChar, billId)
-    .input("stallId", sql.NVarChar, stallId)
-    .input("centreId", sql.NVarChar, centreId || null)
-    .input("month", sql.NVarChar, month)
-    .input("rent", sql.Decimal(18, 2), rent)
-    .input("total", sql.Decimal(18, 2), rent)
-    .input("dueDate", sql.DateTime2, dueDate).query(`
-      INSERT INTO dbo.OperatorBills
-        (BillId, StallId, CentreId, BillMonth, BillStatus, IsPaid,
-         RentAmount, CleaningFee, Utilities, OtherCharges, Penalty,
-         TotalAmount, DueDate, CreatedAt, UpdatedAt)
-      VALUES
-        (@billId, @stallId, @centreId, @month, 'unpaid', 0,
-         @rent, 0, 0, 0, 0,
-         @total, @dueDate, GETDATE(), GETDATE())
-    `);
-
-  return await getOperatorBill(stallId, month);
+  return getOperatorBill(stallId, month);
 }
 
 /**

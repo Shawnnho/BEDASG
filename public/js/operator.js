@@ -468,6 +468,11 @@ window.renderRentals = () => {
           <div class="ra-right">
             <div class="bill-panel">
               <div class="bill-title">Monthly Bill (${currentBillMonthKey})</div>
+              ${
+                bill.IsPaid
+                  ? `<p class="muted" style="margin:0 0 10px;color:#2e7d32;font-weight:700">✔ Paid — locked from editing</p>`
+                  : ""
+              }
 
               <div class="bill-grid">
                 <label class="bill-field bill-span-2">
@@ -475,7 +480,8 @@ window.renderRentals = () => {
                   <div class="bill-input-row">
                     <input id="rent-${ra.AgreementId}" type="number"
                       value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}"
-                      oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                      oninput="recomputeBillTotal('${ra.AgreementId}')"
+                      ${bill.IsPaid ? "disabled" : ""} />
                     <small>/month</small>
                   </div>
                 </label>
@@ -483,25 +489,25 @@ window.renderRentals = () => {
                 <label class="bill-field">
                   <span>Utilities</span>
                   <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Cleaning</span>
                   <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Penalty</span>
                   <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Other</span>
                   <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
               </div>
 
@@ -509,8 +515,9 @@ window.renderRentals = () => {
                 Total: <span id="total-${ra.AgreementId}">${money(bill.TotalAmount ?? ra.MonthlyRent ?? 0)}</span>
               </div>
 
-              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')">
-                Save Monthly Bill
+              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')"
+                ${bill.IsPaid ? "disabled" : ""}>
+                ${bill.IsPaid ? "Paid — Cannot Edit" : "Save Monthly Bill"}
               </button>
             </div>
           </div>
@@ -677,18 +684,14 @@ async function loadStallsForModal(centreId) {
   ]);
 
   const currentMonthKey = getCurrentMonthKeyClient();
-
   const blockedStallIds = new Set();
-  const renewableStallIds = new Set();
 
   for (const ra of rentalsData.agreements) {
     const bill = ra.bill || {};
     const isPaid = bill.IsPaid === true || bill.IsPaid === 1;
-    const isNewMonth = !bill.BillMonth || bill.BillMonth !== currentMonthKey;
+    const isPastDue = !bill.DueDate || new Date() > new Date(bill.DueDate);
 
-    if (isPaid && isNewMonth) {
-      renewableStallIds.add(ra.StallId);
-    } else {
+    if (!isPaid || !isPastDue) {
       blockedStallIds.add(ra.StallId);
     }
   }
@@ -710,11 +713,9 @@ async function loadStallsForModal(centreId) {
   sel.innerHTML = `<option value="" disabled selected>Select stall...</option>`;
   for (const s of modalStalls) {
     const isBlocked = blockedStallIds.has(s.StallId);
-    const isRenewable = renewableStallIds.has(s.StallId);
-
-    let label = s.StallName || s.StallId;
-    if (isBlocked) label += " (already rented)";
-    else if (isRenewable) label += " (renewal available)";
+    const label = isBlocked
+      ? `${s.StallName || s.StallId} (unpaid or not yet due)`
+      : s.StallName || s.StallId;
 
     sel.innerHTML += `<option value="${s.StallId}" ${isBlocked ? "disabled" : ""}>${label}</option>`;
   }
