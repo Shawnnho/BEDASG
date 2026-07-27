@@ -6666,3 +6666,27 @@ body.storePage #stallGrade.gradeD {
   background-color: #ffe0e0;
   color: #cc2b2b;
 }
+
+#btnCancel.pr-btn {
+  width: 100%;
+  height: 56px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 1000;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#btnStatus.pr-btn-primary {
+  margin: 0;
+}
