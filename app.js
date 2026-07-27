@@ -33,6 +33,7 @@ const favItemRoutes = require("./routes/favItemRoutes");
 const favouriteOrderRoutes = require("./routes/favouriteOrderRoutes");
 const menuPricesRoutes = require("./routes/menuPricesRoutes");
 const stallClosureRoutes = require("./routes/stallClosureRoutes");
+const custAccountRoutes = require("./routes/custAccountRoutes")
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,6 +67,7 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/rental", rentalRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/favitems", favItemRoutes);
+app.use("/api/cust", custAccountRoutes)
 // Stall-specific routes
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
