@@ -23,11 +23,15 @@ function computeDueDate(billMonth) {
 
 async function getBill(stallId, billMonth) {
   const pool = await poolPromise;
-  const billId = computeBillId(stallId, billMonth);
   const result = await pool
     .request()
-    .input("billId", sql.NVarChar, billId)
-    .query("SELECT * FROM dbo.OperatorBills WHERE BillId = @billId");
+    .input("stallId", sql.NVarChar, stallId)
+    .input("billMonth", sql.NVarChar, billMonth)
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.OperatorBills
+      WHERE StallId = @stallId AND BillMonth = @billMonth
+    `);
   return result.recordset[0] || null;
 }
 
@@ -53,24 +57,39 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent) {
   const billId = computeBillId(stallId, billMonth);
   const dueDate = computeDueDate(billMonth);
 
-  await pool
-    .request()
-    .input("billId", sql.NVarChar, billId)
-    .input("stallId", sql.NVarChar, stallId)
-    .input("centreId", sql.NVarChar, centreId)
-    .input("billMonth", sql.NVarChar, billMonth)
-    .input("rentAmount", sql.Decimal(10, 2), defaultRent || 0)
-    .input("dueDate", sql.DateTime, dueDate)
-    .query(`
-      INSERT INTO dbo.OperatorBills
-        (BillId, StallId, CentreId, BillMonth, BillStatus, IsPaid,
-         RentAmount, CleaningFee, Utilities, OtherCharges, Penalty, TotalAmount,
-         DueDate, CreatedAt, UpdatedAt)
-      VALUES
-        (@billId, @stallId, @centreId, @billMonth, NULL, 0,
-         @rentAmount, 0, 0, 0, 0, @rentAmount,
-         @dueDate, GETDATE(), GETDATE());
-    `);
+  try {
+    await pool
+      .request()
+      .input("billId", sql.NVarChar, billId)
+      .input("stallId", sql.NVarChar, stallId)
+      .input("centreId", sql.NVarChar, centreId)
+      .input("billMonth", sql.NVarChar, billMonth)
+      .input("rentAmount", sql.Decimal(10, 2), defaultRent || 0)
+      .input("dueDate", sql.DateTime, dueDate)
+      .query(`
+        INSERT INTO dbo.OperatorBills
+          (BillId, StallId, CentreId, BillMonth, BillStatus, IsPaid,
+           RentAmount, CleaningFee, Utilities, OtherCharges, Penalty, TotalAmount,
+           DueDate, CreatedAt, UpdatedAt)
+        VALUES
+          (@billId, @stallId, @centreId, @billMonth, NULL, 0,
+           @rentAmount, 0, 0, 0, 0, @rentAmount,
+           @dueDate, GETDATE(), GETDATE());
+      `);
+  } catch (err) {
+  
+    const isDuplicateKey =
+      err.number === 2627 ||
+      err.number === 2601 ||
+      /violation of unique key constraint/i.test(err.message || "") ||
+      /cannot insert duplicate key/i.test(err.message || "");
+
+    if (isDuplicateKey) {
+      const existingAfterRace = await getBill(stallId, billMonth);
+      if (existingAfterRace) return existingAfterRace;
+    }
+    throw err;
+  }
 
   return getBill(stallId, billMonth);
 }
@@ -136,6 +155,4 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-module.exports = {
-  getBill, getLatestBillForStall, ensureBill, updateBill, computeBillId 
-};
+module.exports = { getBill, getLatestBillForStall, ensureBill, updateBill, computeBillId };

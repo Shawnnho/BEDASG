@@ -7,9 +7,7 @@ async function getRentalAgreementsByCentre(centreId) {
     .request()
     .input("centreId", sql.NVarChar, centreId)
     .query(`
-      SELECT
-        AgreementId, StallId, OwnerUid, BillingUid, CentreId, StallCentreDocId,
-        OwnerName, StallName, UnitNo, MonthlyRent, StartDate, CreatedAt, UpdatedAt
+      SELECT *
       FROM dbo.RentalAgreements
       WHERE CentreId = @centreId
       ORDER BY CreatedAt DESC;
@@ -23,6 +21,15 @@ async function getRentalAgreementById(agreementId) {
     .request()
     .input("agreementId", sql.NVarChar, agreementId)
     .query("SELECT * FROM dbo.RentalAgreements WHERE AgreementId = @agreementId");
+  return result.recordset[0] || null;
+}
+
+async function getRentalAgreementByStallId(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query("SELECT TOP 1 * FROM dbo.RentalAgreements WHERE StallId = @stallId");
   return result.recordset[0] || null;
 }
 
@@ -45,13 +52,13 @@ async function createRentalAgreement({
     .request()
     .input("agreementId", sql.NVarChar, agreementId)
     .input("stallId", sql.NVarChar, stallId)
-    .input("ownerUid", sql.NVarChar, ownerUid || null)
-    .input("billingUid", sql.NVarChar, billingUid || null)
+    .input("ownerUid", sql.NVarChar, ownerUid)
+    .input("billingUid", sql.NVarChar, billingUid)
     .input("centreId", sql.NVarChar, centreId)
-    .input("stallCentreDocId", sql.NVarChar, stallCentreDocId || null)
+    .input("stallCentreDocId", sql.NVarChar, stallCentreDocId)
     .input("ownerName", sql.NVarChar, ownerName)
     .input("stallName", sql.NVarChar, stallName)
-    .input("unitNo", sql.NVarChar, unitNo || null)
+    .input("unitNo", sql.NVarChar, unitNo)
     .input("monthlyRent", sql.Decimal(10, 2), monthlyRent)
     .input("startDate", sql.Date, startDate)
     .query(`
@@ -91,6 +98,7 @@ async function updateMonthlyRent(agreementId, monthlyRent) {
 module.exports = {
   getRentalAgreementsByCentre,
   getRentalAgreementById,
+  getRentalAgreementByStallId,
   createRentalAgreement,
   deleteRentalAgreement,
   updateMonthlyRent,
