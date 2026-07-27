@@ -1692,9 +1692,9 @@ body.guest .searchWrap {
 ========================= */
 #accStatus {
   position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-10px);
+  bottom: 20px;
+  right: 10px;
+  transform: translateY(12px);
   z-index: 9999;
 
   min-width: 260px;
@@ -1719,7 +1719,6 @@ body.guest .searchWrap {
 /* visible state */
 #accStatus.show {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
   pointer-events: auto;
 }
 

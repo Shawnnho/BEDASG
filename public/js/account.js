@@ -640,7 +640,15 @@ async function markVoucherUsed(uid, voucherId) {
             err.textContent = "Name cannot be empty.";
             return;
           }
-          if (newPhone && !isPhone(newPhone)) {
+          if (!newEmail) {
+            err.textContent = "Email cannot be empty.";
+            return;
+          }
+          if (!newPhone) {
+            err.textContent = "Phone cannot be empty.";
+            return;
+          }
+          if (!isPhone(newPhone)) {
             err.textContent = "Invalid SG phone number.";
             return;
           }
@@ -687,10 +695,9 @@ async function markVoucherUsed(uid, voucherId) {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  name: newName,
-                  phone: newPhone,
-                  email: newEmail,
-                  ...(avatarUrlToSave ? { avatarUrl: avatarUrlToSave } : {}),
+                  Name: newName,
+                  Email: newEmail,
+                  Phone: newPhone,
                 }),
               },
             );
