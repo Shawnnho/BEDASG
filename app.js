@@ -3,6 +3,8 @@ const express = require("express");
 const path = require("path");
 const { poolPromise } = require("./dbConfig");
 const cookieParser = require("cookie-parser");
+const swaggerUI = require("swagger-ui-express");
+const swaggerDocument = require("./routes/swagger-output.json");
 // Route imports
 const stallRoutes = require("./routes/stallRoutes");
 const centreRoutes = require("./routes/centreRoutes");
@@ -75,6 +77,12 @@ app.use("/api/stall", stallAccountRoutes);
 app.use("/api/favourites", favouriteOrderRoutes);
 app.use("/api/menuprices", menuPricesRoutes);
 app.use("/api/stall/closures", stallClosureRoutes);
+
+// Swagger
+app.use('/api-docs',
+  swaggerUI.serve,
+  swaggerUI.setup(swaggerDocument)
+);
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {
