@@ -16,9 +16,7 @@
 
         <nav class="nav" aria-label="Primary navigation">
           <a class="pill active" href="home.html">Home</a>
-          <a class="pill" href="promotions.html" id="navPromotions"
-            >Promotions</a
-          >
+          <a class="pill" href="promotions.html" id="navPromotions">Promotions</a>
           <a class="pill" href="orders.html">Orders</a>
           <a class="pill" href="feedback.html">Feedback</a>
           <a class="pill" href="hygiene.html" id="navHygiene">Hygiene</a>
@@ -46,9 +44,7 @@
       <div id="navBackdrop" class="navBackdrop"></div>
       <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
         <a class="mLink" href="home.html">Home</a>
-        <a class="mLink" href="promotions.html" id="mNavPromotions"
-          >Promotions</a
-        >
+        <a class="mLink" href="promotions.html" id="mNavPromotions">Promotions</a>
         <a class="mLink" href="orders.html">Orders</a>
         <a class="mLink" href="feedback.html">Feedback</a>
         <a class="mLink" href="hygiene.html" id="mNavHygiene">Hygiene</a>
@@ -170,6 +166,41 @@
         </div>
       </div>
     </footer>
+
+    <div id="rateModal" class="rateModalBackdrop" hidden>
+      <div class="rateModalCard">
+        <h2>Rate Item</h2>
+        
+        <div class="rateItemPreview">
+          <img id="rateItemImg" class="rateItemImg" src="" alt="Item Preview" hidden>
+          <select id="rateItemSelect" class="rateItemSelect"></select>
+        </div>
+
+        <div id="starContainer" class="starContainer">
+          <span class="star" data-val="1">★</span>
+          <span class="star" data-val="2">★</span>
+          <span class="star" data-val="3">★</span>
+          <span class="star" data-val="4">★</span>
+          <span class="star" data-val="5">★</span>
+        </div>
+        <p id="starHint" class="starHint">Tap a star to rate</p>
+        
+        <div class="reviewInputContainer">
+          <label>Your Review</label>
+          <textarea id="reviewTextInput" placeholder="Tell us what you liked or what could be improved..."></textarea>
+        </div>
+        
+        <input type="hidden" id="rateStallId" value="">
+        <input type="hidden" id="rateItemId" value="">
+        
+        <div class="rateModalActions">
+          <button class="pill cancelRateBtn" onclick="closeRateModal()">Cancel</button>
+          <button class="pill submitRateBtn" onclick="submitReview()">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastNotification" class="toast"></div>
 
     <script type="module" src="js/cart.js"></script>
     <script type="module" src="js/menu.js"></script>
