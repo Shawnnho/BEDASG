@@ -220,17 +220,18 @@ async function getReviewsByStall(stallId) {
 }
 
 // Individual per-review item ratings (ItemId IS NOT NULL). One row per rating,
-// reading ItemStar / ItemReview instead of Rating / ReviewText. No menu-table
-// join here — resolve ItemId -> readable name on the frontend where the menu
-// is already loaded, so this query can't break if menu columns change.
+// reading ItemStar / ItemReview. Joined to StallMenus so each row carries the
+// readable item name (ItemId equals StallMenus.MenuId).
 async function getItemReviewsByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
         r.ReviewId, r.StallId, r.UserId, r.UserName, r.ItemId,
-        r.ItemStar, r.ItemReview, r.IsAnonymous, r.CreatedAt
+        r.ItemStar, r.ItemReview, r.IsAnonymous, r.CreatedAt,
+        m.Name AS ItemName
       FROM dbo.StallReviews r
+      LEFT JOIN dbo.StallMenus m ON m.MenuId = r.ItemId
       WHERE r.StallId = @stallId
         AND r.ItemId IS NOT NULL
       ORDER BY r.CreatedAt DESC;
@@ -238,17 +239,19 @@ async function getItemReviewsByStall(stallId) {
   return result.recordset;
 }
 
-// Per-item aggregate: average stars + count, grouped by ItemId. Powers a
-// "breakdown by item" section. Again keyed by ItemId; name it on the frontend.
+// Per-item aggregate: average stars + count, grouped by ItemId, with the
+// item name joined in from StallMenus. Powers the "breakdown by item" cards.
 async function getItemRatingSummaryByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
         r.ItemId,
+        MAX(m.Name) AS ItemName,
         COUNT(*) AS RatingCount,
         ISNULL(AVG(CAST(r.ItemStar AS FLOAT)), 0) AS AverageStar
       FROM dbo.StallReviews r
+      LEFT JOIN dbo.StallMenus m ON m.MenuId = r.ItemId
       WHERE r.StallId = @stallId
         AND r.ItemId IS NOT NULL
       GROUP BY r.ItemId
