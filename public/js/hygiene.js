@@ -248,7 +248,7 @@ async function loadInspectionData(stallId) {
       const latest = inspections[0].score;
       const previous = inspections[1].score;
       const change = latest - previous;
-      const changePct = Math.round((change / previous) * 100);
+      const changePct = previous ? Math.round((change / previous) * 100) : 0;
 
       if (change > 0) {
         chartFooter.innerHTML = `<span style="color:#16a34a; font-weight:900;">▲ Score improved by ${Math.abs(changePct)}%</span> compared to last inspection.`;

@@ -671,9 +671,13 @@ window.openCompleteModal = () => {
   document.getElementById("completeModal").style.display = "flex";
   loadStallsForDropdowns();
 
-  document.getElementById("compDate").value = new Date()
-    .toISOString()
-    .split("T")[0];
+  {
+    const t = todayMidnight();
+    const yyyy = t.getFullYear();
+    const mm = String(t.getMonth() + 1).padStart(2, "0");
+    const dd = String(t.getDate()).padStart(2, "0");
+    document.getElementById("compDate").value = `${yyyy}-${mm}-${dd}`;
+  }
 
   document.getElementById("compStall").value = "";
   document.getElementById("compOfficer").value = "";

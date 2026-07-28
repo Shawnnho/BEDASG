@@ -2390,7 +2390,7 @@ select,
     opacity 0.15s ease;
 }
 
-.favBtn.isFav .favIcon {
+.favBtn.active .favIcon {
   transform: scale(1.1);
 }
 

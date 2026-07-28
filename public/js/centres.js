@@ -10,7 +10,7 @@ async function loadCentres() {
     for (const centre of centres) {
       const card = document.createElement("a");
       card.className = "centre-card";
-      card.href = `centre.html?centreId=${centre.centreId}`;
+      card.href = `home.html?centreId=${encodeURIComponent(centre.centreId)}`;
 
       card.innerHTML = `
         <div class="centre-img">

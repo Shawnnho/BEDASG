@@ -74,9 +74,23 @@ async function createUser({ name, email, phone, passwordHash, role }) {
   }
   return await getUserById(userId);
 }
+// Links a newly-created stall back to its owner's account (registration only).
+async function setUserStallId(userId, stallId) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("userId", sql.NVarChar, userId)
+    .input("stallId", sql.NVarChar, stallId)
+    .query(`
+      UPDATE dbo.Users
+      SET StallId = @stallId, UpdatedAt = SYSUTCDATETIME()
+      WHERE UserId = @userId
+    `);
+}
 module.exports = {
   getUserByEmail,
   getUserWithCredentialsByEmail,
   getUserById,
   createUser,
+  setUserStallId,
 };

@@ -5,6 +5,10 @@ let stalls = [];
 let currentUid = null;
 let favSet = new Set();
 
+const centreIdFilter = new URLSearchParams(window.location.search).get(
+  "centreId",
+);
+
 // =========================
 // DOM
 // =========================
@@ -144,6 +148,10 @@ function renderList(data) {
 // =========================
 function getFilteredStalls() {
   let out = stalls.slice();
+
+  if (centreIdFilter) {
+    out = out.filter((s) => String(s.centreId) === centreIdFilter);
+  }
 
   const q = (qEl?.value || "").trim().toLowerCase();
   const cuisine = (cuisineEl?.value || "").toLowerCase();

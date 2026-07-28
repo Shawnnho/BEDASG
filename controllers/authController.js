@@ -91,6 +91,7 @@ async function register(req, res) {
           cuisine: stallCuisine,
           phone,
         });
+        await userModel.setUserStallId(user.UserId, stall.stallId);
       } catch (stallErr) {
         // The user account was already created successfully at this point.
         // Rather than leave them with no account at all, surface the stall
