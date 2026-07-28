@@ -78,7 +78,7 @@ function renderReviews() {
     card.className = "gfCard";
     card.dataset.reviewId = r.ReviewId;
 
-    const isOwnReview = currentUser && r.UserId === currentUser.userId;
+    const isOwnReview = currentUser && r.UserId === currentUser.id;
     const userLabel = r.IsAnonymous ? "Anonymous" : r.UserName || "Anonymous";
 
     card.innerHTML = `

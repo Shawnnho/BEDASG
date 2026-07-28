@@ -26,6 +26,7 @@ async function getMenuItems(req, res) {
       desc: r.Desc || r.Description || "",
       img: r.ImageUrl || "images/menu/placeholder.jpg",
       price: r.PriceFrom === null ? Number(r.Price) : Number(r.PriceFrom),
+      priceFrom: r.PriceFrom !== null,
     }));
 
     res.json(items);

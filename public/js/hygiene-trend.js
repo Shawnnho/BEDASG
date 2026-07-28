@@ -125,7 +125,7 @@ function renderChart(inspections) {
     const latest = trend[trend.length - 1].score;
     const previous = trend[trend.length - 2].score;
     const change = latest - previous;
-    const changePct = Math.round((change / previous) * 100);
+    const changePct = previous ? Math.round((change / previous) * 100) : 0;
 
     if (chartFooter) {
       if (change > 0) {

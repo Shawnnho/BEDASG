@@ -12,6 +12,7 @@ const stallId = params.get("stallId");
 
 if (!centreId || !stallId) {
   window.location.href = "home.html";
+  throw new Error("Missing centreId/stallId — redirecting to home.html");
 }
 
 let stall = null;
@@ -186,15 +187,9 @@ function fillUI() {
 
   gradeEl.textContent = stall.grade;
   gradeEl.classList.remove("gradeA", "gradeB", "gradeC", "gradeD");
-  gradeEl.classList.add(
-    stall.grade === "A"
-      ? "gradeA"
-      : stall.grade === "B"
-        ? "gradeB"
-        : stall.grade === "C"
-          ? "gradeC"
-          : "gradeD",
-  );
+  if (["A", "B", "C", "D"].includes(stall.grade)) {
+    gradeEl.classList.add(`grade${stall.grade}`);
+  }
 
   descEl.textContent = stall.desc;
   metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit #${stall.unit}`;
@@ -213,7 +208,7 @@ function fillUI() {
   }
 
   if (menuLink)
-    menuLink.href = `menu.html?centreId=${centreId}&stallId=${stallId}`;
+    menuLink.href = `menu.html?centreId=${encodeURIComponent(centreId)}&stallId=${encodeURIComponent(stallId)}`;
   if (callBtn) {
     callBtn.href = stall.phone ? `tel:${stall.phone}` : "#";
   }
