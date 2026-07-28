@@ -50,7 +50,7 @@ function getGradeColor(grade) {
   if (grade === "B") return "#2f6bff";
   if (grade === "C") return "#ca8a04";
   if (grade === "D") return "#dc2626";
-  return "#16a34a";
+  return "#6b7280";
 }
 
 function getGradeText(grade) {
@@ -58,7 +58,7 @@ function getGradeText(grade) {
   if (grade === "B") return "Good Hygiene Standards";
   if (grade === "C") return "Average Hygiene Standards";
   if (grade === "D") return "Poor Hygiene Standards";
-  return "Unknown";
+  return "Not yet inspected";
 }
 
 function formatDate(value) {
@@ -127,7 +127,7 @@ async function loadStalls() {
       const opt = document.createElement("option");
       opt.value = s.StallId;
       opt.textContent = s.StallName;
-      opt.dataset.grade = s.HygieneGrade || "B";
+      opt.dataset.grade = s.HygieneGrade || "";
       if (s.StallId === preselectId) opt.selected = true;
       stallSelect.appendChild(opt);
     });
@@ -139,10 +139,10 @@ async function loadStalls() {
   }
 
   if (userRole === "storeholder" && stallsCache.length > 0) {
-    renderStallData(userStallId, stallsCache[0].HygieneGrade || "B");
+    renderStallData(userStallId, stallsCache[0].HygieneGrade || null);
   } else if (preselectId) {
     const stall = stallsCache.find((s) => s.StallId === preselectId);
-    if (stall) renderStallData(preselectId, stall.HygieneGrade || "B");
+    if (stall) renderStallData(preselectId, stall.HygieneGrade || null);
   }
 }
 
@@ -160,8 +160,8 @@ async function renderStallData(stallId, currentGrade) {
     console.error("Error loading stall summary:", err);
   }
 
-  const grade = summary?.grade || currentGrade || "B";
-  bigGrade.textContent = grade;
+  const grade = summary?.grade || currentGrade || null;
+  bigGrade.textContent = grade || "—";
   gradeCard.style.backgroundColor = getGradeColor(grade);
   gradeLabel.textContent = getGradeText(grade);
 

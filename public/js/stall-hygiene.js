@@ -37,7 +37,7 @@ function getGradeText(grade) {
   if (grade === "B") return "Good Hygiene Standards";
   if (grade === "C") return "Average Hygiene Standards";
   if (grade === "D") return "Poor Hygiene Standards";
-  return "Unknown";
+  return "Not yet inspected";
 }
 
 function formatDate(value) {
