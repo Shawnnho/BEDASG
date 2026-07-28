@@ -218,21 +218,61 @@ function applyRefundState(orders) {
 
 const QR_REVEAL_DELAY_MS = 60000;
 
+// Once the QR has been shown for an order, remember it in localStorage so
+// leaving the page and coming back doesn't restart the wait — it just
+// shows immediately. This is per-browser, not synced across devices.
+const QR_REVEALED_STORAGE_KEY = "hp_qrRevealedOrders";
+
+function getRevealedQrIds() {
+  try {
+    const raw = localStorage.getItem(QR_REVEALED_STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function markQrRevealed(id) {
+  try {
+    const ids = getRevealedQrIds();
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem(QR_REVEALED_STORAGE_KEY, JSON.stringify(ids));
+    }
+  } catch {
+    // localStorage unavailable (private browsing, quota, etc) — fails
+    // silently, QR just re-times on the next visit instead of persisting.
+  }
+}
+
+function isQrAlreadyRevealed(id) {
+  return getRevealedQrIds().includes(id);
+}
+
 function setupInlineQr(id, orderNo) {
   const container = document.getElementById("inlineQrContainer");
   const img = document.getElementById("inlineQrImg");
   const orderEl = document.getElementById("inlineQrOrderNo");
-  
+
   if (!container || !img) return;
 
   if (container._qrTimer) clearTimeout(container._qrTimer);
 
-  container.hidden = true;
-  container._qrTimer = setTimeout(() => {
-    if (orderEl) orderEl.textContent = `Order No. ${orderNo || "—"}`;
+  const reveal = () => {
+    if (orderEl) orderEl.textContent = orderNo || "—";
     img.src = `/api/checkoutCard/${encodeURIComponent(id)}/qr?ts=${Date.now()}`;
     container.hidden = false;
-  }, QR_REVEAL_DELAY_MS);
+    markQrRevealed(id);
+  };
+
+  if (isQrAlreadyRevealed(id)) {
+    reveal();
+    return;
+  }
+
+  container.hidden = true;
+  container._qrTimer = setTimeout(reveal, QR_REVEAL_DELAY_MS);
 }
 
 function hideInlineQr() {
