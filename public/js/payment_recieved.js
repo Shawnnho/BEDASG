@@ -102,6 +102,12 @@ function setPaidAtAndPickup(paidAtRaw, isCash, createdAtRaw) {
   }
 }
 
+function formatVariantLabel(variant) {
+  return String(variant || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function renderItems(orders, items) {
   const container = document.getElementById("prItems");
   if (!container) return;
@@ -118,7 +124,7 @@ function renderItems(orders, items) {
         `Order No: ${o.OrderNo || o.OrderId}`,
         o.StallName ? `Stall: ${o.StallName}` : "",
         `${it.Quantity} x ${it.ItemName}`,
-        it.VariantLabel ? `Selected: ${it.VariantLabel}` : "",
+        it.VariantKey ? `Selected: ${formatVariantLabel(it.VariantKey)}` : "",
         addons.length ? `Add-ons: ${addons.map((a) => a.label || a.id || "").join(", ")}` : "",
         it.ItemNote ? `Note: ${it.ItemNote}` : "",
       ].filter(Boolean);
