@@ -183,7 +183,7 @@ window.switchTab = async (tabName) => {
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) tab.classList.add("active");
 
-  const index = ["centres", "stalls", "rentals"].indexOf(tabName);
+  const index = ["centres", "stalls", "rentals", "reports"].indexOf(tabName);
   const li = document.querySelectorAll(".op-menu li")[index];
   if (li) li.classList.add("active");
 
@@ -196,6 +196,7 @@ window.switchTab = async (tabName) => {
   try {
     if (tabName === "stalls") await loadStalls();
     if (tabName === "rentals") await loadRentals();
+    if (tabName === "reports") await loadReports();
   } catch (err) {
     console.error(`switchTab(${tabName}) failed:`, err);
     alert(`Failed to load ${tabName}: ${err.message}`);
@@ -468,6 +469,11 @@ window.renderRentals = () => {
           <div class="ra-right">
             <div class="bill-panel">
               <div class="bill-title">Monthly Bill (${currentBillMonthKey})</div>
+              ${
+                bill.IsPaid
+                  ? `<p class="muted" style="margin:0 0 10px;color:#2e7d32;font-weight:700">✔ Paid — locked from editing</p>`
+                  : ""
+              }
 
               <div class="bill-grid">
                 <label class="bill-field bill-span-2">
@@ -475,7 +481,8 @@ window.renderRentals = () => {
                   <div class="bill-input-row">
                     <input id="rent-${ra.AgreementId}" type="number"
                       value="${Number(bill.RentAmount ?? ra.MonthlyRent ?? 0)}"
-                      oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                      oninput="recomputeBillTotal('${ra.AgreementId}')"
+                      ${bill.IsPaid ? "disabled" : ""} />
                     <small>/month</small>
                   </div>
                 </label>
@@ -483,25 +490,25 @@ window.renderRentals = () => {
                 <label class="bill-field">
                   <span>Utilities</span>
                   <input id="util-${ra.AgreementId}" type="number" value="${Number(bill.Utilities ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Cleaning</span>
                   <input id="clean-${ra.AgreementId}" type="number" value="${Number(bill.CleaningFee ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Penalty</span>
                   <input id="pen-${ra.AgreementId}" type="number" value="${Number(bill.Penalty ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
 
                 <label class="bill-field">
                   <span>Other</span>
                   <input id="other-${ra.AgreementId}" type="number" value="${Number(bill.OtherCharges ?? 0)}"
-                    oninput="recomputeBillTotal('${ra.AgreementId}')" />
+                    oninput="recomputeBillTotal('${ra.AgreementId}')" ${bill.IsPaid ? "disabled" : ""} />
                 </label>
               </div>
 
@@ -509,8 +516,9 @@ window.renderRentals = () => {
                 Total: <span id="total-${ra.AgreementId}">${money(bill.TotalAmount ?? ra.MonthlyRent ?? 0)}</span>
               </div>
 
-              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')">
-                Save Monthly Bill
+              <button class="bill-save" onclick="saveMonthlyBill('${ra.StallId}', '${ra.AgreementId}', '${ra.CentreId}')"
+                ${bill.IsPaid ? "disabled" : ""}>
+                ${bill.IsPaid ? "Paid — Cannot Edit" : "Save Monthly Bill"}
               </button>
             </div>
           </div>
@@ -677,18 +685,14 @@ async function loadStallsForModal(centreId) {
   ]);
 
   const currentMonthKey = getCurrentMonthKeyClient();
-
   const blockedStallIds = new Set();
-  const renewableStallIds = new Set();
 
   for (const ra of rentalsData.agreements) {
     const bill = ra.bill || {};
     const isPaid = bill.IsPaid === true || bill.IsPaid === 1;
-    const isNewMonth = !bill.BillMonth || bill.BillMonth !== currentMonthKey;
+    const isPastDue = !bill.DueDate || new Date() > new Date(bill.DueDate);
 
-    if (isPaid && isNewMonth) {
-      renewableStallIds.add(ra.StallId);
-    } else {
+    if (!isPaid || !isPastDue) {
       blockedStallIds.add(ra.StallId);
     }
   }
@@ -710,11 +714,9 @@ async function loadStallsForModal(centreId) {
   sel.innerHTML = `<option value="" disabled selected>Select stall...</option>`;
   for (const s of modalStalls) {
     const isBlocked = blockedStallIds.has(s.StallId);
-    const isRenewable = renewableStallIds.has(s.StallId);
-
-    let label = s.StallName || s.StallId;
-    if (isBlocked) label += " (already rented)";
-    else if (isRenewable) label += " (renewal available)";
+    const label = isBlocked
+      ? `${s.StallName || s.StallId} (unpaid or not yet due)`
+      : s.StallName || s.StallId;
 
     sel.innerHTML += `<option value="${s.StallId}" ${isBlocked ? "disabled" : ""}>${label}</option>`;
   }
@@ -901,6 +903,91 @@ window.viewStallComplaints = async (stallId, stallName) => {
 window.closeComplaintHistoryModal = () => {
   const modal = document.getElementById("complaintHistoryModal");
   if (modal) modal.style.display = "none";
+};
+
+// Reported Reviews
+
+async function loadReports() {
+  const list = document.getElementById("reportList");
+  if (list) list.innerHTML = "<p>Loading...</p>";
+
+  const reports = await apiFetch("/reports");
+  setBadge("badgeReports", reports.length);
+  renderReports(reports);
+}
+
+function renderReports(reports) {
+  const list = document.getElementById("reportList");
+  if (!list) return;
+
+  if (reports.length === 0) {
+    list.innerHTML = "<p>No reported reviews.</p>";
+    return;
+  }
+
+  list.innerHTML = reports
+    .map((r) => {
+      const reportedAt = r.ReportedAt ? new Date(r.ReportedAt).toLocaleString() : "-";
+      return `
+        <div class="op-item">
+          <div class="item-main">
+            <h4>${r.StallName || "Unknown Stall"}</h4>
+            <span class="badge red">${r.Reason || "Reported"}</span>
+          </div>
+          <p><b>${Number(r.Rating || 0)} ★</b> — ${r.ReviewText || ""}</p>
+          ${r.Details ? `<p class="muted">Reporter's details: ${r.Details}</p>` : ""}
+          <div class="item-meta">
+            <span>Review by: <b>${r.ReviewerName || "-"}</b></span>
+            <span>Reported: ${reportedAt}</span>
+          </div>
+          <div class="actions-row">
+            <button class="btn-mini gray" onclick="dismissReviewReport('${r.ReportId}')">
+              Dismiss
+            </button>
+            <button class="btn-mini danger" onclick="deleteReportedReview('${r.ReportId}')">
+              Delete Review
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+window.dismissReviewReport = async (reportId) => {
+  if (!confirm("Dismiss this report? The review will stay up.")) return;
+
+  try {
+    await apiFetch(`/reports/${reportId}/dismiss`, { method: "POST" });
+  } catch (err) {
+    console.error("DISMISS REPORT FAILED:", err);
+    alert(`Dismiss failed: ${err.message}`);
+    return;
+  }
+
+  try {
+    await loadReports();
+  } catch (err) {
+    console.warn("Dismissed, but refresh failed:", err.message);
+  }
+};
+
+window.deleteReportedReview = async (reportId) => {
+  if (!confirm("Delete this review? This cannot be undone.")) return;
+
+  try {
+    await apiFetch(`/reports/${reportId}/review`, { method: "DELETE" });
+  } catch (err) {
+    console.error("DELETE REVIEW FAILED:", err);
+    alert(`Delete failed: ${err.message}`);
+    return;
+  }
+
+  try {
+    await loadReports();
+  } catch (err) {
+    console.warn("Deleted, but refresh failed:", err.message);
+  }
 };
 
 // Logout

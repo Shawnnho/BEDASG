@@ -9,14 +9,17 @@ function serverMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-
-function computeDueDate(billMonth) {
+function computeDueDate(billMonth, dueDay = 15) {
   const [yy, mm] = billMonth.split("-").map(Number);
-  let dueDate = new Date(yy, mm - 1, 15);
+  const daysInMonth = new Date(yy, mm, 0).getDate();
+  const clampedDay = Math.min(dueDay, daysInMonth);
+  let dueDate = new Date(yy, mm - 1, clampedDay);
 
   const now = new Date();
   if (billMonth === serverMonthKey() && now > dueDate) {
-    dueDate = new Date(yy, mm, 15);
+    const nextMonthDays = new Date(yy, mm + 1, 0).getDate();
+    const clampedNextDay = Math.min(dueDay, nextMonthDays);
+    dueDate = new Date(yy, mm, clampedNextDay);
   }
   return dueDate;
 }
@@ -49,13 +52,13 @@ async function getLatestBillForStall(stallId) {
   return result.recordset[0] || null;
 }
 
-async function ensureBill(stallId, centreId, billMonth, defaultRent) {
+async function ensureBill(stallId, centreId, billMonth, defaultRent, dueDay = 15) {
   const existing = await getBill(stallId, billMonth);
   if (existing) return existing;
 
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
-  const dueDate = computeDueDate(billMonth);
+  const dueDate = computeDueDate(billMonth, dueDay);
 
   try {
     await pool
@@ -77,7 +80,7 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent) {
            @dueDate, GETDATE(), GETDATE());
       `);
   } catch (err) {
-  
+
     const isDuplicateKey =
       err.number === 2627 ||
       err.number === 2601 ||
@@ -95,7 +98,7 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent) {
 }
 
 
-async function updateBill(stallId, billMonth, centreId, { rent, utilities, cleaningFee, penalty, other }) {
+async function updateBill(stallId, billMonth, centreId, { rent, utilities, cleaningFee, penalty, other }, dueDay = 15) {
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
   const total =
@@ -125,7 +128,7 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
         WHERE BillId = @billId;
       `);
   } else {
-    const dueDate = computeDueDate(billMonth);
+    const dueDate = computeDueDate(billMonth, dueDay);
 
     await pool
       .request()
@@ -155,4 +158,17 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-module.exports = { getBill, getLatestBillForStall, ensureBill, updateBill, computeBillId };
+
+async function deleteBill(stallId, billMonth) {
+  const pool = await poolPromise;
+  await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .input("billMonth", sql.NVarChar, billMonth)
+    .query(`
+      DELETE FROM dbo.OperatorBills
+      WHERE StallId = @stallId AND BillMonth = @billMonth;
+    `);
+}
+
+module.exports = { getBill, getLatestBillForStall, ensureBill, updateBill, deleteBill, computeBillId };

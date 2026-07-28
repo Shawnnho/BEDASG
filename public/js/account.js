@@ -1,59 +1,20 @@
 /*************************************************
- * account.js — Hawker Point
- * - Loads user profile from Firestore users/{uid}
- * - Edit Profile (name + phone)
- * - Change Password (send reset email)
- * - Preferences (load + save)
+ * account.js — Hawker Point (SQL version)
+ * - Loads user profile from SQL via GET /api/cust/:id
+ * - Auth via AuthClient (same pattern as menu.js / item.js) instead of
+ *   Firebase Auth
+ * - Edit Profile (name + phone + email)
+ * - Saved item count via GET /api/favitems/get (built earlier)
+ *
+ * SCOPE NOTE: the old Firebase version also handled vouchers, order
+ * history aggregation, preferences, avatar storage, password reset, and
+ * deactivate-with-reauth - all via Firestore/Firebase Auth/Storage.
+ * None of those have a confirmed SQL endpoint yet. Rather than guess
+ * wrong and silently "work", every URL below that isn't the customer
+ * profile endpoint you gave me is marked GUESS and wrapped so a missing
+ * route degrades gracefully (shows "-" / a friendly message) instead of
+ * breaking the page. Swap in real endpoints as you build them.
  *************************************************/
-
-import {
-  getStorage,
-  ref as sRef,
-  uploadBytes,
-  getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut,
-  sendPasswordResetEmail,
-  updateProfile,
-  updateEmail,
-  verifyBeforeUpdateEmail,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-  collection,
-  getDocs,
-  query,
-  where,
-  updateDoc,
-  onSnapshot,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* Firebase Config */
-const firebaseConfig = {
-  apiKey: "AIzaSyC-NTWADB-t1OGl7NbdyMVXjpVjnqjpTXg",
-  authDomain: "fedproject-8d254.firebaseapp.com",
-  projectId: "fedproject-8d254",
-  storageBucket: "fedproject-8d254.firebasestorage.app",
-  messagingSenderId: "477538553634",
-  appId: "1:477538553634:web:a14b93bbd93d33b9281f7b",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
 
 /* =========================
    DOM
@@ -93,6 +54,34 @@ const sumLast = document.getElementById("sumLast");
 const sumFav = document.getElementById("sumFav");
 const viewOrdersBtn = document.getElementById("viewOrdersBtn");
 
+// Favourites DOM
+const savedStoresEl = document.getElementById("savedStores");
+const savedItemsEl = document.getElementById("savedItems");
+
+/* =========================
+   API endpoints
+========================= */
+// CONFIRMED - matches the custController/custModel you gave me
+const CUST_GET_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`;
+
+// GUESS - follows the same /api/cust/:id convention. No update route
+// exists yet; adjust the method/path once you build it.
+const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT
+const CUST_AVATAR_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/avatar`; // POST multipart
+const CUST_PREFS_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/preferences`; // PUT
+const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
+const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST
+const ORDERS_SUMMARY_URL = (uid) => `/api/orders/summary/${encodeURIComponent(uid)}`; // GET
+const VOUCHERS_LIST_URL = (uid) => `/api/vouchers/${encodeURIComponent(uid)}`; // GET
+
+// CONFIRMED - built earlier in this project
+const FAV_ITEMS_GET_URL = "/api/favitems/get";
+// GUESS - follows the "/api/favstalls/{get,add,delete}" convention referenced
+// in menu.js/home.js comments, but not confirmed to exist yet.
+const FAV_STALLS_GET_URL = "/api/favstalls/get";
+
+let currentUid = null;
+
 /* =========================
    Helpers
 ========================= */
@@ -129,8 +118,7 @@ function roleLabel(r) {
 }
 
 /* =========================
-   Preferences helpers (SAFE)
-   Fixes: "object is not iterable"
+   Preferences helpers (unchanged - not backend-specific)
 ========================= */
 function toArraySafe(v) {
   if (Array.isArray(v)) return v;
@@ -155,27 +143,20 @@ function getCheckedValues(checkboxEls) {
   return checkboxEls.filter((el) => el.checked).map((el) => el.value);
 }
 
-/* =========================
-   Load profile
-========================= */
-async function loadProfile(uid, fallbackUser) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-
-  // If doc missing (rare), create a basic one
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      name: fallbackUser?.displayName || "",
-      email: fallbackUser?.email || "",
-      phone: "",
-      role: "customer",
-      createdAt: serverTimestamp(),
-      // preferences: { cuisines: [], notifications: [] } // optional default
+function formatDateTime(ms) {
+  if (!ms) return "—";
+  try {
+    const d = new Date(ms);
+    return d.toLocaleString("en-SG", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
+  } catch {
+    return "—";
   }
-
-  const finalSnap = await getDoc(ref);
-  return finalSnap.data();
 }
 
 function applyBadge(count) {
@@ -191,7 +172,7 @@ function applyBadge(count) {
 }
 
 /* =========================
-   Modal UI
+   Modal UI (unchanged - generic, not backend-specific)
 ========================= */
 function openModal({ title, bodyHtml, primaryText = "Save", onPrimary }) {
   const overlay = document.createElement("div");
@@ -246,16 +227,110 @@ function openModal({ title, bodyHtml, primaryText = "Save", onPrimary }) {
   return { overlay, close };
 }
 
+/* =========================
+   Load profile (SQL)
+========================= */
+async function loadProfile(uid) {
+  const res = await AuthClient.apiFetch(CUST_GET_URL(uid));
+
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Customer profile not found.");
+    throw new Error(`Failed to load profile (status ${res.status})`);
+  }
+
+  return res.json();
+}
+
+/* =========================
+   Favourites counts
+   Items endpoint is confirmed. Stalls endpoint is a GUESS - wrapped so a
+   missing/404 route just shows "-" instead of breaking the page.
+========================= */
+async function loadFavouriteCounts(uid) {
+  if (savedItemsEl) {
+    try {
+      const res = await AuthClient.apiFetch(
+        `${FAV_ITEMS_GET_URL}?userId=${encodeURIComponent(uid)}`,
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        savedItemsEl.textContent = String(Array.isArray(rows) ? rows.length : 0);
+      } else {
+        savedItemsEl.textContent = "—";
+      }
+    } catch (err) {
+      console.error("Failed to load favourite item count:", err);
+      savedItemsEl.textContent = "—";
+    }
+  }
+
+  if (savedStoresEl) {
+    try {
+      const res = await AuthClient.apiFetch(
+        `${FAV_STALLS_GET_URL}?userId=${encodeURIComponent(uid)}`,
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        savedStoresEl.textContent = String(Array.isArray(rows) ? rows.length : 0);
+      } else {
+        savedStoresEl.textContent = "—";
+      }
+    } catch (err) {
+      console.error("Failed to load favourite stall count:", err);
+      savedStoresEl.textContent = "—";
+    }
+  }
+}
+
+/* =========================
+   Order history summary
+   GUESS endpoint - build /api/orders/summary/:uid returning
+   { total, lastOrderAt, favouriteStall } and this will pick it up as-is.
+========================= */
+async function loadOrderHistorySummary(uid) {
+  if (sumTotal) sumTotal.textContent = "0";
+  if (sumLast) sumLast.textContent = "—";
+  if (sumFav) sumFav.textContent = "—";
+
+  try {
+    const res = await AuthClient.apiFetch(ORDERS_SUMMARY_URL(uid));
+    if (!res.ok) return; // endpoint not built yet - leave defaults
+
+    const summary = await res.json();
+    if (sumTotal) sumTotal.textContent = String(summary.total ?? 0);
+    if (sumLast) {
+      sumLast.textContent = summary.lastOrderAt
+        ? formatDateTime(new Date(summary.lastOrderAt).getTime())
+        : "—";
+    }
+    if (sumFav) sumFav.textContent = summary.favouriteStall || "—";
+  } catch (err) {
+    console.error("Failed to load order history summary:", err);
+  }
+}
+
+/* =========================
+   Vouchers
+   GUESS endpoints - build a Vouchers table/API and this will pick it up.
+   Left as a graceful "not available yet" state rather than fake data.
+========================= */
 async function updateRedeemedCount(uid) {
   if (!redeemedVoucherCount) return;
 
-  const q = query(
-    collection(db, "users", uid, "vouchers"),
-    where("used", "==", true),
-  );
-
-  const snap = await getDocs(q);
-  redeemedVoucherCount.textContent = snap.size;
+  try {
+    const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(uid));
+    if (!res.ok) {
+      redeemedVoucherCount.textContent = "0";
+      return;
+    }
+    const vouchers = await res.json();
+    redeemedVoucherCount.textContent = String(
+      vouchers.filter((v) => v.used).length,
+    );
+  } catch (err) {
+    console.error("Failed to load redeemed voucher count:", err);
+    redeemedVoucherCount.textContent = "0";
+  }
 }
 
 function openVoucherModal() {
@@ -270,209 +345,19 @@ function closeVoucherModalFn() {
   voucherModal.setAttribute("aria-hidden", "true");
 }
 
-function tsToMillis(ts) {
-  if (!ts) return 0;
-  if (typeof ts.toMillis === "function") return ts.toMillis();
-  if (typeof ts === "number") return ts;
-  return 0;
-}
-
 function isExpiredVoucher(v) {
-  const exp = tsToMillis(v.expiresAt);
-  return exp > 0 && Date.now() > exp;
+  if (!v.expiresAt) return false;
+  return Date.now() > new Date(v.expiresAt).getTime();
 }
 
 function expiryText(v) {
-  const exp = tsToMillis(v.expiresAt);
-  if (!exp) return "No expiry";
-  const days = Math.ceil((exp - Date.now()) / (24 * 60 * 60 * 1000));
+  if (!v.expiresAt) return "No expiry";
+  const days = Math.ceil(
+    (new Date(v.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+  );
   if (days <= 0) return "Expired";
   if (days === 1) return "Expires in 1 day";
   return `Expires in ${days} days`;
-}
-
-function formatDateTime(ms) {
-  if (!ms) return "—";
-  try {
-    const d = new Date(ms);
-    return d.toLocaleString("en-SG", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
-
-function getOrderCreatedMs(o) {
-  // supports Firestore Timestamp, number, or date-like
-  const v = o?.createdAt || o?.created_at || o?.orderCreatedAt;
-  if (!v) return 0;
-  if (typeof v?.toMillis === "function") return v.toMillis();
-  if (typeof v === "number") return v;
-  const asDate = new Date(v);
-  const ms = asDate.getTime();
-  return Number.isFinite(ms) ? ms : 0;
-}
-
-function getOrderStallKey(o) {
-  // prefer a human label, fall back to stallId, then "Unknown"
-  return (
-    o?.stallName ||
-    o?.stall?.name ||
-    o?.storeName ||
-    o?.stallId ||
-    o?.stallID ||
-    "Unknown"
-  );
-}
-
-const stallNameCache = new Map();
-
-async function getStallNameById(stallId, centreId = null) {
-  if (!stallId) return "Unknown";
-  const cacheKey = `${stallId}@@${centreId || ""}`;
-  if (stallNameCache.has(cacheKey)) return stallNameCache.get(cacheKey);
-
-  const pickName = (d) => (d?.stallName || d?.name || d?.title || "").trim();
-
-  try {
-    // 1) top-level stalls/{stallId}
-    let snap = await getDoc(doc(db, "stalls", stallId));
-    if (snap.exists()) {
-      const d = snap.data() || {};
-      const name = pickName(d);
-      if (name) {
-        stallNameCache.set(cacheKey, name);
-        return name;
-      }
-      if (d.publicStallId) {
-        const snap2 = await getDoc(doc(db, "stalls", d.publicStallId));
-        if (snap2.exists()) {
-          const name2 = pickName(snap2.data());
-          if (name2) {
-            stallNameCache.set(cacheKey, name2);
-            return name2;
-          }
-        }
-      }
-    }
-
-    // 2) nested centres/{centreId}/stalls/{stallId}
-    if (centreId) {
-      const n = await getDoc(doc(db, "centres", centreId, "stalls", stallId));
-      if (n.exists()) {
-        const d = n.data() || {};
-        const name = pickName(d);
-        if (name) {
-          stallNameCache.set(cacheKey, name);
-          return name;
-        }
-        if (d.publicStallId) {
-          const snap2 = await getDoc(doc(db, "stalls", d.publicStallId));
-          if (snap2.exists()) {
-            const name2 = pickName(snap2.data());
-            if (name2) {
-              stallNameCache.set(cacheKey, name2);
-              return name2;
-            }
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.error("getStallNameById failed:", e);
-  }
-
-  stallNameCache.set(cacheKey, "Unknown");
-  return "Unknown";
-}
-
-async function loadOrderHistorySummary(uid) {
-  // Default UI
-  if (sumTotal) sumTotal.textContent = "0";
-  if (sumLast) sumLast.textContent = "—";
-  if (sumFav) sumFav.textContent = "—";
-
-  // Try common user fields (some projects use userId, some use customerId)
-  const ordersRef = collection(db, "orders");
-
-  const q1 = query(ordersRef, where("userId", "==", uid));
-  const q2 = query(ordersRef, where("customerId", "==", uid));
-
-  // Run both and merge unique by doc id
-  const [s1, s2] = await Promise.allSettled([getDocs(q1), getDocs(q2)]);
-
-  const byId = new Map();
-
-  if (s1.status === "fulfilled") {
-    s1.value.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
-  }
-  if (s2.status === "fulfilled") {
-    s2.value.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
-  }
-
-  let orders = Array.from(byId.values());
-
-  // Optional: ignore cancelled orders if you store that
-  orders = orders.filter(
-    (o) => String(o?.status || "").toLowerCase() !== "cancelled",
-  );
-
-  const total = orders.length;
-
-  // Last order = newest createdAt
-  let lastMs = 0;
-  for (const o of orders) {
-    const ms = getOrderCreatedMs(o);
-    if (ms > lastMs) lastMs = ms;
-  }
-
-  // Favourite stall = most frequent stall key
-  const counts = new Map();
-
-  for (const o of orders) {
-    const rawKey = getOrderStallKey(o);
-
-    // if the key looks like a stallId (long uid-ish), resolve to stallName
-    const key =
-      rawKey && rawKey.length > 20
-        ? await getStallNameById(
-            o.stallId || o.stallID || rawKey,
-            o.centreId || null,
-          )
-        : rawKey;
-
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-
-  let fav = "—";
-  let best = 0;
-  for (const [k, c] of counts.entries()) {
-    if (c > best) {
-      best = c;
-      fav = k;
-    }
-  }
-
-  if (sumTotal) sumTotal.textContent = String(total);
-  if (sumLast) sumLast.textContent = total ? formatDateTime(lastMs) : "—";
-  if (sumFav) sumFav.textContent = total ? fav : "—";
-}
-
-async function loadUserVouchers(uid) {
-  const snap = await getDocs(collection(db, "users", uid, "vouchers"));
-  return snap.docs.map((d) => ({ ...d.data(), docId: d.id }));
-}
-
-async function markVoucherUsed(uid, docId) {
-  await updateDoc(doc(db, "users", uid, "vouchers", docId), {
-    used: true,
-    usedAt: serverTimestamp(),
-  });
 }
 
 function renderVoucherModal(vouchers) {
@@ -508,7 +393,7 @@ function renderVoucherModal(vouchers) {
         <div class="hpVoucherRight">
           <button
             class="btn small primary"
-            data-apply-voucher="${v.docId}"
+            data-apply-voucher="${v.id}"
             data-code="${v.code}"
             ${disabled ? "disabled" : ""}>
             ${disabled ? (v.used ? "Used" : "Expired") : "Apply"}
@@ -520,168 +405,133 @@ function renderVoucherModal(vouchers) {
     .join("");
 }
 
+async function markVoucherUsed(uid, voucherId) {
+  // GUESS endpoint
+  await AuthClient.apiFetch(
+    `${VOUCHERS_LIST_URL(uid)}/${encodeURIComponent(voucherId)}/use`,
+    { method: "POST" },
+  );
+}
+
 /* =========================
    Auth gate + wiring
 ========================= */
-onAuthStateChanged(auth, async (user) => {
-  const params = new URLSearchParams(window.location.search);
-  const isGuest = params.get("mode") === "guest";
-
-  // If not logged in:
-  if (!user) {
-    // guest should go to signin, NOT bounce back to index
-    window.location.href = isGuest ? "signin.html?from=guest" : "signin.html";
+(async () => {
+  if (typeof AuthClient === "undefined") {
+    setStatus(
+      "❌ Auth script not loaded. Add <script src=\"js/auth-client.js\"></script> to account.html before account.js.",
+      false,
+      8000,
+    );
+    console.error(
+      "AuthClient is undefined - account.html is missing the <script> tag that defines window.AuthClient.",
+    );
     return;
   }
 
+  const params = new URLSearchParams(window.location.search);
+  const isGuest = params.get("mode") === "guest";
+
   try {
-    const data = await loadProfile(user.uid, user);
+    const user = await AuthClient.getCurrentUser();
 
-    // Order History Summary
-    await loadOrderHistorySummary(user.uid);
+    if (!user) {
+      window.location.href = isGuest ? "signin.html?from=guest" : "signin.html";
+      return;
+    }
 
-    // button
+    currentUid = user.id;
+
+    const data = await loadProfile(currentUid);
+
+    if (data?.deactivated) {
+      setStatus("❌ This account has been deactivated.", false);
+      setTimeout(async () => {
+        await AuthClient.logout?.(); // GUESS: adjust to your actual AuthClient API if named differently
+        window.location.href = "index.html";
+      }, 2000);
+      return;
+    }
+
+    // Populate profile UI
+    accName.textContent = data?.name || "—";
+    accRole.textContent = roleLabel(data?.role);
+    accEmail.textContent = data?.email || "—";
+    accPhone.textContent = data?.phone ? String(data.phone).trim() : "—";
+    if (accAvatar) accAvatar.src = data?.pfp || "images/defaultprofile.png";
+
     viewOrdersBtn?.addEventListener("click", () => {
       window.location.href = "orders.html";
     });
 
-    if (data?.deactivated) {
-      setStatus("❌ This account has been deactivated.", false);
+    // Order history + favourites + vouchers
+    await loadOrderHistorySummary(currentUid);
+    await loadFavouriteCounts(currentUid);
+    await updateRedeemedCount(currentUid);
 
-      setTimeout(async () => {
-        try {
-          await signOut(auth);
-        } finally {
-          window.location.href = "index.html";
-        }
-      }, 2000);
-
-      return;
-    }
-    // =========================
-    // VOUCHERS (Popup + Firestore)
-    // =========================
-    await updateRedeemedCount(user.uid);
-
-    // Open voucher popup
     viewVouchersBtn?.addEventListener("click", async () => {
       openVoucherModal();
-
-      voucherModalSub.textContent = "Loading…";
-      voucherModalList.innerHTML = "";
+      if (voucherModalSub) voucherModalSub.textContent = "Loading…";
+      if (voucherModalList) voucherModalList.innerHTML = "";
 
       try {
-        const vouchers = await loadUserVouchers(user.uid);
+        const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(currentUid));
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const vouchers = await res.json();
 
         const active = vouchers.filter(
-          (v) => v.used !== true && !isExpiredVoucher(v),
+          (v) => !v.used && !isExpiredVoucher(v),
         ).length;
-        const used = vouchers.filter((v) => v.used === true).length;
+        const used = vouchers.filter((v) => v.used).length;
 
-        voucherModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${vouchers.length}`;
+        if (voucherModalSub) {
+          voucherModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${vouchers.length}`;
+        }
 
         renderVoucherModal(vouchers);
       } catch (err) {
-        console.error("loadUserVouchers failed:", err);
-        voucherModalSub.textContent =
-          "❌ Failed to load vouchers (check Firestore rules).";
-        voucherModalList.innerHTML = `
-      <div class="emptyState">
-        <h2 class="emptyTitle">Unable to load vouchers</h2>
-        <p style="margin:8px 0 0; font-weight:800; opacity:.75;">
-          Open DevTools Console to see the error.
-        </p>
-      </div>
-    `;
+        console.error("Failed to load vouchers:", err);
+        if (voucherModalSub) {
+          voucherModalSub.textContent = "❌ Vouchers aren't available yet.";
+        }
+        if (voucherModalList) {
+          voucherModalList.innerHTML = `
+            <div class="emptyState">
+              <h2 class="emptyTitle">Unable to load vouchers</h2>
+              <p style="margin:8px 0 0; font-weight:800; opacity:.75;">This feature needs its backend endpoint built.</p>
+            </div>
+          `;
+        }
       }
     });
 
-    // Close popup (button)
     closeVoucherModal?.addEventListener("click", closeVoucherModalFn);
-
-    // Close popup (backdrop click)
     voucherModal?.addEventListener("click", (e) => {
       if (e.target.matches("[data-close]")) {
         closeVoucherModalFn();
       }
     });
 
-    // Apply voucher inside popup
     voucherModalList?.addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-apply-voucher]");
       if (!btn || btn.disabled) return;
 
-      const docId = btn.dataset.applyVoucher;
+      const voucherId = btn.dataset.applyVoucher;
       const code = btn.dataset.code;
 
       // Save for checkout
       localStorage.setItem("hawkerpoint_applied_promo", code);
-      localStorage.setItem("hawkerpoint_applied_voucher_docid", docId);
+      localStorage.setItem("hawkerpoint_applied_voucher_id", voucherId);
 
-      // Mark used in Firestore
-      await markVoucherUsed(user.uid, docId);
-
-     
+      await markVoucherUsed(currentUid, voucherId);
       window.location.href = "cart.html";
     });
 
-    // UI populate
-    accName.textContent = data?.name || user.displayName || "—";
-    accRole.textContent = roleLabel(data?.role);
-    accEmail.textContent = user.email || data?.email || "—";
-
-    accPhone.textContent =
-      data?.phone && String(data.phone).trim()
-        ? String(data.phone).trim()
-        : "—";
-
-    // =========================
-    // FAVOURITES (Saved Stores / Saved Items)
-    // =========================
-    const savedStoresEl = document.getElementById("savedStores");
-    const savedItemsEl = document.getElementById("savedItems");
-
-    onSnapshot(doc(db, "users", user.uid), (snap) => {
-      const d = snap.exists() ? snap.data() : {};
-
-      // stores saved by menu.js
-      const storeFavs = Array.isArray(d?.favourites) ? d.favourites : [];
-
-      // items saved by STALLMENU.js
-      const itemFavs = Array.isArray(d?.favouriteItems) ? d.favouriteItems : [];
-
-      if (savedStoresEl) savedStoresEl.textContent = String(storeFavs.length);
-      if (savedItemsEl) savedItemsEl.textContent = String(itemFavs.length);
-    });
-
-    // =========================
-    // Account Avatar Icon
-    // ========================
-
-    // avatar (account-based)
-    if (accAvatar) {
-      const avatarUrl =
-        data?.avatarUrl || user.photoURL || "images/defaultprofile.png";
-      accAvatar.src = avatarUrl;
-    }
-
-    if (data?.deactivated) {
-      setStatus("❌ This account has been deactivated.", false);
-
-      // optional delay so user sees message
-      setTimeout(async () => {
-        await signOut(auth);
-        window.location.href = "index.html";
-      }, 2000);
-
-      return;
-    }
-
-    // badge
     applyBadge(0);
 
     /* =========================
        LOAD PREFERENCES into checkboxes
+       (from the profile response, if your /api/cust/:id ever includes them)
     ========================= */
     const prefs = data?.preferences || {};
     setCheckedByValues(prefCuisineEls, prefs.cuisines);
@@ -695,20 +545,19 @@ onAuthStateChanged(auth, async (user) => {
         const cuisines = getCheckedValues(prefCuisineEls);
         const notifications = getCheckedValues(prefNotifEls);
 
-        await setDoc(
-          doc(db, "users", user.uid),
-          {
-            preferences: { cuisines, notifications },
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
+        const res = await AuthClient.apiFetch(CUST_PREFS_URL(currentUid), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cuisines, notifications }),
+        });
+
+        if (!res.ok) throw new Error(`status ${res.status}`);
 
         setStatus("✅ Preferences saved.");
       } catch (err) {
         console.error(err);
         setStatus(
-          `❌ Failed to save preferences: ${err.code || err.message}`,
+          "❌ Failed to save preferences (backend endpoint may not exist yet).",
           false,
         );
       }
@@ -720,6 +569,9 @@ onAuthStateChanged(auth, async (user) => {
       const phoneText = (accPhone?.textContent || "").trim();
       const currentPhone =
         phoneText === "—" || phoneText === "-" ? "" : phoneText;
+      const currentEmailText = (accEmail?.textContent || "").trim();
+      const currentEmail =
+        currentEmailText === "—" ? "" : currentEmailText;
 
       const { overlay } = openModal({
         title: "Edit Profile",
@@ -753,7 +605,7 @@ onAuthStateChanged(auth, async (user) => {
       <div class="hpModalRow">
         <label class="hpModalLabel">Email</label>
         <input id="mEmail" class="hpModalInput" type="email"
-        value="${(user.email || "").replace(/"/g, "&quot;")}"/>
+        value="${currentEmail.replace(/"/g, "&quot;")}"/>
       </div>
 
       <div class="hpModalRow">
@@ -772,14 +624,10 @@ onAuthStateChanged(auth, async (user) => {
           const err = overlay.querySelector(".hpModalErr");
 
           if (!nameEl || !emailEl || !phoneEl) {
-            console.log("Missing modal inputs:", {
-              nameElExists: !!nameEl,
-              emailElExists: !!emailEl,
-              phoneElExists: !!phoneEl,
-            });
-            if (err)
+            if (err) {
               err.textContent =
                 "Modal inputs missing (check IDs in modal HTML).";
+            }
             return;
           }
 
@@ -788,93 +636,82 @@ onAuthStateChanged(auth, async (user) => {
           const newPhone = phoneEl.value.trim();
           const avatarFile = overlay.querySelector("#mAvatar")?.files?.[0];
 
+          if (!newName) {
+            err.textContent = "Name cannot be empty.";
+            return;
+          }
+          if (!newEmail) {
+            err.textContent = "Email cannot be empty.";
+            return;
+          }
+          if (!newPhone) {
+            err.textContent = "Phone cannot be empty.";
+            return;
+          }
+          if (!isPhone(newPhone)) {
+            err.textContent = "Invalid SG phone number.";
+            return;
+          }
+
           let avatarUrlToSave = null;
 
+          // GUESS endpoint - needs real file upload handling (e.g. multer) on the backend
           if (avatarFile) {
-            // optional size limit: 5MB
             if (avatarFile.size > 5 * 1024 * 1024) {
               err.textContent = "Image too large (max 5MB).";
               return;
             }
 
-            const ext = (
-              avatarFile.name.split(".").pop() || "jpg"
-            ).toLowerCase();
-            const avatarRef = sRef(
-              storage,
-              `avatars/${user.uid}/avatar.${ext}`,
-            );
-
-            await uploadBytes(avatarRef, avatarFile, {
-              contentType: avatarFile.type || "image/jpeg",
-            });
-
-            avatarUrlToSave = await getDownloadURL(avatarRef);
-
-            // update UI immediately
-            if (accAvatar) accAvatar.src = avatarUrlToSave;
-          }
-
-          if (!newName) {
-            err.textContent = "Name cannot be empty.";
-            return;
-          }
-          if (newEmail && newEmail !== user.email) {
-            const isPasswordUser = user.providerData.some(
-              (p) => p.providerId === "password",
-            );
-
-            if (!isPasswordUser) {
-              err.textContent =
-                "Email can only be changed for Email/Password accounts.";
-              return;
-            }
-
             try {
-              // Sends verification email to NEW address
-              await verifyBeforeUpdateEmail(user, newEmail);
+              const formData = new FormData();
+              formData.append("avatar", avatarFile);
 
-              err.style.color = "#1b5e20";
-              err.textContent =
-                "✅ Verification email sent to your new address. Please verify it to complete the change.";
-              return; // important: stop, email changes only after verification
-            } catch (e) {
-              if (e.code === "auth/requires-recent-login") {
-                err.textContent =
-                  "⚠️ Please log out and log in again, then try changing email.";
-                return;
+              const uploadRes = await AuthClient.apiFetch(
+                CUST_AVATAR_URL(currentUid),
+                { method: "POST", body: formData },
+              );
+
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                avatarUrlToSave = uploadData.avatarUrl;
+                if (accAvatar) accAvatar.src = avatarUrlToSave;
+              } else {
+                console.warn(
+                  "Avatar upload endpoint not available yet - skipping avatar save.",
+                );
               }
-              err.textContent = `${e.code || ""} ${e.message || ""}`.trim();
-              return;
+            } catch (uploadErr) {
+              console.warn(
+                "Avatar upload failed (endpoint likely not built yet):",
+                uploadErr,
+              );
             }
           }
 
-          if (newPhone && !isPhone(newPhone)) {
-            err.textContent = "Invalid SG phone number.";
+          try {
+            const res = await AuthClient.apiFetch(
+              CUST_UPDATE_URL(currentUid),
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  Name: newName,
+                  Email: newEmail,
+                  Phone: newPhone,
+                }),
+              },
+            );
+
+            if (!res.ok) throw new Error(`status ${res.status}`);
+          } catch (saveErr) {
+            console.error(saveErr);
+            err.textContent = "Failed to save profile. Please try again.";
             return;
           }
-
-          await updateProfile(user, {
-            displayName: newName,
-            ...(avatarUrlToSave ? { photoURL: avatarUrlToSave } : {}),
-          });
-
-          await setDoc(
-            doc(db, "users", user.uid),
-            {
-              name: newName,
-              phone: newPhone,
-              email: newEmail || user.email || "",
-              updatedAt: serverTimestamp(),
-
-              // ONLY save avatar if user uploaded one
-              ...(avatarUrlToSave ? { avatarUrl: avatarUrlToSave } : {}),
-            },
-            { merge: true },
-          );
 
           accName.textContent = newName;
           accPhone.textContent = newPhone || "—";
+          accEmail.textContent = newEmail || "—";
 
           setStatus("✅ Profile updated.");
           close();
@@ -896,18 +733,27 @@ onAuthStateChanged(auth, async (user) => {
       }
     });
 
-    // Change password (email reset)
+    // Change password
+    // GUESS endpoint - build a real "forgot password" flow on the backend
     changePwBtn?.addEventListener("click", async () => {
       setStatus("Sending reset email...", true);
       accStatus?.scrollIntoView({ behavior: "smooth", block: "center" });
 
       try {
-        if (!user.email) {
+        const email = (accEmail?.textContent || "").trim();
+        if (!email || email === "—") {
           setStatus("❌ No email found on this account.", false);
           return;
         }
 
-        await sendPasswordResetEmail(auth, user.email);
+        const res = await AuthClient.apiFetch(AUTH_FORGOT_PASSWORD_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!res.ok) throw new Error(`status ${res.status}`);
+
         setStatus(
           "✅ Password reset email sent. Check your inbox / spam.",
           true,
@@ -915,7 +761,7 @@ onAuthStateChanged(auth, async (user) => {
       } catch (err) {
         console.error(err);
         setStatus(
-          `❌ Failed to send reset email: ${err.code || err.message}`,
+          "❌ Failed to send reset email (backend endpoint may not exist yet).",
           false,
         );
       }
@@ -923,21 +769,13 @@ onAuthStateChanged(auth, async (user) => {
 
     // Logout
     logoutBtn?.addEventListener("click", async () => {
-      await signOut(auth);
+      await AuthClient.logout?.(); // GUESS: adjust to your actual AuthClient API if named differently
       window.location.href = "index.html";
     });
 
     // Deactivate
+    // GUESS endpoint - backend should verify the password server-side before deactivating
     deactivateBtn?.addEventListener("click", () => {
-      // Only allow for email/password accounts
-      const isPasswordUser = user.providerData.some(
-        (p) => p.providerId === "password",
-      );
-      if (!isPasswordUser) {
-        setStatus("❌ Deactivation requires an Email/Password account.", false);
-        return;
-      }
-
       const { overlay, close } = openModal({
         title: "Deactivate Account",
         primaryText: "Deactivate",
@@ -967,52 +805,35 @@ onAuthStateChanged(auth, async (user) => {
           }
 
           try {
-            // Re-authenticate
-            const cred = EmailAuthProvider.credential(user.email, password);
-            await reauthenticateWithCredential(user, cred);
-
-            //  Mark deactivated in Firestore
-            await setDoc(
-              doc(db, "users", user.uid),
-              { deactivated: true, deactivatedAt: serverTimestamp() },
-              { merge: true },
+            const res = await AuthClient.apiFetch(
+              CUST_DEACTIVATE_URL(currentUid),
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password }),
+              },
             );
+
+            if (!res.ok) {
+              if (res.status === 401) {
+                errEl.textContent = "Incorrect password.";
+                return;
+              }
+              throw new Error(`status ${res.status}`);
+            }
 
             setStatus("✅ Account deactivated. Logging you out…");
 
-            // Log out and redirect
             setTimeout(async () => {
-              try {
-                await signOut(auth);
-              } finally {
-                window.location.href = "index.html";
-              }
+              await AuthClient.logout?.();
+              window.location.href = "index.html";
             }, 900);
 
             close();
           } catch (e) {
             console.error(e);
-
-            // Friendly errors
-            if (
-              e.code === "auth/wrong-password" ||
-              e.code === "auth/invalid-credential"
-            ) {
-              errEl.textContent = "Incorrect password.";
-              return;
-            }
-            if (e.code === "auth/too-many-requests") {
-              errEl.textContent = "Too many attempts. Try again later.";
-              return;
-            }
-            if (e.code === "auth/requires-recent-login") {
-              errEl.textContent = "Please log out and log in again, then try.";
-              return;
-            }
-
             errEl.textContent =
-              `${e.code || ""} ${e.message || ""}`.trim() ||
-              "Failed to deactivate.";
+              "Failed to deactivate (backend endpoint may not exist yet).";
           }
         },
       });
@@ -1026,6 +847,6 @@ onAuthStateChanged(auth, async (user) => {
     });
   } catch (err) {
     console.error(err);
-    setStatus(`❌ Failed to load account: ${err.code || err.message}`, false);
+    setStatus(`❌ Failed to load account: ${err.message}`, false);
   }
-});
+})();
