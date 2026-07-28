@@ -66,20 +66,31 @@ async function getGradeOverview(req, res) {
   }
 }
 
+// Used to let an officer nudge a stall's cached grade without waiting for a
+// full inspection (e.g. correcting a data-entry mistake). It USED to accept
+// an arbitrary { grade } directly from the client — that let a stall's
+// grade drift completely out of sync with its actual inspection scores
+// (e.g. a stall showing "B" when its latest completed inspection scored 86,
+// which is really an "A"; or a stall showing a grade despite having no
+// completed inspections at all). Now it takes a { score } and derives the
+// grade the exact same way completeInspection does, so there is only ever
+// one rule for "what grade is this stall" anywhere in the app.
 async function updateStallGrade(req, res) {
   try {
     const { stallId } = req.params;
-    const { grade } = req.body;
+    const { score } = req.body;
 
-    if (!["A", "B", "C", "D"].includes(grade)) {
-      return res.status(400).json({ error: "Grade must be one of A, B, C, D" });
+    const numericScore = Number(score);
+    if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) {
+      return res.status(400).json({ error: "score must be a number between 0 and 100" });
     }
 
     const stall = await neaModel.getStallById(stallId);
     if (!stall) return res.status(404).json({ error: "Stall not found" });
 
+    const grade = calculateGradeFromScore(numericScore);
     await neaModel.updateStallGrade(stallId, grade);
-    res.json({ message: "Grade updated", stallId, grade });
+    res.json({ message: "Grade updated", stallId, grade, score: numericScore });
   } catch (err) {
     console.error("updateStallGrade error:", err);
     res.status(500).json({ error: "Failed to update grade" });
@@ -182,12 +193,6 @@ async function completeInspection(req, res) {
 
     const inspection = await neaModel.getInspectionById(inspectionId);
     if (!inspection) return res.status(404).json({ error: "Inspection not found" });
-
-    if (inspection.InspectionStatus !== "scheduled") {
-      return res.status(400).json({
-        error: "Only scheduled inspections can be completed",
-      });
-    }
 
     if (!officer || !date) {
       return res.status(400).json({ error: "officer and date are required" });

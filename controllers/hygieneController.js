@@ -39,7 +39,7 @@ async function getStall(req, res) {
       name: stall.StallName,
       imageUrl: stall.ImageUrl,
       centreId: stall.CentreId,
-      grade: stall.HygieneGrade || "B",
+      grade: stall.HygieneGrade || null,
       licenseIssued: stall.LicenseIssued,
       licenseExpiry: stall.LicenseExpiry,
       isOwner,

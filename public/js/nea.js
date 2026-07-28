@@ -591,39 +591,54 @@ window.submitSchedule = async () => {
 };
 
 /* ---------- Grading ---------- */
-window.selectGrade = (grade) => {
-  document.getElementById("selectedGrade").value = grade;
-  document
-    .querySelectorAll(".grade-btn")
-    .forEach((b) => b.classList.remove("selected"));
-  event.target.classList.add("selected");
+// Grade is derived from a score, the same rule used everywhere else in the
+// app (85+ = A, 70-84 = B, 55-69 = C, below 55 = D). There is no longer a
+// way to pick a grade directly — that was the source of stalls showing a
+// grade that had drifted out of sync with their actual inspection scores
+// (or a grade with no inspection behind it at all).
+window.previewGradeFromScore = () => {
+  const input = document.getElementById("gradeScoreInput");
+  const preview = document.getElementById("gradePreview");
+  const score = Number(input.value);
+
+  if (input.value === "" || !Number.isFinite(score) || score < 0 || score > 100) {
+    preview.textContent = "—";
+    preview.style.color = "#e67e22";
+    return;
+  }
+
+  const grade = calculateGradeFromScore(score);
+  preview.textContent = `${grade} (${score}/100)`;
+  preview.style.color =
+    grade === "A" ? "#16a34a" : grade === "B" ? "#2f6bff" : grade === "C" ? "#ca8a04" : "#dc2626";
 };
 
 window.submitGradeUpdate = async () => {
   const stallId = document.getElementById("gradeStallSelect").value;
-  const newGrade = document.getElementById("selectedGrade").value;
+  const scoreInput = document.getElementById("gradeScoreInput");
+  const score = Number(scoreInput.value);
   const msg = document.getElementById("gradeMsg");
 
-  if (!stallId || !newGrade) {
-    alert("Select a stall and a grade.");
+  if (!stallId || scoreInput.value === "" || !Number.isFinite(score) || score < 0 || score > 100) {
+    alert("Select a stall and enter a score between 0 and 100.");
     return;
   }
 
   try {
-    await api(`/stalls/${encodeURIComponent(stallId)}/grade`, {
+    const updated = await api(`/stalls/${encodeURIComponent(stallId)}/grade`, {
       method: "PUT",
-      body: JSON.stringify({ grade: newGrade }),
+      body: JSON.stringify({ score }),
     });
 
-    document.getElementById("currentGradeDisplay").textContent = newGrade;
+    document.getElementById("currentGradeDisplay").textContent = updated.grade;
 
     if (stallDataCache[stallId]) {
-      stallDataCache[stallId].hygieneGrade = newGrade;
+      stallDataCache[stallId].hygieneGrade = updated.grade;
     }
     updateHygieneOverview();
 
     msg.style.color = "";
-    msg.textContent = `Success: Grade updated to ${newGrade}`;
+    msg.textContent = `Success: Grade updated to ${updated.grade} (score ${updated.score}/100)`;
     setTimeout(() => (msg.textContent = ""), 2500);
   } catch (err) {
     console.error("Error updating grade:", err);
