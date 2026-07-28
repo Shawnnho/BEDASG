@@ -37,6 +37,7 @@ const menuPricesRoutes = require("./routes/menuPricesRoutes");
 const stallClosureRoutes = require("./routes/stallClosureRoutes");
 const custAccountRoutes = require("./routes/custAccountRoutes")
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 // Middleware to parse JSON request bodies (needed later for POST/PUT)
@@ -70,6 +71,7 @@ app.use("/api/rental", rentalRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/favitems", favItemRoutes);
 app.use("/api/cust", custAccountRoutes)
+
 // Stall-specific routes
 app.use("/api/stall", orderRoutes);
 app.use("/api/stall", stallMenuRoutes);
@@ -78,11 +80,6 @@ app.use("/api/favourites", favouriteOrderRoutes);
 app.use("/api/menuprices", menuPricesRoutes);
 app.use("/api/stall/closures", stallClosureRoutes);
 
-// Swagger
-app.use('/api-docs',
-  swaggerUI.serve,
-  swaggerUI.setup(swaggerDocument)
-);
 
 // Health check route — confirms the server + DB are alive
 app.get("/api/health", async (req, res) => {

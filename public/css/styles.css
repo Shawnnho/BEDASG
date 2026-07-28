@@ -6689,3 +6689,286 @@ body.storePage #stallGrade.gradeD {
 #btnStatus.pr-btn-primary {
   margin: 0;
 }
+
+.rateModalBackdrop {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+}
+
+.rateModalBackdrop[hidden] {
+  display: none !important;
+}
+
+.rateModalCard {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.rateModalCard h2 {
+  margin-bottom: 1rem;
+}
+
+.starContainer {
+  font-size: 2.5rem;
+  color: #ccc;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.star {
+  transition: color 0.2s;
+}
+
+.starHint {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.reviewInputContainer {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.reviewInputContainer label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.reviewInputContainer textarea {
+  width: 100%;
+  height: 100px;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  resize: none;
+}
+
+.rateModalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelRateBtn {
+  background: #eee;
+  color: #333;
+}
+
+.rateModalBackdrop {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.rateModalBackdrop[hidden] {
+  display: none !important;
+}
+
+.rateModalCard {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.rateModalCard h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #212529;
+  font-size: 1.5rem;
+}
+
+.rateItemPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.rateItemImg {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 0.75rem;
+  border: 3px solid #f8f9fa;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.rateItemImg[hidden] {
+  display: none !important;
+}
+
+.rateItemName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.starContainer {
+  font-size: 2.5rem;
+  color: #dee2e6;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.star {
+  transition: color 0.2s ease, transform 0.1s ease;
+}
+
+.star:active {
+  transform: scale(0.9);
+}
+
+.starHint {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #868e96;
+}
+
+.reviewInputContainer {
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.reviewInputContainer label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.reviewInputContainer textarea {
+  width: 100%;
+  height: 100px;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-family: inherit;
+  resize: none;
+  transition: border-color 0.2s ease;
+}
+
+.reviewInputContainer textarea:focus {
+  outline: none;
+  border-color: #ff922b;
+}
+
+.rateModalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.rateModalActions button {
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelRateBtn {
+  background-color: #f1f3f5;
+  color: #495057;
+}
+
+.cancelRateBtn:hover {
+  background-color: #e2e6ea;
+  color: #212529;
+}
+
+.submitRateBtn {
+  background-color: #ff922b;
+  color: white;
+  box-shadow: 0 4px 6px rgba(255, 146, 43, 0.2);
+}
+
+.submitRateBtn:hover {
+  background-color: #fd7e14;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px rgba(255, 146, 43, 0.3);
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  background-color: #20c997;
+}
+
+.toast.error {
+  background-color: #fa5252;
+}
+
+.rateItemSelect {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #495057;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.rateItemSelect:focus {
+  outline: none;
+  border-color: #ff922b;
+}

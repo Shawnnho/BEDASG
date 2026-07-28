@@ -89,9 +89,6 @@ function wireTabs() {
   setTab("pending");
 }
 
-// Merge sibling orders that share a CheckoutId (multi-stall checkout) into
-// a single display entry: combined total, combined items, combined stall
-// names, and the least-advanced status among them.
 function combineOrdersByCheckout(orders) {
   const groups = new Map();
   for (const o of orders) {
@@ -164,8 +161,6 @@ function combineOrdersByCheckout(orders) {
   return merged;
 }
 
-// Combine two cart arrays, merging quantities for items that match on
-// stall + item + variant instead of creating duplicate line entries.
 function mergeCartItems(existing, incoming) {
   const merged = existing.map((it) => ({ ...it }));
 
@@ -209,8 +204,6 @@ window.deleteOrder = async function (orderId, checkoutId) {
       throw new Error("Delete failed");
     }
 
-    // Remove the deleted order(s) from the in-memory list and re-render
-    // without needing a full page reload.
     window.__ALL_ORDERS = (window.__ALL_ORDERS || []).filter((o) => {
       if (checkoutId) return o.checkoutId !== checkoutId;
       return String(o.id) !== String(orderId);
@@ -240,7 +233,7 @@ window.reorderOrder = async function (orderId) {
     }
 
     const user = await checkLogin();
-    const CART_KEY = "hp_cart"; // must match cart.js's CART_KEY
+    const CART_KEY = "hp_cart";
 
     if (!user) {
       let cart = [];
@@ -275,12 +268,10 @@ window.reorderOrder = async function (orderId) {
 
 function renderOrders(orders, checkoutIdFilter) {
   const bannerEl = document.getElementById("ordersBanner");
-
   const pendingList = document.getElementById("ordersPendingList");
   const completedList = document.getElementById("ordersCompletedList");
   const pendingEmpty = document.getElementById("ordersPendingEmpty");
   const completedEmpty = document.getElementById("ordersCompletedEmpty");
-
   const searchEl = document.getElementById("ordersSearch");
   const statusEl = document.getElementById("ordersStatusFilter");
   const payEl = document.getElementById("ordersPayFilter");
@@ -365,6 +356,7 @@ function renderOrders(orders, checkoutIdFilter) {
 
         <div class="orderActions">
           <button type="button" class="orderBtn" onclick="reorderOrder('${o.id}')">Reorder</button>
+          <button type="button" class="orderBtn rateBtn" onclick="openRateModal('${o.id}')">Rate Item</button>
           <button type="button" class="orderBtn deleteBtn" onclick="deleteOrder('${o.id}', '${o.checkoutId || ""}')">Delete</button>
           <a class="orderBtn" href="${href}">View</a>
         </div>
@@ -388,6 +380,109 @@ function wireFilters(latestOrdersRef) {
     el.addEventListener("change", () => renderOrders(latestOrdersRef.orders, latestOrdersRef.checkoutId));
   });
 }
+
+function showToast(message, isSuccess = true) {
+  const toast = document.getElementById('toastNotification');
+  toast.textContent = message;
+  toast.className = 'toast';
+  toast.classList.add('show');
+  toast.classList.add(isSuccess ? 'success' : 'error');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+let currentRating = 0;
+let currentOrderItems = [];
+
+window.openRateModal = function(orderId) {
+  const order = (window.__ALL_ORDERS || []).find(o => String(o.id) === String(orderId));
+  if (!order || !order.items || order.items.length === 0) {
+    showToast("No items found to rate.", false);
+    return;
+  }
+
+  currentOrderItems = order.items;
+  
+  document.getElementById('rateModal').hidden = false;
+  document.getElementById('reviewTextInput').value = '';
+  
+  const selectEl = document.getElementById('rateItemSelect');
+  selectEl.innerHTML = currentOrderItems.map((item, index) => 
+    `<option value="${index}">${item.name}</option>`
+  ).join('');
+
+  selectEl.onchange = function() {
+    const selectedItem = currentOrderItems[this.value];
+    document.getElementById('rateStallId').value = selectedItem.stallId;
+    document.getElementById('rateItemId').value = selectedItem.itemId;
+    
+    const imgEl = document.getElementById('rateItemImg');
+    if (selectedItem.img) {
+      imgEl.src = selectedItem.img;
+      imgEl.hidden = false;
+    } else {
+      imgEl.src = '';
+      imgEl.hidden = true;
+    }
+    setRating(0);
+  };
+
+  selectEl.value = "0";
+  selectEl.dispatchEvent(new Event('change'));
+}
+
+window.closeRateModal = function() {
+  document.getElementById('rateModal').hidden = true;
+}
+
+document.querySelectorAll('.star').forEach(star => {
+  star.addEventListener('click', function() {
+    setRating(parseInt(this.getAttribute('data-val')));
+  });
+});
+
+function setRating(rating) {
+  currentRating = rating;
+  const stars = document.querySelectorAll('.star');
+  stars.forEach(star => {
+    const val = parseInt(star.getAttribute('data-val'));
+    star.style.color = val <= rating ? '#FFD700' : '#dee2e6'; 
+  });
+}
+
+window.submitReview = async function() {
+  if (currentRating === 0) {
+    showToast("Please select a star rating.", false);
+    return;
+  }
+
+  const payload = {
+    stallId: document.getElementById('rateStallId').value,
+    itemId: document.getElementById('rateItemId').value,
+    rating: currentRating,
+    reviewText: document.getElementById('reviewTextInput').value
+  };
+
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      closeRateModal();
+      showToast("Review submitted successfully!", true);
+    } else {
+      showToast("Failed to submit review.", false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("An error occurred.", false);
+  }
+};
 
 (async () => {
   const user = await checkLogin();

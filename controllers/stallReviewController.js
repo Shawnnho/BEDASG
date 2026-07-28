@@ -7,7 +7,8 @@ async function createReview(req, res) {
     const userId = req.user.userId; // set by verifyToken from the accessToken cookie
     const userName = req.user.name || req.user.email || "User";
 
-    const { stallId, rating, reviewText, isAnonymous, image } = req.body;
+    // ADDED itemId HERE
+    const { stallId, itemId, rating, reviewText, isAnonymous, image } = req.body;
 
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
 
@@ -31,6 +32,7 @@ async function createReview(req, res) {
     const { reviewId } = await stallReviewModel.createReview({
       stallId,
       userId,
+      itemId, // ADDED itemId HERE
       userName,
       rating: ratingNum,
       reviewText: reviewText || "",

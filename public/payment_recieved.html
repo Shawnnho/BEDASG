@@ -120,6 +120,14 @@
             />
             Estimated pickup time: <strong id="prPickupTime">—</strong>
           </div>
+
+          <div id="inlineQrContainer" class="inline-qr-wrap" hidden>
+            <div class="inline-qr-status">Ready for Collection</div>
+            <div class="inline-qr-sub">Please head to the store to pick up the order.</div>
+            <div class="inline-qr-number" id="inlineQrOrderNo">—</div>
+            <div class="inline-qr-label">Pickup Code</div>
+            <img id="inlineQrImg" class="inline-qr-img" alt="Order QR code" />
+          </div>
         </div>
 
         <div id="prDeliveryBox" class="pr-infoBox" hidden>
@@ -139,12 +147,6 @@
             <div class="pr-label">Unit Number</div>
             <div class="pr-value" id="prDeliveryUnit">—</div>
           </div>
-        </div>
-
-        <div id="inlineQrContainer" class="inline-qr-wrap" hidden>
-          <h3>Show this at the stall</h3>
-          <div class="inline-qr-order" id="inlineQrOrderNo">Order No. —</div>
-          <img id="inlineQrImg" class="inline-qr-img" alt="Order QR code" />
         </div>
 
         <h2 class="pr-h2">Order Summary</h2>

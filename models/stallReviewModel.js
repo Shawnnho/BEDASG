@@ -4,6 +4,7 @@ const crypto = require("crypto");
 async function createReview({
   stallId,
   userId,
+  itemId,
   userName,
   rating,
   reviewText,
@@ -14,28 +15,45 @@ async function createReview({
   const pool = await poolPromise;
   const reviewId = crypto.randomUUID();
   const tagsJson = JSON.stringify(tags || []);
+  const isItemReview = itemId ? true : false;
+
+  const userRes = await pool.request()
+    .input("searchUid", sql.NVarChar, userId)
+    .query("SELECT * FROM dbo.Users WHERE UserId = @searchUid");
+
+  let finalUserName = userName;
+  if (userRes.recordset.length > 0) {
+    const row = userRes.recordset[0];
+    finalUserName = row.Name || row.UserName || row.FullName || row.FirstName || userName;
+  }
+
+  if (isAnonymous) {
+    finalUserName = "Anonymous";
+  }
 
   await pool
     .request()
     .input("reviewId", sql.NVarChar, reviewId)
     .input("stallId", sql.NVarChar, stallId)
     .input("userId", sql.NVarChar, userId)
-    .input("userName", sql.NVarChar, isAnonymous ? "Anonymous" : userName)
-    .input("rating", sql.Int, rating)
-    .input("reviewText", sql.NVarChar, reviewText || "")
+    .input("itemId", sql.NVarChar, itemId || null)
+    .input("userName", sql.NVarChar, finalUserName)
+    .input("rating", sql.Int, isItemReview ? null : rating)
+    .input("itemStar", sql.Int, isItemReview ? rating : null)
+    .input("reviewText", sql.NVarChar, isItemReview ? null : (reviewText || null))
+    .input("itemReview", sql.NVarChar, isItemReview ? (reviewText || null) : null)
     .input("isAnonymous", sql.Bit, isAnonymous ? 1 : 0)
     .input("imageUrl", sql.NVarChar(sql.MAX), imageUrl || null)
     .input("tagsJson", sql.NVarChar, tagsJson).query(`
       INSERT INTO dbo.StallReviews
-        (ReviewId, StallId, UserId, UserName, Rating, ReviewText, IsAnonymous, ImageUrl, TagsJson, CreatedAt)
+        (ReviewId, StallId, UserId, ItemId, UserName, Rating, ItemStar, ReviewText, ItemReview, IsAnonymous, ImageUrl, TagsJson, CreatedAt)
       VALUES
-        (@reviewId, @stallId, @userId, @userName, @rating, @reviewText, @isAnonymous, @imageUrl, @tagsJson, SYSUTCDATETIME());
+        (@reviewId, @stallId, @userId, @itemId, @userName, @rating, @itemStar, @reviewText, @itemReview, @isAnonymous, @imageUrl, @tagsJson, SYSUTCDATETIME());
     `);
 
   return { reviewId };
 }
 
-// Get the latest reviews across all stalls
 async function getLatestReviews(limitCount = 20) {
   const pool = await poolPromise;
   const result = await pool.request().input("limitCount", sql.Int, limitCount)
@@ -51,7 +69,6 @@ async function getLatestReviews(limitCount = 20) {
   return result.recordset;
 }
 
-// Get A single user's reviews
 async function getReviewsByUser(userId) {
   const pool = await poolPromise;
   const result = await pool.request().input("userId", sql.NVarChar, userId)
@@ -68,7 +85,6 @@ async function getReviewsByUser(userId) {
   return result.recordset;
 }
 
-// Edit a review that a customer already submitted
 async function updateReview(
   reviewId,
   { rating, reviewText, isAnonymous, tags },
@@ -92,7 +108,6 @@ async function updateReview(
     `);
 }
 
-// Delete a review that a customer already submitted
 async function deleteReview(reviewId) {
   const pool = await poolPromise;
   const result = await pool
@@ -116,7 +131,6 @@ async function getStallRatingSummary(stallId) {
   return { reviewCount: row.ReviewCount, averageRating: row.AverageRating };
 }
 
-// Get A single review by id
 async function getReviewById(reviewId) {
   const pool = await poolPromise;
   const result = await pool.request().input("reviewId", sql.NVarChar, reviewId)
@@ -165,7 +179,6 @@ async function searchReviews({ stallName, rating, limitCount = 50 }) {
   return result.recordset;
 }
 
-// Get the stall belonging to a specific owner (Prioritizes the one with reviews)
 async function getStallByOwnerUid(ownerUid) {
   const pool = await poolPromise;
   const result = await pool.request().input("ownerUid", sql.NVarChar, ownerUid)
@@ -181,7 +194,6 @@ async function getStallByOwnerUid(ownerUid) {
   return result.recordset[0] || null;
 }
 
-// Get all reviews for a specific stall
 async function getReviewsByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
@@ -198,14 +210,12 @@ async function getReviewsByStall(stallId) {
   return result.recordset;
 }
 
-// Get count of new reviews since a specific timestamp
 async function getReviewCountSince(stallId, sinceIso) {
   const pool = await poolPromise;
   const request = pool.request().input("stallId", sql.NVarChar, stallId);
 
   let timeCondition = "";
   if (sinceIso) {
-    // Convert the timestamp string (or number) to a Date object for MSSQL
     const sinceDate = new Date(Number(sinceIso) || sinceIso);
     request.input("since", sql.DateTime, sinceDate);
     timeCondition = "AND CreatedAt > @since";
