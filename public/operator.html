@@ -39,6 +39,12 @@
           <span>Rental Agreements</span>
           <span id="badgeRentals" class="menu-badge" style="display: none">0</span>
         </li>
+
+        <li onclick="switchTab('reports')">
+          <i class="fa-solid fa-flag"></i>
+          <span>Reported Reviews</span>
+          <span id="badgeReports" class="menu-badge" style="display: none">0</span>
+        </li>
       </ul>
 
       <button class="op-logout" onclick="logoutOperator()">
@@ -178,6 +184,19 @@
 
           <div id="rentalList" class="op-list">
             <p>Select a centre first.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= REPORTS TAB ================= -->
+      <section id="tab-reports" class="op-tab">
+        <div class="op-header">
+          <h2>Reported Reviews</h2>
+        </div>
+
+        <div class="op-card-container">
+          <div id="reportList" class="op-list">
+            <p>Loading...</p>
           </div>
         </div>
       </section>

@@ -183,7 +183,7 @@ window.switchTab = async (tabName) => {
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) tab.classList.add("active");
 
-  const index = ["centres", "stalls", "rentals"].indexOf(tabName);
+  const index = ["centres", "stalls", "rentals", "reports"].indexOf(tabName);
   const li = document.querySelectorAll(".op-menu li")[index];
   if (li) li.classList.add("active");
 
@@ -196,6 +196,7 @@ window.switchTab = async (tabName) => {
   try {
     if (tabName === "stalls") await loadStalls();
     if (tabName === "rentals") await loadRentals();
+    if (tabName === "reports") await loadReports();
   } catch (err) {
     console.error(`switchTab(${tabName}) failed:`, err);
     alert(`Failed to load ${tabName}: ${err.message}`);
@@ -902,6 +903,91 @@ window.viewStallComplaints = async (stallId, stallName) => {
 window.closeComplaintHistoryModal = () => {
   const modal = document.getElementById("complaintHistoryModal");
   if (modal) modal.style.display = "none";
+};
+
+// Reported Reviews
+
+async function loadReports() {
+  const list = document.getElementById("reportList");
+  if (list) list.innerHTML = "<p>Loading...</p>";
+
+  const reports = await apiFetch("/reports");
+  setBadge("badgeReports", reports.length);
+  renderReports(reports);
+}
+
+function renderReports(reports) {
+  const list = document.getElementById("reportList");
+  if (!list) return;
+
+  if (reports.length === 0) {
+    list.innerHTML = "<p>No reported reviews.</p>";
+    return;
+  }
+
+  list.innerHTML = reports
+    .map((r) => {
+      const reportedAt = r.ReportedAt ? new Date(r.ReportedAt).toLocaleString() : "-";
+      return `
+        <div class="op-item">
+          <div class="item-main">
+            <h4>${r.StallName || "Unknown Stall"}</h4>
+            <span class="badge red">${r.Reason || "Reported"}</span>
+          </div>
+          <p><b>${Number(r.Rating || 0)} ★</b> — ${r.ReviewText || ""}</p>
+          ${r.Details ? `<p class="muted">Reporter's details: ${r.Details}</p>` : ""}
+          <div class="item-meta">
+            <span>Review by: <b>${r.ReviewerName || "-"}</b></span>
+            <span>Reported: ${reportedAt}</span>
+          </div>
+          <div class="actions-row">
+            <button class="btn-mini gray" onclick="dismissReviewReport('${r.ReportId}')">
+              Dismiss
+            </button>
+            <button class="btn-mini danger" onclick="deleteReportedReview('${r.ReportId}')">
+              Delete Review
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+window.dismissReviewReport = async (reportId) => {
+  if (!confirm("Dismiss this report? The review will stay up.")) return;
+
+  try {
+    await apiFetch(`/reports/${reportId}/dismiss`, { method: "POST" });
+  } catch (err) {
+    console.error("DISMISS REPORT FAILED:", err);
+    alert(`Dismiss failed: ${err.message}`);
+    return;
+  }
+
+  try {
+    await loadReports();
+  } catch (err) {
+    console.warn("Dismissed, but refresh failed:", err.message);
+  }
+};
+
+window.deleteReportedReview = async (reportId) => {
+  if (!confirm("Delete this review? This cannot be undone.")) return;
+
+  try {
+    await apiFetch(`/reports/${reportId}/review`, { method: "DELETE" });
+  } catch (err) {
+    console.error("DELETE REVIEW FAILED:", err);
+    alert(`Delete failed: ${err.message}`);
+    return;
+  }
+
+  try {
+    await loadReports();
+  } catch (err) {
+    console.warn("Deleted, but refresh failed:", err.message);
+  }
 };
 
 // Logout

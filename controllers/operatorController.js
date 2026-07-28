@@ -5,6 +5,8 @@ const operatorBillModel = require("../models/operatorbillModel");
 const orderModel = require("../models/operatorRevenueModel");
 const stallRatingModel = require("../models/stallRatingModel");
 const stallComplaintHistoryModel = require("../models/stallComplaintHistoryModel");
+const feedbackReportModel = require("../models/feedbackreportModel");
+const stallReviewModel = require("../models/stallReviewModel");
 
 function getCurrentMonthKey() {
   const d = new Date();
@@ -390,6 +392,71 @@ async function getStallComplaints(req, res) {
   }
 }
 
+// GET /api/operator/reports 
+async function getReportedReviews(req, res) {
+  try {
+    const operatorId = req.user.userId;
+    const centres = await centreModel.getCentresByOperator(operatorId);
+    const centreIds = centres.map((c) => c.CentreId);
+
+    const reports = await feedbackReportModel.getReportsForCentres(centreIds);
+    res.json(reports);
+  } catch (err) {
+    console.error("getReportedReviews error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve reported reviews." });
+  }
+}
+
+// POST /api/operator/reports/:reportId/dismiss 
+async function dismissReport(req, res) {
+  try {
+    const { reportId } = req.params;
+    const operatorId = req.user.userId;
+
+    const report = await feedbackReportModel.getReportById(reportId);
+    if (!report) return res.status(404).json({ error: "Report not found." });
+
+    const review = await stallReviewModel.getReviewById(report.ReviewId);
+    if (!review) return res.status(404).json({ error: "Review not found." });
+    const stall = await stallModel.getStallById(review.StallId);
+    if (!stall) return res.status(404).json({ error: "Stall not found." });
+    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
+    await feedbackReportModel.dismissReport(reportId);
+    res.status(204).send();
+  } catch (err) {
+    console.error("dismissReport error:", err.message);
+    res.status(500).json({ error: "Failed to dismiss report." });
+  }
+}
+
+// DELETE /api/operator/reports/:reportId/review 
+async function deleteReportedReview(req, res) {
+  try {
+    const { reportId } = req.params;
+    const operatorId = req.user.userId;
+
+    const report = await feedbackReportModel.getReportById(reportId);
+    if (!report) return res.status(404).json({ error: "Report not found." });
+
+    const review = await stallReviewModel.getReviewById(report.ReviewId);
+    if (!review) return res.status(404).json({ error: "Review not found." });
+    const stall = await stallModel.getStallById(review.StallId);
+    if (!stall) return res.status(404).json({ error: "Stall not found." });
+    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
+    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+
+    await feedbackReportModel.deleteReportsByReviewId(report.ReviewId);
+    await stallReviewModel.deleteReview(report.ReviewId);
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("deleteReportedReview error:", err.message);
+    res.status(500).json({ error: "Failed to delete review." });
+  }
+}
+
 module.exports = {
   getMyCentres,
   getOverview,
@@ -401,4 +468,7 @@ module.exports = {
   deleteRental,
   saveBill,
   getStallComplaints,
+  getReportedReviews,
+  dismissReport,
+  deleteReportedReview,
 };
