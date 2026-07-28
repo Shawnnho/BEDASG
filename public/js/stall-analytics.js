@@ -175,7 +175,18 @@ function drawChart({ labels, today, yesterday, compare }) {
   ctx.setLineDash([]);
   ctx.textAlign = "left";
 
-  // x-axis + time labels (like 7AM 8AM 9AM...)
+  // Y-axis title: "Sales ($)" rotated vertically along the left edge
+  ctx.save();
+  ctx.translate(14, padT + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.font = "bold 13px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Sales ($)", 0, 0);
+  ctx.restore();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
   const stepX = cw / Math.max(1, labels.length - 1);
 
   // detect hourly labels (your fmtLabel makes "AM/PM")
@@ -200,7 +211,6 @@ function drawChart({ labels, today, yesterday, compare }) {
   // for hourly, show more labels (like your screenshot)
   const skip = isHourly ? 1 : Math.max(1, Math.ceil(labels.length / 6));
 
-  console.log("labels:", labels);
   labels.forEach((lab, i) => {
     if (i % skip !== 0 && i !== labels.length - 1) return;
 
@@ -215,6 +225,13 @@ function drawChart({ labels, today, yesterday, compare }) {
     // text under tick
     ctx.fillText(String(lab), x, axisY + 30);
   });
+
+  // X-axis title: "Date" centred below the date labels
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.font = "bold 13px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(isHourly ? "Time" : "Date", padL + cw / 2, axisY + 55);
 
   ctx.textAlign = "left";
 
