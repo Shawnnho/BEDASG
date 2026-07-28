@@ -27,5 +27,9 @@ router.delete("/rentals/:agreementId", operatorController.deleteRental);
 
 router.put("/bills/:stallId/:billMonth", operatorController.saveBill);
 
+router.get("/reports", operatorController.getReportedReviews);
+router.post("/reports/:reportId/dismiss", operatorController.dismissReport);
+router.delete("/reports/:reportId/review", operatorController.deleteReportedReview);
+
 module.exports = router;
 
