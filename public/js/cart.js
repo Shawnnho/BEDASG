@@ -320,6 +320,12 @@ async function render() {
 
   clearPaySelection();
 
+function formatVariantLabel(variant) {
+  return String(variant || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
   let subtotal = 0;
 
   cart.forEach((it, idx) => {
@@ -338,7 +344,7 @@ async function render() {
       <article class="menuCard cartCard">
         <div class="menuImgWrap"><img src="${img}"></div>
         <div class="menuInfo">
-          <div class="menuName">${name} ${variant}</div>
+          <div class="menuName">${name} ${formatVariantLabel(variant)}</div>
           <div class="menuPrice">$${money(line)}</div>
           <div class="cartMeta">Qty: ${qty}</div>
         </div>

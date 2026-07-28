@@ -4,7 +4,8 @@
   "description": "This is for BED Assignment 2026",
   "main": "app.js",
   "scripts": {
-    "devStart": "nodemon app.js"
+    "devStart": "nodemon app.js",
+    "test" : "jest"
   },
   "repository": {
     "type": "git",
@@ -27,9 +28,12 @@
     "jsonwebtoken": "^9.0.3",
     "mssql": "^12.7.0",
     "nodemailer": "^9.0.3",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14"
   }
 }
