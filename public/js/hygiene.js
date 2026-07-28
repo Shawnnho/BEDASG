@@ -31,8 +31,19 @@ const viewHistoryBtn = document.getElementById("viewHistoryBtn");
 const viewTrendBtn = document.getElementById("viewTrendBtn");
 const neaPortalBtn = document.getElementById("neaPortalBtn");
 
+const homeIconBtn = document.querySelector(".brand");
+const homeBtn = document.querySelector(".nav a");
+
 let currentStallId = null;
 let stallsCache = [];
+
+if (userRole === "customer") {
+  document.addEventListener("DOMContentLoaded", () => {
+    homeBtn.href = "home.html";
+    homeIconBtn.href = "home.html";
+  });
+}
+
 
 function getGradeColor(grade) {
   if (grade === "A") return "#16a34a";
@@ -76,6 +87,7 @@ function getLicenseStatus(daysRemaining) {
 }
 
 function applyRoleSpecificUI() {
+  
   if (userRole === "storeholder") {
     stallSelect?.closest(".selectCard")?.style.setProperty("display", "none");
   }
