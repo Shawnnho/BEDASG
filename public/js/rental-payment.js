@@ -241,8 +241,7 @@ async function loadRentalNotifications() {
           <td style="padding:10px; border-bottom:1px solid rgba(0,0,0,.08); font-weight:800;">${fmtDate(h.createdAt)}</td>
           <td style="padding:10px; border-bottom:1px solid rgba(0,0,0,.08); font-weight:800;">${esc(h.monthLabel || h.month)}</td>
           <td style="padding:10px; border-bottom:1px solid rgba(0,0,0,.08); font-weight:900;">${money(h.amount)}</td>
-          <td style="padding:10px; border-bottom:1px solid rgba(0,0,0,.08); font-weight:800;">${esc(h.method || "—")}</td>
-        </tr>`,
+         <td style="padding:10px; border-bottom:1px solid rgba(0,0,0,.08); font-weight:800;">${esc((h.method || "—").toUpperCase())}</td>`,
       )
       .join("");
   }
