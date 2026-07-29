@@ -1,5 +1,4 @@
-// All models are mocked — this tests createRental's own branching logic
-// (the paid + past-due gate) in isolation, without touching a real database.
+jest.mock("../dbConfig");
 
 jest.mock("../models/centreModel");
 jest.mock("../models/stallModel");
@@ -11,8 +10,6 @@ jest.mock("../models/stallComplaintHistoryModel");
 jest.mock("../models/feedbackreportModel");
 jest.mock("../models/stallReviewModel");
 
-const centreModel = require("../models/centreModel");
-const stallModel = require("../models/stallModel");
 const rentalAgreementModel = require("../models/rentalAgreementModel");
 const operatorBillModel = require("../models/operatorbillModel");
 
@@ -25,14 +22,22 @@ function mockRes() {
   return res;
 }
 
-function baseReqBody() {
+// Ownership/existence are now handled by operatorAuth middleware BEFORE the
+// controller runs — so req.stall must already be attached here, matching
+// what requireStallExists would have set.
+function baseReq() {
   return {
     body: {
       centreId: "maxwell",
-      stallId: "asia-wok",
       ownerName: "Ah Tan",
       monthlyRent: 2500,
       startDate: "2026-07-01",
+    },
+    stall: {
+      StallId: "asia-wok",
+      CentreId: "maxwell",
+      OwnerUid: "owner1",
+      StallName: "Asia Wok",
     },
     user: { userId: "operator1" },
   };
@@ -40,13 +45,6 @@ function baseReqBody() {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  centreModel.getCentreForOperator.mockResolvedValue({ CentreId: "maxwell" });
-  stallModel.getStallById.mockResolvedValue({
-    StallId: "asia-wok",
-    CentreId: "maxwell",
-    OwnerUid: "owner1",
-    StallName: "Asia Wok",
-  });
   rentalAgreementModel.createRentalAgreement.mockResolvedValue({ agreementId: "new-agreement-1" });
   operatorBillModel.deleteBill.mockResolvedValue();
   operatorBillModel.updateBill.mockResolvedValue({ TotalAmount: 2500 });
@@ -59,7 +57,7 @@ describe("createRental — paid + past-due gate", () => {
       DueDate: "2026-06-01",
     });
 
-    const req = baseReqBody();
+    const req = baseReq();
     const res = mockRes();
     await createRental(req, res);
 
@@ -79,7 +77,7 @@ describe("createRental — paid + past-due gate", () => {
       DueDate: future.toISOString(),
     });
 
-    const req = baseReqBody();
+    const req = baseReq();
     const res = mockRes();
     await createRental(req, res);
 
@@ -99,7 +97,7 @@ describe("createRental — paid + past-due gate", () => {
       DueDate: past.toISOString(),
     });
 
-    const req = baseReqBody();
+    const req = baseReq();
     const res = mockRes();
     await createRental(req, res);
 
@@ -110,7 +108,7 @@ describe("createRental — paid + past-due gate", () => {
   test("succeeds with 201 when the stall has no bill history at all (first-ever agreement)", async () => {
     operatorBillModel.getLatestBillForStall.mockResolvedValue(null);
 
-    const req = baseReqBody();
+    const req = baseReq();
     const res = mockRes();
     await createRental(req, res);
 

@@ -1,3 +1,4 @@
+jest.mock("../dbConfig");
 jest.mock("../models/centreModel");
 jest.mock("../models/stallModel");
 jest.mock("../models/rentalAgreementModel");
@@ -7,11 +8,8 @@ jest.mock("../models/stallRatingModel");
 jest.mock("../models/stallComplaintHistoryModel");
 jest.mock("../models/feedbackreportModel");
 jest.mock("../models/stallReviewModel");
-jest.mock("../dbConfig");
-
 
 const centreModel = require("../models/centreModel");
-const stallModel = require("../models/stallModel");
 const feedbackReportModel = require("../models/feedbackreportModel");
 const stallReviewModel = require("../models/stallReviewModel");
 
@@ -51,55 +49,19 @@ describe("getReportedReviews", () => {
 });
 
 describe("dismissReport", () => {
-  beforeEach(() => {
-    feedbackReportModel.getReportById.mockResolvedValue({ ReportId: "r1", ReviewId: "review1" });
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "review1", StallId: "asia-wok" });
-    stallModel.getStallById.mockResolvedValue({ StallId: "asia-wok", CentreId: "maxwell" });
-  });
-
-  test("dismisses successfully when the operator owns the centre", async () => {
-    centreModel.getCentreForOperator.mockResolvedValue({ CentreId: "maxwell" });
-
-    const req = { params: { reportId: "r1" }, user: { userId: "op1" } };
+  test("dismisses the report already attached by middleware", async () => {
+    const req = { report: { ReportId: "r1", ReviewId: "review1" }, user: { userId: "op1" } };
     const res = mockRes();
     await dismissReport(req, res);
 
     expect(feedbackReportModel.dismissReport).toHaveBeenCalledWith("r1");
     expect(res.status).toHaveBeenCalledWith(204);
   });
-
-  test("blocks with 403 when the stall's centre isn't the operator's", async () => {
-    centreModel.getCentreForOperator.mockResolvedValue(null);
-
-    const req = { params: { reportId: "r1" }, user: { userId: "someone-else" } };
-    const res = mockRes();
-    await dismissReport(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(feedbackReportModel.dismissReport).not.toHaveBeenCalled();
-  });
-
-  test("returns 404 when the report doesn't exist", async () => {
-    feedbackReportModel.getReportById.mockResolvedValue(null);
-
-    const req = { params: { reportId: "missing" }, user: { userId: "op1" } };
-    const res = mockRes();
-    await dismissReport(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
 });
 
 describe("deleteReportedReview", () => {
-  beforeEach(() => {
-    feedbackReportModel.getReportById.mockResolvedValue({ ReportId: "r1", ReviewId: "review1" });
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "review1", StallId: "asia-wok" });
-    stallModel.getStallById.mockResolvedValue({ StallId: "asia-wok", CentreId: "maxwell" });
-    centreModel.getCentreForOperator.mockResolvedValue({ CentreId: "maxwell" });
-  });
-
   test("clears all reports for the review before deleting it", async () => {
-    const req = { params: { reportId: "r1" }, user: { userId: "op1" } };
+    const req = { review: { ReviewId: "review1" }, user: { userId: "op1" } };
     const res = mockRes();
     await deleteReportedReview(req, res);
 
