@@ -82,6 +82,20 @@ async function fetchPromoByCode(codeRaw) {
   }
 }
 
+function showToast(message, isSuccess = true) {
+    const toast = document.getElementById("toastNotification");
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.className = "toast";
+    toast.classList.add("show");
+    toast.classList.add(isSuccess ? "success" : "error");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
 function validatePromoLocally(promo, cart, subtotal) {
   if (!promo) return { ok: false, error: "Invalid promo code." };
 
@@ -420,9 +434,9 @@ document.addEventListener("click", async (e) => {
     if (cart.length > 0) {
         try {
             await api(`/favourites/${currentUser.uid}`, 'PUT', { items: cart });
-            alert("Order saved as favourite!");
+            showToast("Order saved as favourite!", true);
         } catch (err) {
-            alert("Could not save favourite. Please try again.");
+            showToast("Could not save favourite. Please try again.", false);
         }
     }
     return;
