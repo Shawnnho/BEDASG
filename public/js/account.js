@@ -31,6 +31,20 @@ const logoutBtn = document.getElementById("logoutBtn");
 const deactivateBtn = document.getElementById("deactivateBtn");
 const accStatus = document.getElementById("accStatus");
 
+// Change Password modal DOM
+const pwModalOverlay = document.getElementById("pwModalOverlay");
+const pwModalClose = document.getElementById("pwModalClose");
+const pwChangeForm = document.getElementById("pwChangeForm");
+const pwCurrent = document.getElementById("pwCurrent");
+const pwNew = document.getElementById("pwNew");
+const pwConfirm = document.getElementById("pwConfirm");
+const pwNewHint = document.getElementById("pwNewHint");
+const pwConfirmHint = document.getElementById("pwConfirmHint");
+const pwModalErr = document.getElementById("pwModalErr");
+const pwCancelBtn = document.getElementById("pwCancelBtn");
+const pwSaveBtn = document.getElementById("pwSaveBtn");
+const pwToggleBtns = Array.from(document.querySelectorAll(".pwToggleBtn"));
+
 const redeemedVoucherCount = document.getElementById("redeemedVoucherCount");
 const viewVouchersBtn = document.getElementById("viewVouchersBtn");
 
@@ -70,7 +84,9 @@ const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT
 const CUST_AVATAR_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/avatar`; // POST multipart
 const CUST_PREFS_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/preferences`; // PUT
 const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
-const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST
+const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
+// CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
+const CUST_CHANGE_PASSWORD_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
 const ORDERS_SUMMARY_URL = (uid) => `/api/orders/summary/${encodeURIComponent(uid)}`; // GET
 const VOUCHERS_LIST_URL = (uid) => `/api/vouchers/${encodeURIComponent(uid)}`; // GET
 
@@ -170,6 +186,169 @@ function applyBadge(count) {
     mNotifCount.textContent = n;
   }
 }
+
+/* =========================
+   Change Password modal
+========================= */
+function openPwModal() {
+  if (!pwModalOverlay) return;
+  pwModalOverlay.hidden = false;
+  pwModalOverlay.setAttribute("aria-hidden", "false");
+  pwCurrent?.focus();
+}
+
+function closePwModal() {
+  if (!pwModalOverlay) return;
+  pwModalOverlay.hidden = true;
+  pwModalOverlay.setAttribute("aria-hidden", "true");
+  pwChangeForm?.reset();
+  if (pwModalErr) pwModalErr.textContent = "";
+  if (pwNewHint) {
+    pwNewHint.textContent = "At least 8 characters.";
+    pwNewHint.classList.remove("isBad", "isGood");
+  }
+  if (pwConfirmHint) {
+    pwConfirmHint.textContent = "";
+    pwConfirmHint.classList.remove("isBad", "isGood");
+  }
+  // Reset any show/hide toggles back to password type
+  [pwCurrent, pwNew, pwConfirm].forEach((el) => {
+    if (el) el.type = "password";
+  });
+}
+
+/** Show/hide toggle buttons - swaps input type (icon swap is a nice-to-have,
+ * left as a single icon for now since only one icon path was confirmed). */
+pwToggleBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetId = btn.dataset.target;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+
+    input.type = input.type === "password" ? "text" : "password";
+    btn.setAttribute(
+      "aria-label",
+      input.type === "password" ? `Show ${targetId}` : `Hide ${targetId}`,
+    );
+  });
+});
+
+/** Live hint: new password length */
+pwNew?.addEventListener("input", () => {
+  if (!pwNewHint) return;
+  const val = pwNew.value;
+
+  if (!val) {
+    pwNewHint.textContent = "At least 8 characters.";
+    pwNewHint.classList.remove("isBad", "isGood");
+  } else if (val.length < 8) {
+    pwNewHint.textContent = "Too short - needs at least 8 characters.";
+    pwNewHint.classList.add("isBad");
+    pwNewHint.classList.remove("isGood");
+  } else {
+    pwNewHint.textContent = "Looks good.";
+    pwNewHint.classList.add("isGood");
+    pwNewHint.classList.remove("isBad");
+  }
+
+  // Re-check confirm match whenever the new password changes
+  if (pwConfirm?.value) pwConfirm.dispatchEvent(new Event("input"));
+});
+
+/** Live hint: confirm password match */
+pwConfirm?.addEventListener("input", () => {
+  if (!pwConfirmHint) return;
+  const val = pwConfirm.value;
+
+  if (!val) {
+    pwConfirmHint.textContent = "";
+    pwConfirmHint.classList.remove("isBad", "isGood");
+  } else if (val !== pwNew?.value) {
+    pwConfirmHint.textContent = "Passwords don't match.";
+    pwConfirmHint.classList.add("isBad");
+    pwConfirmHint.classList.remove("isGood");
+  } else {
+    pwConfirmHint.textContent = "Passwords match.";
+    pwConfirmHint.classList.add("isGood");
+    pwConfirmHint.classList.remove("isBad");
+  }
+});
+
+pwModalClose?.addEventListener("click", closePwModal);
+pwCancelBtn?.addEventListener("click", closePwModal);
+pwModalOverlay?.addEventListener("click", (e) => {
+  if (e.target === pwModalOverlay) closePwModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && pwModalOverlay && !pwModalOverlay.hidden) {
+    closePwModal();
+  }
+});
+
+pwChangeForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (pwModalErr) pwModalErr.textContent = "";
+
+  const currentPassword = pwCurrent?.value || "";
+  const newPassword = pwNew?.value || "";
+  const confirmPassword = pwConfirm?.value || "";
+
+  if (!currentPassword) {
+    if (pwModalErr) pwModalErr.textContent = "Current password is required.";
+    return;
+  }
+  if (newPassword.length < 8) {
+    if (pwModalErr) {
+      pwModalErr.textContent = "New password must be at least 8 characters.";
+    }
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    if (pwModalErr) pwModalErr.textContent = "New passwords don't match.";
+    return;
+  }
+  if (newPassword === currentPassword) {
+    if (pwModalErr) {
+      pwModalErr.textContent =
+        "New password must be different from the current password.";
+    }
+    return;
+  }
+
+  pwSaveBtn?.classList.add("isLoading");
+  if (pwSaveBtn) pwSaveBtn.disabled = true;
+
+  try {
+    const res = await AuthClient.apiFetch(
+      CUST_CHANGE_PASSWORD_URL(currentUid),
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      },
+    );
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        if (pwModalErr) pwModalErr.textContent = "Current password is incorrect.";
+        return;
+      }
+      throw new Error(`status ${res.status}`);
+    }
+
+    closePwModal();
+    setStatus("✅ Password updated.");
+  } catch (err) {
+    console.error("Failed to change password:", err);
+    if (pwModalErr) {
+      pwModalErr.textContent =
+        "Failed to update password (backend endpoint may not exist yet).";
+    }
+  } finally {
+    pwSaveBtn?.classList.remove("isLoading");
+    if (pwSaveBtn) pwSaveBtn.disabled = false;
+  }
+});
 
 /* =========================
    Modal UI (unchanged - generic, not backend-specific)
@@ -733,38 +912,9 @@ async function markVoucherUsed(uid, voucherId) {
       }
     });
 
-    // Change password
-    // GUESS endpoint - build a real "forgot password" flow on the backend
-    changePwBtn?.addEventListener("click", async () => {
-      setStatus("Sending reset email...", true);
-      accStatus?.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      try {
-        const email = (accEmail?.textContent || "").trim();
-        if (!email || email === "—") {
-          setStatus("❌ No email found on this account.", false);
-          return;
-        }
-
-        const res = await AuthClient.apiFetch(AUTH_FORGOT_PASSWORD_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-
-        if (!res.ok) throw new Error(`status ${res.status}`);
-
-        setStatus(
-          "✅ Password reset email sent. Check your inbox / spam.",
-          true,
-        );
-      } catch (err) {
-        console.error(err);
-        setStatus(
-          "❌ Failed to send reset email (backend endpoint may not exist yet).",
-          false,
-        );
-      }
+    // Change password - opens the modal (current/new/confirm)
+    changePwBtn?.addEventListener("click", () => {
+      openPwModal();
     });
 
     // Logout
