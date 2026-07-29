@@ -1,6 +1,20 @@
 const { sendMail } = require("./mailer");
 const path = require("path");
 
+function escapeHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[c],
+  );
+}
+
 const LOGO_PATH = path.join(__dirname, "..", "public", "images", "logo.png");
 const LOGO_CID = "hawkerpointlogo";
 
@@ -55,8 +69,8 @@ function orderInfoCard(order) {
   const rows = [
     ["Order No.", order.orderId],
     ["Paid At", order.paidAt],
-    ["Stall", order.stallName],
-    ["Payment", order.paymentMethod],
+    ["Stall", escapeHtml(order.stallName)],
+    ["Payment", escapeHtml(order.paymentMethod)],
   ];
 
   const rowsHtml = rows
@@ -93,15 +107,19 @@ function orderInfoCard(order) {
 
 function itemCards(order) {
   return (order.items || [])
-    .map(
-      (i) => `
+    .map((i) => {
+      const name = escapeHtml(i.name || "Item");
+      const addons = (i.addons || []).map(escapeHtml);
+      const note = escapeHtml(i.note);
+
+      return `
         <div style="border:1px solid ${BORDER};border-radius:12px;padding:14px 16px;margin-bottom:12px">
-          <div style="font-weight:800;font-size:14.5px;margin-bottom:6px">${i.name}</div>
-          <div style="font-size:13px;color:${MUTED};margin-bottom:2px">${i.qty || 1} × ${i.name}</div>
-          ${i.addons && i.addons.length ? `<div style="font-size:12.5px;color:${MUTED};margin-top:4px"><b style="color:${INK}">Add-ons:</b> ${i.addons.join(", ")}</div>` : ""}
-          ${i.note ? `<div style="font-size:12.5px;color:${MUTED};margin-top:2px"><b style="color:${INK}">Note:</b> ${i.note}</div>` : ""}
-        </div>`,
-    )
+          <div style="font-weight:800;font-size:14.5px;margin-bottom:6px">${name}</div>
+          <div style="font-size:13px;color:${MUTED};margin-bottom:2px">${i.qty || 1} × ${name}</div>
+          ${addons.length ? `<div style="font-size:12.5px;color:${MUTED};margin-top:4px"><b style="color:${INK}">Add-ons:</b> ${addons.join(", ")}</div>` : ""}
+          ${i.note ? `<div style="font-size:12.5px;color:${MUTED};margin-top:2px"><b style="color:${INK}">Note:</b> ${note}</div>` : ""}
+        </div>`;
+    })
     .join("");
 }
 
@@ -144,14 +162,14 @@ async function sendNewOrderAlert(stallOwnerEmail, order) {
 async function sendComplaintAlert(stallOwnerEmail, complaint) {
   await sendMail({
     to: stallOwnerEmail,
-    subject: `New Complaint Filed — ${complaint.stallName || "Your Stall"}`,
+    subject: `New Complaint Filed — ${escapeHtml(complaint.stallName || "Your Stall")}`,
     html: wrapEmail({
       heading: "A customer has filed a complaint",
       subheading: "Please review this in your stall dashboard.",
       bodyHtml: `
         <div style="border:1px solid ${BORDER};border-radius:12px;padding:18px 20px">
-          <p style="margin:0 0 8px;font-size:13.5px"><b>Type:</b> ${complaint.complaintType || "General"}</p>
-          <p style="margin:0;font-size:13.5px;color:${MUTED}">${complaint.message || ""}</p>
+          <p style="margin:0 0 8px;font-size:13.5px"><b>Type:</b> ${escapeHtml(complaint.complaintType || "General")}</p>
+          <p style="margin:0;font-size:13.5px;color:${MUTED}">${escapeHtml(complaint.message)}</p>
         </div>
       `,
     }),
@@ -159,4 +177,49 @@ async function sendComplaintAlert(stallOwnerEmail, complaint) {
   });
 }
 
-module.exports = { sendOrderConfirmation, sendNewOrderAlert, sendComplaintAlert };
+// Sent to the reporter when the operator dismisses their report 
+async function sendReportDismissedAlert(reporterEmail, info) {
+  await sendMail({
+    to: reporterEmail,
+    subject: "Update on your report",
+    html: wrapEmail({
+      heading: "Your report has been reviewed",
+      subheading: "After review, the report was dismissed and the review remains visible.",
+      bodyHtml: `
+        <div style="border:1px solid ${BORDER};border-radius:12px;padding:18px 20px">
+          <p style="margin:0 0 8px;font-size:13.5px"><b>Stall:</b> ${escapeHtml(info.stallName || "")}</p>
+          <p style="margin:0;font-size:13.5px;color:${MUTED}">Thank you for helping keep HawkerPoint's reviews trustworthy.</p>
+        </div>
+      `,
+    }),
+    attachments: [LOGO_ATTACHMENT],
+  });
+}
+
+// Sent to the review's author when the operator deletes their review
+
+async function sendReviewDeletedAlert(reviewerEmail, info) {
+  await sendMail({
+    to: reviewerEmail,
+    subject: "Your review has been removed",
+    html: wrapEmail({
+      heading: "Your review has been removed",
+      subheading: "Your review was removed by the stall centre's operator after being reported.",
+      bodyHtml: `
+        <div style="border:1px solid ${BORDER};border-radius:12px;padding:18px 20px">
+          <p style="margin:0 0 8px;font-size:13.5px"><b>Stall:</b> ${escapeHtml(info.stallName || "")}</p>
+          <p style="margin:0;font-size:13.5px;color:${MUTED}">If you believe this was a mistake, please contact support.</p>
+        </div>
+      `,
+    }),
+    attachments: [LOGO_ATTACHMENT],
+  });
+}
+
+module.exports = {
+  sendOrderConfirmation,
+  sendNewOrderAlert,
+  sendComplaintAlert,
+  sendReportDismissedAlert,
+  sendReviewDeletedAlert,
+};
