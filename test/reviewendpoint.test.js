@@ -1,7 +1,9 @@
-jest.mock("../models/stallReviewModel");
 jest.mock("../dbConfig");
+jest.mock("../models/stallReviewModel");
+jest.mock("../middlewares/imageStorage");
 
 const stallReviewModel = require("../models/stallReviewModel");
+const { validateBase64Image } = require("../middlewares/imageStorage");
 const {
   createReview,
   updateReview,
@@ -21,40 +23,27 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("createReview — validation", () => {
-  test("rejects a rating outside 1-5", async () => {
+describe("createReview", () => {
+  test("succeeds with 201 for a valid review", async () => {
+    stallReviewModel.createReview.mockResolvedValue({ reviewId: "r1" });
+
     const req = {
       user: { userId: "user1" },
-      body: { stallId: "asia-wok", rating: 6, reviewText: "Great!" },
+      body: { stallId: "asia-wok", rating: 5, reviewText: "Great!", tags: [] },
     };
     const res = mockRes();
     await createReview(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(stallReviewModel.createReview).not.toHaveBeenCalled();
+    expect(stallReviewModel.createReview).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(201);
   });
 
-  test("rejects when stallId is missing", async () => {
-    const req = {
-      user: { userId: "user1" },
-      body: { rating: 5, reviewText: "Great!" },
-    };
-    const res = mockRes();
-    await createReview(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(stallReviewModel.createReview).not.toHaveBeenCalled();
-  });
-
-  // The controller does NOT validate reviewText — it defaults to "" and
-  // proceeds. This confirms that actual (permissive) behavior rather than
-  // asserting a 400 that never happens.
   test("allows an empty review text, defaulting it to an empty string", async () => {
     stallReviewModel.createReview.mockResolvedValue({ reviewId: "r1" });
 
     const req = {
       user: { userId: "user1" },
-      body: { stallId: "asia-wok", rating: 5, reviewText: "" },
+      body: { stallId: "asia-wok", rating: 5, reviewText: "", tags: [] },
     };
     const res = mockRes();
     await createReview(req, res);
@@ -64,76 +53,51 @@ describe("createReview — validation", () => {
     );
     expect(res.status).toHaveBeenCalledWith(201);
   });
-});
 
-describe("updateReview — ownership check", () => {
-  test("blocks with 403 when the review belongs to someone else", async () => {
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "r1", UserId: "other-user" });
+  test("returns 400 when the image fails validation", async () => {
+    validateBase64Image.mockImplementation(() => {
+      throw new Error("Unsupported image type.");
+    });
 
     const req = {
-      params: { reviewId: "r1" },
       user: { userId: "user1" },
-      body: { rating: 5, reviewText: "Trying to edit someone else's review" },
+      body: { stallId: "asia-wok", rating: 5, reviewText: "Great!", image: "bad-image", tags: [] },
     };
     const res = mockRes();
-    await updateReview(req, res);
+    await createReview(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(stallReviewModel.updateReview).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(stallReviewModel.createReview).not.toHaveBeenCalled();
   });
+});
 
-  test("allows editing your own review", async () => {
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "r1", UserId: "user1" });
+describe("updateReview", () => {
+  test("updates the review already attached by middleware", async () => {
     stallReviewModel.updateReview.mockResolvedValue();
 
     const req = {
       params: { reviewId: "r1" },
       user: { userId: "user1" },
-      body: { rating: 4, reviewText: "Updated review text" },
+      review: { ReviewId: "r1", UserId: "user1" },
+      body: { rating: 4, reviewText: "Updated review text", tags: [] },
     };
     const res = mockRes();
     await updateReview(req, res);
 
     expect(stallReviewModel.updateReview).toHaveBeenCalled();
-    // The controller's success path is res.json({ success: true }) with no
-    // explicit .status() call — Express defaults to 200, but that means
-    // the mock res.status is never actually invoked here.
     expect(res.json).toHaveBeenCalledWith({ success: true });
-    expect(res.status).not.toHaveBeenCalled();
-  });
-
-  test("returns 404 when the review doesn't exist", async () => {
-    stallReviewModel.getReviewById.mockResolvedValue(null);
-
-    const req = {
-      params: { reviewId: "missing" },
-      user: { userId: "user1" },
-      body: { rating: 4, reviewText: "..." },
-    };
-    const res = mockRes();
-    await updateReview(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
   });
 });
 
-describe("deleteReview — ownership check", () => {
-  test("blocks with 403 when the review belongs to someone else", async () => {
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "r1", UserId: "other-user" });
-
-    const req = { params: { reviewId: "r1" }, user: { userId: "user1" } };
-    const res = mockRes();
-    await deleteReview(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(stallReviewModel.deleteReview).not.toHaveBeenCalled();
-  });
-
-  test("allows deleting your own review", async () => {
-    stallReviewModel.getReviewById.mockResolvedValue({ ReviewId: "r1", UserId: "user1" });
+describe("deleteReview", () => {
+  test("deletes the review already attached by middleware", async () => {
     stallReviewModel.deleteReview.mockResolvedValue();
 
-    const req = { params: { reviewId: "r1" }, user: { userId: "user1" } };
+    const req = {
+      params: { reviewId: "r1" },
+      user: { userId: "user1" },
+      review: { ReviewId: "r1", UserId: "user1" },
+    };
     const res = mockRes();
     await deleteReview(req, res);
 

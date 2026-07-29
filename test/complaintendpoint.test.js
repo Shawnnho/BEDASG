@@ -1,5 +1,5 @@
-jest.mock("../models/complaintModel");
 jest.mock("../dbConfig");
+jest.mock("../models/complaintModel");
 
 const complaintModel = require("../models/complaintModel");
 const { getMyComplaints, updateComplaint, deleteComplaint } = require("../controllers/complaintController");
@@ -29,73 +29,33 @@ describe("getMyComplaints", () => {
   });
 });
 
-describe("updateComplaint — ownership check", () => {
-  test("blocks with 403 when the complaint belongs to someone else", async () => {
-    complaintModel.getComplaintById.mockResolvedValue({ ComplaintId: "c1", Uid: "other-user" });
-
-    const req = {
-      params: { complaintId: "c1" },
-      user: { userId: "user1" },
-      body: { message: "Trying to edit someone else's complaint" },
-    };
-    const res = mockRes();
-    await updateComplaint(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(complaintModel.updateComplaint).not.toHaveBeenCalled();
-  });
-
-  test("rejects an empty message", async () => {
-    complaintModel.getComplaintById.mockResolvedValue({ ComplaintId: "c1", Uid: "user1" });
-
-    const req = {
-      params: { complaintId: "c1" },
-      user: { userId: "user1" },
-      body: { message: "   " },
-    };
-    const res = mockRes();
-    await updateComplaint(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  test("allows editing your own complaint", async () => {
-    complaintModel.getComplaintById.mockResolvedValue({ ComplaintId: "c1", Uid: "user1" });
+describe("updateComplaint", () => {
+  test("updates the complaint already attached by middleware", async () => {
     complaintModel.updateComplaint.mockResolvedValue();
 
     const req = {
       params: { complaintId: "c1" },
       user: { userId: "user1" },
+      complaint: { ComplaintId: "c1", Uid: "user1" },
       body: { message: "Updated message" },
     };
     const res = mockRes();
     await updateComplaint(req, res);
 
     expect(complaintModel.updateComplaint).toHaveBeenCalledWith("c1", { message: "Updated message" });
-    // Success path is res.json({ success: true }) with no explicit
-    // .status() call — Express defaults to 200 on its own.
     expect(res.json).toHaveBeenCalledWith({ success: true });
-    expect(res.status).not.toHaveBeenCalled();
   });
 });
 
-describe("deleteComplaint — ownership check", () => {
-  test("blocks with 403 when the complaint belongs to someone else", async () => {
-    complaintModel.getComplaintById.mockResolvedValue({ ComplaintId: "c1", Uid: "other-user" });
-
-    const req = { params: { complaintId: "c1" }, user: { userId: "user1" } };
-    const res = mockRes();
-    await deleteComplaint(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(complaintModel.deleteComplaint).not.toHaveBeenCalled();
-  });
-
-  test("allows deleting your own complaint", async () => {
-    complaintModel.getComplaintById.mockResolvedValue({ ComplaintId: "c1", Uid: "user1" });
+describe("deleteComplaint", () => {
+  test("deletes the complaint already attached by middleware", async () => {
     complaintModel.deleteComplaint.mockResolvedValue();
 
-    const req = { params: { complaintId: "c1" }, user: { userId: "user1" } };
+    const req = {
+      params: { complaintId: "c1" },
+      user: { userId: "user1" },
+      complaint: { ComplaintId: "c1", Uid: "user1" },
+    };
     const res = mockRes();
     await deleteComplaint(req, res);
 

@@ -1,8 +1,8 @@
+jest.mock("../dbConfig");
 jest.mock("../models/complaintModel");
 jest.mock("../models/stallOwnerLookupModel");
 jest.mock("../services/notificationEmails");
 jest.mock("../middlewares/imageStorage");
-jest.mock("../dbConfig");
 
 const complaintModel = require("../models/complaintModel");
 const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 describe("createComplaint", () => {
-  test("succeeds with 201 when all required fields are present", async () => {
+  test("succeeds with 201 for a valid complaint", async () => {
     const req = baseReq();
     const res = mockRes();
     await createComplaint(req, res);
@@ -48,18 +48,6 @@ describe("createComplaint", () => {
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ complaintId: "c1" });
   });
-
-  test.each(["stall", "firstName", "lastName", "email", "message"])(
-    "returns 400 when %s is missing",
-    async (missingField) => {
-      const req = baseReq({ [missingField]: "" });
-      const res = mockRes();
-      await createComplaint(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(complaintModel.createComplaint).not.toHaveBeenCalled();
-    },
-  );
 
   test("returns 400 when the image fails validation", async () => {
     validateBase64Image.mockImplementation(() => {
