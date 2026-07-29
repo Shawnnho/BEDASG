@@ -64,7 +64,10 @@
 
           <form id="cardForm" class="cardForm">
             <label class="cardField">
-              <span>Card Number</span>
+              <div class="cardFieldTop">
+                <span>Card Number</span>
+                <button type="button" id="useNewCardBtn" class="useNewCardBtn" hidden>Use a new card</button>
+              </div>
               <div class="cardInputWrap">
                 <input
                   id="cardNo"
@@ -94,6 +97,11 @@
                 </div>
               </label>
             </div>
+
+            <label class="saveCardLabel">
+              <input id="saveCardChk" type="checkbox" />
+              <span>Save this card for next time (we only store the brand, last 4 digits, and expiry — never the full number or CVV)</span>
+            </label>
 
             <button id="payBtn" class="cardPayBtn" type="submit">
               Pay $0.00
