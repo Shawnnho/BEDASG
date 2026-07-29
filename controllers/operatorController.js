@@ -7,6 +7,8 @@ const stallRatingModel = require("../models/stallRatingModel");
 const stallComplaintHistoryModel = require("../models/stallComplaintHistoryModel");
 const feedbackReportModel = require("../models/feedbackreportModel");
 const stallReviewModel = require("../models/stallReviewModel");
+const userLookupModel = require("../models/userLookupModel");
+const { sendReportDismissedAlert, sendReviewDeletedAlert } = require("../services/notificationEmails");
 
 function getCurrentMonthKey() {
   const d = new Date();
@@ -195,6 +197,7 @@ async function createRental(req, res) {
       other,
     } = req.body;
     const stall = req.stall;
+
     const latestBill = await operatorBillModel.getLatestBillForStall(stall.StallId);
     if (latestBill) {
       const isPaid = latestBill.IsPaid === true || latestBill.IsPaid === 1;
@@ -263,11 +266,7 @@ async function createRental(req, res) {
 async function deleteRental(req, res) {
   try {
     const agreement = req.agreement;
-
-    // If the stall's most recent bill is still unpaid, clear it along with
-    // the agreement — otherwise that unpaid bill would keep blocking a new
-    // agreement forever, even though the operator explicitly ended this one.
-    // A PAID bill is left alone.
+    
     const latestBill = await operatorBillModel.getLatestBillForStall(agreement.StallId);
     const isUnpaid = latestBill && latestBill.IsPaid !== true && latestBill.IsPaid !== 1;
     if (isUnpaid) {
@@ -357,12 +356,20 @@ async function getReportedReviews(req, res) {
 }
 
 // POST /api/operator/reports/:reportId/dismiss
-// Report/review/stall existence and centre ownership already checked by
-// middleware (requireReportExists, requireReviewFromReqReport,
-// requireStallFromReqReview, requireCentreOwnershipFromReqStall).
+
 async function dismissReport(req, res) {
   try {
     await feedbackReportModel.dismissReport(req.report.ReportId);
+
+    userLookupModel
+      .getUserEmail(req.report.ReporterUserId)
+      .then((email) => {
+        if (email) {
+          sendReportDismissedAlert(email, { stallName: req.stall?.StallName });
+        }
+      })
+      .catch((err) => console.error("Report dismissed email failed:", err.message));
+
     res.status(204).send();
   } catch (err) {
     console.error("dismissReport error:", err.message);
@@ -371,14 +378,22 @@ async function dismissReport(req, res) {
 }
 
 // DELETE /api/operator/reports/:reportId/review
-// Same middleware chain as dismissReport.
+
 async function deleteReportedReview(req, res) {
   try {
-    // Clear every report tied to this review first, not just the one
-    // being actioned — otherwise deleting the review would leave orphaned
-    // FeedbackReports rows pointing at a ReviewId that no longer exists.
+
     await feedbackReportModel.deleteReportsByReviewId(req.review.ReviewId);
     await stallReviewModel.deleteReview(req.review.ReviewId);
+
+    userLookupModel
+      .getUserEmail(req.review.UserId)
+      .then((email) => {
+        if (email) {
+          sendReviewDeletedAlert(email, { stallName: req.stall?.StallName });
+        }
+      })
+      .catch((err) => console.error("Review deleted email failed:", err.message));
+
     res.status(204).send();
   } catch (err) {
     console.error("deleteReportedReview error:", err.message);
