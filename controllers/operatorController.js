@@ -17,7 +17,7 @@ function getCurrentMonthKey() {
 
 async function getMyCentres(req, res) {
   try {
-    const operatorId = req.user.userId; 
+    const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
 
     const centreIds = centres.map((c) => c.CentreId);
@@ -73,10 +73,6 @@ async function getOverview(req, res) {
 async function getStallsForCentre(req, res) {
   try {
     const { centreId } = req.params;
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const stalls = await stallModel.getStallsByCentre(centreId);
 
     const stallIds = stalls.map((s) => s.StallId);
@@ -102,10 +98,6 @@ async function getStallsForCentre(req, res) {
 async function getRentalsForCentre(req, res) {
   try {
     const { centreId } = req.params;
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(centreId);
     const monthKey = getCurrentMonthKey();
 
@@ -130,7 +122,7 @@ async function getRentalsForCentre(req, res) {
   }
 }
 
-// GET /api/operator/stalls 
+// GET /api/operator/stalls
 async function getAllStallsForOperator(req, res) {
   try {
     const operatorId = req.user.userId;
@@ -163,7 +155,7 @@ async function getAllStallsForOperator(req, res) {
   }
 }
 
-// GET /api/operator/rentals 
+// GET /api/operator/rentals
 async function getAllRentalsForOperator(req, res) {
   try {
     const operatorId = req.user.userId;
@@ -193,7 +185,6 @@ async function createRental(req, res) {
   try {
     const {
       centreId,
-      stallId,
       ownerName,
       monthlyRent,
       startDate,
@@ -203,25 +194,7 @@ async function createRental(req, res) {
       penalty,
       other,
     } = req.body;
-
-    if (!centreId || !stallId)
-      return res.status(400).json({ error: "centreId and stallId are required." });
-    if (!ownerName)
-      return res.status(400).json({ error: "Owner name is required." });
-    if (!startDate)
-      return res.status(400).json({ error: "Start date is required." });
-    if (!Number.isFinite(Number(monthlyRent)) || Number(monthlyRent) < 0)
-      return res.status(400).json({ error: "Monthly rent must be 0 or more." });
-
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    const stall = await stallModel.getStallById(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    if (stall.CentreId !== centreId)
-      return res.status(400).json({ error: "Stall does not belong to this centre." });
-
+    const stall = req.stall;
     const latestBill = await operatorBillModel.getLatestBillForStall(stall.StallId);
     if (latestBill) {
       const isPaid = latestBill.IsPaid === true || latestBill.IsPaid === 1;
@@ -286,29 +259,22 @@ async function createRental(req, res) {
 }
 
 // DELETE /api/operator/rentals/:agreementId
+
 async function deleteRental(req, res) {
   try {
-    const { agreementId } = req.params;
-    const operatorId = req.user.userId;
+    const agreement = req.agreement;
 
-    const agreement = await rentalAgreementModel.getRentalAgreementById(agreementId);
-    if (!agreement) {
-      return res.status(404).json({ error: "Rental agreement not found." });
-    }
-    const centre = await centreModel.getCentreForOperator(agreement.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
+    // If the stall's most recent bill is still unpaid, clear it along with
+    // the agreement — otherwise that unpaid bill would keep blocking a new
+    // agreement forever, even though the operator explicitly ended this one.
+    // A PAID bill is left alone.
     const latestBill = await operatorBillModel.getLatestBillForStall(agreement.StallId);
     const isUnpaid = latestBill && latestBill.IsPaid !== true && latestBill.IsPaid !== 1;
     if (isUnpaid) {
       await operatorBillModel.deleteBill(agreement.StallId, latestBill.BillMonth);
     }
 
-    const deleted = await rentalAgreementModel.deleteRentalAgreement(agreementId);
-    if (!deleted) {
-      return res.status(404).json({ error: "Rental agreement not found." });
-    }
-
+    await rentalAgreementModel.deleteRentalAgreement(agreement.AgreementId);
     res.status(204).send();
   } catch (err) {
     console.error("deleteRental error:", err.message);
@@ -322,17 +288,6 @@ async function saveBill(req, res) {
   try {
     const { stallId, billMonth } = req.params;
     const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
-
-    if (!centreId) return res.status(400).json({ error: "centreId is required." });
-
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    const stall = await stallModel.getStallCentreId(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    if (stall.CentreId !== centreId)
-      return res.status(400).json({ error: "Stall does not belong to this centre." });
 
     const currentBill = await operatorBillModel.getBill(stallId, billMonth);
     const isAlreadyPaid = currentBill?.IsPaid === true || currentBill?.IsPaid === 1;
@@ -374,16 +329,10 @@ async function saveBill(req, res) {
 }
 
 // GET /api/operator/stalls/:stallId/complaints
+
 async function getStallComplaints(req, res) {
   try {
     const { stallId } = req.params;
-    const operatorId = req.user.userId;
-
-    const stall = await stallModel.getStallCentreId(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const complaints = await stallComplaintHistoryModel.getComplaintsByStall(stallId);
     res.json(complaints);
   } catch (err) {
@@ -392,7 +341,7 @@ async function getStallComplaints(req, res) {
   }
 }
 
-// GET /api/operator/reports 
+// GET /api/operator/reports
 async function getReportedReviews(req, res) {
   try {
     const operatorId = req.user.userId;
@@ -407,23 +356,13 @@ async function getReportedReviews(req, res) {
   }
 }
 
-// POST /api/operator/reports/:reportId/dismiss 
+// POST /api/operator/reports/:reportId/dismiss
+// Report/review/stall existence and centre ownership already checked by
+// middleware (requireReportExists, requireReviewFromReqReport,
+// requireStallFromReqReview, requireCentreOwnershipFromReqStall).
 async function dismissReport(req, res) {
   try {
-    const { reportId } = req.params;
-    const operatorId = req.user.userId;
-
-    const report = await feedbackReportModel.getReportById(reportId);
-    if (!report) return res.status(404).json({ error: "Report not found." });
-
-    const review = await stallReviewModel.getReviewById(report.ReviewId);
-    if (!review) return res.status(404).json({ error: "Review not found." });
-    const stall = await stallModel.getStallById(review.StallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    await feedbackReportModel.dismissReport(reportId);
+    await feedbackReportModel.dismissReport(req.report.ReportId);
     res.status(204).send();
   } catch (err) {
     console.error("dismissReport error:", err.message);
@@ -431,25 +370,15 @@ async function dismissReport(req, res) {
   }
 }
 
-// DELETE /api/operator/reports/:reportId/review 
+// DELETE /api/operator/reports/:reportId/review
+// Same middleware chain as dismissReport.
 async function deleteReportedReview(req, res) {
   try {
-    const { reportId } = req.params;
-    const operatorId = req.user.userId;
-
-    const report = await feedbackReportModel.getReportById(reportId);
-    if (!report) return res.status(404).json({ error: "Report not found." });
-
-    const review = await stallReviewModel.getReviewById(report.ReviewId);
-    if (!review) return res.status(404).json({ error: "Review not found." });
-    const stall = await stallModel.getStallById(review.StallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    await feedbackReportModel.deleteReportsByReviewId(report.ReviewId);
-    await stallReviewModel.deleteReview(report.ReviewId);
-
+    // Clear every report tied to this review first, not just the one
+    // being actioned — otherwise deleting the review would leave orphaned
+    // FeedbackReports rows pointing at a ReviewId that no longer exists.
+    await feedbackReportModel.deleteReportsByReviewId(req.review.ReviewId);
+    await stallReviewModel.deleteReview(req.review.ReviewId);
     res.status(204).send();
   } catch (err) {
     console.error("deleteReportedReview error:", err.message);

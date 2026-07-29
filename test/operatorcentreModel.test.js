@@ -9,7 +9,6 @@ jest.mock("../models/feedbackreportModel");
 jest.mock("../models/stallReviewModel");
 jest.mock("../dbConfig");
 
-
 const centreModel = require("../models/centreModel");
 const stallModel = require("../models/stallModel");
 const orderModel = require("../models/operatorRevenueModel");
@@ -29,16 +28,6 @@ beforeEach(() => {
 });
 
 describe("getStallsForCentre", () => {
-  test("blocks with 403 for a centre that isn't this operator's", async () => {
-    centreModel.getCentreForOperator.mockResolvedValue(null);
-
-    const req = { params: { centreId: "not-mine" }, user: { userId: "op1" } };
-    const res = mockRes();
-    await getStallsForCentre(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-  });
-
   test("attaches revenue and rating to every stall", async () => {
     centreModel.getCentreForOperator.mockResolvedValue({ CentreId: "maxwell" });
     stallModel.getStallsByCentre.mockResolvedValue([{ StallId: "asia-wok", StallName: "Asia Wok" }]);
