@@ -35,8 +35,11 @@ async function getCustomer(req, res) {
   }
 }
 
-// PUT /api/cust/:id -> update name, email, and phone
-// Expects body: { Name: "...", Email: "...", Phone: "..." }
+// PUT /api/cust/:id -> update name, email, phone, and (optionally) avatar
+// application/json body: { Name, Email, Phone, AvatarUrl }
+// AvatarUrl (if present) is a base64 data URL from the client (e.g.
+// "data:image/png;base64,..."), same pattern as the complaints page's
+// fileToBase64() - no multer/multipart involved.
 async function updateProfile(req, res) {
   try {
     const userId = req.params.id;
@@ -44,7 +47,7 @@ async function updateProfile(req, res) {
       return res.status(400).json({ error: "Invalid user ID" });
     }
 
-    const { Name, Email, Phone } = req.body;
+    const { Name, Email, Phone, AvatarUrl } = req.body;
 
     if (!Name || !Email || !Phone) {
       return res
@@ -52,7 +55,14 @@ async function updateProfile(req, res) {
         .json({ error: "Name, Email, and Phone are all required" });
     }
 
-    const updated = await custModel.updateProfile(userId, { Name, Email, Phone });
+    // AvatarUrl is optional - if omitted/null, updateProfile() leaves the
+    // existing avatar untouched (via COALESCE in the SQL).
+    const updated = await custModel.updateProfile(userId, {
+      Name,
+      Email,
+      Phone,
+      AvatarUrl: AvatarUrl || null,
+    });
 
     if (!updated) {
       return res.status(404).json({ error: "Customer not found" });
@@ -63,6 +73,7 @@ async function updateProfile(req, res) {
       name: updated.Name,
       email: updated.Email,
       phone: updated.Phone,
+      pfp: updated.AvatarUrl || "",
     };
 
     res.json(customer);

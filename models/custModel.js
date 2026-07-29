@@ -10,9 +10,14 @@ async function getCustomer(userId) {
 }
 
 /**
- * Update a customer's name, email, and phone.
+ * Update a customer's name, email, phone, and (optionally) avatar.
  * @param {string} userId
- * @param {{ Name: string, Email: string, Phone: string }} data
+ * @param {{ Name: string, Email: string, Phone: string, AvatarUrl?: string|null }} data
+ *   AvatarUrl is optional - pass null/undefined to leave the existing avatar untouched
+ *   (e.g. the user updated their name but didn't upload a new photo). It's stored as a
+ *   base64 data URL (e.g. "data:image/png;base64,...") rather than a short file path,
+ *   hence NVARCHAR(MAX) instead of NVARCHAR(255) - a base64-encoded image is much
+ *   larger than a typical URL and would otherwise be truncated or rejected.
  * @returns {Promise<Object|null>} the updated row, or null if no user matched
  */
 async function updateProfile(userId, data) {
@@ -23,12 +28,14 @@ async function updateProfile(userId, data) {
     .input("Name", sql.NVarChar(255), data.Name)
     .input("Email", sql.NVarChar(255), data.Email)
     .input("Phone", sql.NVarChar(255), data.Phone)
+    .input("AvatarUrl", sql.NVarChar(sql.MAX), data.AvatarUrl || null)
     .query(`
       UPDATE Users
       SET Name = @Name,
           Email = @Email,
-          Phone = @Phone
-      OUTPUT INSERTED.UserId, INSERTED.Name, INSERTED.Email, INSERTED.Phone
+          Phone = @Phone,
+          AvatarUrl = COALESCE(@AvatarUrl, AvatarUrl)
+      OUTPUT INSERTED.UserId, INSERTED.Name, INSERTED.Email, INSERTED.Phone, INSERTED.AvatarUrl
       WHERE UserId = @UserId
     `);
 

@@ -78,10 +78,10 @@ const savedItemsEl = document.getElementById("savedItems");
 // CONFIRMED - matches the custController/custModel you gave me
 const CUST_GET_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`;
 
-// GUESS - follows the same /api/cust/:id convention. No update route
-// exists yet; adjust the method/path once you build it.
-const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT
-const CUST_AVATAR_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/avatar`; // POST multipart
+// CONFIRMED - avatar is sent as a base64 data URL in the same JSON body as
+// Name/Email/Phone (see CUST_UPDATE_URL below), matching the fileToBase64()
+// pattern used on the complaints page - no multer/multipart involved.
+const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT (application/json)
 const CUST_PREFS_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/preferences`; // PUT
 const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
 const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
@@ -124,6 +124,18 @@ function setStatus(msg, ok = true, duration = 3500) {
 
 function isPhone(v) {
   return /^[89]\d{7}$/.test(String(v || "").trim());
+}
+
+// Reads a File as a base64 data URL (e.g. "data:image/png;base64,...").
+// Same helper used on the complaints page - replaces multer's multipart
+// file upload with a plain JSON field.
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function roleLabel(r) {
@@ -831,41 +843,18 @@ async function markVoucherUsed(uid, voucherId) {
             err.textContent = "Invalid SG phone number.";
             return;
           }
-
-          let avatarUrlToSave = null;
-
-          // GUESS endpoint - needs real file upload handling (e.g. multer) on the backend
-          if (avatarFile) {
-            if (avatarFile.size > 5 * 1024 * 1024) {
-              err.textContent = "Image too large (max 5MB).";
-              return;
-            }
-
-            try {
-              const formData = new FormData();
-              formData.append("avatar", avatarFile);
-
-              const uploadRes = await AuthClient.apiFetch(
-                CUST_AVATAR_URL(currentUid),
-                { method: "POST", body: formData },
-              );
-
-              if (uploadRes.ok) {
-                const uploadData = await uploadRes.json();
-                avatarUrlToSave = uploadData.avatarUrl;
-                if (accAvatar) accAvatar.src = avatarUrlToSave;
-              } else {
-                console.warn(
-                  "Avatar upload endpoint not available yet - skipping avatar save.",
-                );
-              }
-            } catch (uploadErr) {
-              console.warn(
-                "Avatar upload failed (endpoint likely not built yet):",
-                uploadErr,
-              );
-            }
+          if (avatarFile && avatarFile.size > 5 * 1024 * 1024) {
+            err.textContent = "Image too large (max 5MB).";
+            return;
           }
+
+          // Single JSON request: Name/Email/Phone as plain fields, plus
+          // AvatarUrl as a base64 data URL if a new photo was chosen. If no
+          // new photo is selected, AvatarUrl is omitted (null) and the
+          // backend leaves the existing avatar untouched.
+          const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+
+          let updatedCustomer = null;
 
           try {
             const res = await AuthClient.apiFetch(
@@ -877,11 +866,13 @@ async function markVoucherUsed(uid, voucherId) {
                   Name: newName,
                   Email: newEmail,
                   Phone: newPhone,
+                  AvatarUrl: avatarBase64,
                 }),
               },
             );
 
             if (!res.ok) throw new Error(`status ${res.status}`);
+            updatedCustomer = await res.json();
           } catch (saveErr) {
             console.error(saveErr);
             err.textContent = "Failed to save profile. Please try again.";
@@ -891,6 +882,9 @@ async function markVoucherUsed(uid, voucherId) {
           accName.textContent = newName;
           accPhone.textContent = newPhone || "—";
           accEmail.textContent = newEmail || "—";
+          if (accAvatar && updatedCustomer?.pfp) {
+            accAvatar.src = updatedCustomer.pfp;
+          }
 
           setStatus("✅ Profile updated.");
           close();
