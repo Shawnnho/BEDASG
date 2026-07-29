@@ -7,7 +7,7 @@
  * - Saved item count via GET /api/favitems/get (built earlier)
  *
  * SCOPE NOTE: the old Firebase version also handled vouchers, order
- * history aggregation, preferences, avatar storage, password reset, and
+ * history aggregation, avatar storage, password reset, and
  * deactivate-with-reauth - all via Firestore/Firebase Auth/Storage.
  * None of those have a confirmed SQL endpoint yet. Rather than guess
  * wrong and silently "work", every URL below that isn't the customer
@@ -52,11 +52,6 @@ const viewVouchersBtn = document.getElementById("viewVouchersBtn");
 const notifCount = document.getElementById("notifCount");
 const mNotifCount = document.getElementById("mNotifCount");
 
-/* Preferences DOM (from account.html) */
-const prefCuisineEls = Array.from(document.querySelectorAll(".prefCuisine"));
-const prefNotifEls = Array.from(document.querySelectorAll(".prefNotif"));
-const savePrefBtn = document.getElementById("savePrefBtn");
-
 const voucherModal = document.getElementById("voucherModal");
 const voucherModalList = document.getElementById("voucherModalList");
 const voucherModalSub = document.getElementById("voucherModalSub");
@@ -82,7 +77,6 @@ const CUST_GET_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`;
 // Name/Email/Phone (see CUST_UPDATE_URL below), matching the fileToBase64()
 // pattern used on the complaints page - no multer/multipart involved.
 const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT (application/json)
-const CUST_PREFS_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/preferences`; // PUT
 const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
 const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
 // CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
@@ -143,22 +137,6 @@ function roleLabel(r) {
   if (r === "storeholder") return "Store Holder";
   if (r === "stall_owner") return "Store Holder";
   return r.charAt(0).toUpperCase() + r.slice(1);
-}
-
-/* =========================
-   Preferences helpers (unchanged - not backend-specific)
-========================= */
-function toArraySafe(v) {
-  if (Array.isArray(v)) return v;
-  if (v == null) return [];
-  if (typeof v === "string") return [v];
-
-  // Handle old object/map format: { chinese: true, western: false }
-  if (typeof v === "object") {
-    return Object.keys(v).filter((k) => v[k] === true);
-  }
-
-  return [];
 }
 
 function setCheckedByValues(checkboxEls, values) {
