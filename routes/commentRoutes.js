@@ -3,10 +3,11 @@ const router = express.Router();
 
 const feedbackCommentController = require("../controllers/feedbackcommentController");
 const { verifyToken } = require("../middlewares/auth");
+const { validateCreateComment } = require("../middlewares/feedbackValidation");
 
-// Public 
+// Public
 router.get("/:reviewId", feedbackCommentController.getComments);
 
-router.post("/", verifyToken, feedbackCommentController.createComment);
+router.post("/", verifyToken, validateCreateComment, feedbackCommentController.createComment);
 
 module.exports = router;
