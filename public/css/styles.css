@@ -6973,98 +6973,15 @@ body.storePage #stallGrade.gradeD {
   border-color: #ff922b;
 }
 
-.savedCardsList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
-}
 
-.savedCardRow {
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
 
-.savedCardInfo {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-weight: 700;
-}
 
-.savedCardActions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
 
-.savedCardPayBtn,
-.savedCardConfirmBtn {
-  background: #ff8a1d;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-weight: 700;
-}
 
-.savedCardRemoveBtn {
-  background: #ffe0e0;
-  color: #cc2b2b;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-}
 
-.savedCardCvvPanel {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
 
-.savedCardCvvInput {
-  width: 80px;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-
-.savedCardsDivider {
-  text-align: center;
-  color: #999;
-  font-size: 13px;
-  margin: 16px 0;
-}
-
-.saveCardLabel {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  font-size: 13px;
-  color: #666;
-  margin: 12px 0;
-}
-
-.cardFieldTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.useNewCardBtn {
-  background: none;
-  border: none;
-  color: #ea580c;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  display: inline-block;
-}
-
-.useNewCardBtn:hover {
-  text-decoration: underline;
+/* =========================================
+   CHANGE PASSWORD MODAL
+   Matches the existing hpModal visual language
+   (cream page bg, #c9ccd1 header bar, #e8944c primary accent)
 }

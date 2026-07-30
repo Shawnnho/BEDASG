@@ -1,4 +1,4 @@
-  <!doctype html>
+<!doctype html>
   <html lang="en">
     <head>
       <meta charset="utf-8" />
@@ -103,68 +103,18 @@
           </div>
         </section>
 
-        <!-- Preference -->
+        <!-- Promotions Summary -->
         <section class="accCard">
-          <div class="accCardTitle">Preference</div>
-
-          <div class="prefBlock">
-            <div class="prefLabel">Favourite Cuisine</div>
-            <div class="chips">
-              <label class="chip">
-                <input type="checkbox" class="prefCuisine" value="Chinese" />
-                <span>Chinese</span>
-              </label>
-              <label class="chip">
-                <input type="checkbox" class="prefCuisine" value="Malay" />
-                <span>Malay</span>
-              </label>
-              <label class="chip">
-                <input type="checkbox" class="prefCuisine" value="Indian" />
-                <span>Indian</span>
-              </label>
-              <label class="chip">
-                <input type="checkbox" class="prefCuisine" value="Western" />
-                <span>Western</span>
-              </label>
-            </div>
-          </div>
-
-          <hr class="accDivider" />
-
-          <div class="prefBlock">
-            <div class="prefLabel">Notifications</div>
-            <div class="chips">
-              <label class="chip">
-                <input type="checkbox" class="prefNotif" value="orderUpdates" />
-                <span>Order Updates</span>
-              </label>
-              <label class="chip">
-                <input type="checkbox" class="prefNotif" value="promotions" />
-                <span>Promotions</span>
-              </label>
-              <label class="chip">
-                <input type="checkbox" class="prefNotif" value="newStallAlerts" />
-                <span>New Stall Alerts</span>
-              </label>
-            </div>
-          </div>
-
-          <button id="savePrefBtn" class="btn small primary">
-            Save Preference
-          </button>
-        </section>
-        <!-- Vouchers Summary -->
-        <section class="accCard">
-          <div class="accCardTitle">Vouchers</div>
+          <div class="accCardTitle">Promotions</div>
 
           <div class="summaryGrid" style="align-items: center">
             <div>
-              <b>Redeemed Vouchers:</b>
-              <span id="redeemedVoucherCount">0</span>
+              <b>Redeemed Promotions:</b>
+              <span id="redeemedPromoCount">0</span>
             </div>
 
-            <button id="viewVouchersBtn" class="btn small primary">
-              View My Vouchers
+            <button id="viewPromoBtn" class="btn small primary">
+              View My Promotions
             </button>
           </div>
         </section>
@@ -206,31 +156,130 @@
         </section>
         <p id="accStatus" class="status" aria-live="polite"></p>
       </main>
+      
+      <!-- Change Password Modal -->
+      <div id="pwModalOverlay" class="pwModalOverlay" hidden aria-hidden="true">
+        <div class="pwModalCard" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle">
+          <div class="pwModalHead">
+            <div id="pwModalTitle" class="pwModalTitle">Change Password</div>
+            <button id="pwModalClose" class="pwModalClose" type="button" aria-label="Close">✕</button>
+          </div>
 
-      <!-- Vouchers Popup -->
-      <div id="voucherModal" class="hpVoucherModal" aria-hidden="true">
+          <div class="pwModalBody">
+            <form id="pwChangeForm" novalidate>
+              <div class="pwField">
+                <label class="pwLabel" for="pwCurrent">Current Password</label>
+                <div class="pwInputWrap">
+                  <input
+                    id="pwCurrent"
+                    class="pwInput"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="pwToggleBtn"
+                    data-target="pwCurrent"
+                    aria-label="Show current password"
+                  >
+                    <img src="images/show.png" alt="" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="pwField">
+                <label class="pwLabel" for="pwNew">New Password</label>
+                <div class="pwInputWrap">
+                  <input
+                    id="pwNew"
+                    class="pwInput"
+                    type="password"
+                    autocomplete="new-password"
+                    minlength="8"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="pwToggleBtn"
+                    data-target="pwNew"
+                    aria-label="Show new password"
+                  >
+                    <img src="images/show.png" alt="" />
+                  </button>
+                </div>
+                <div id="pwNewHint" class="pwHint">At least 8 characters.</div>
+              </div>
+
+              <div class="pwField">
+                <label class="pwLabel" for="pwConfirm">Confirm New Password</label>
+                <div class="pwInputWrap">
+                  <input
+                    id="pwConfirm"
+                    class="pwInput"
+                    type="password"
+                    autocomplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="pwToggleBtn"
+                    data-target="pwConfirm"
+                    aria-label="Show confirm password"
+                  >
+                    <img src="images/show.png" alt="" />
+                  </button>
+                </div>
+                <div id="pwConfirmHint" class="pwHint"></div>
+              </div>
+
+              <p id="pwModalErr" class="pwModalErr" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="pwModalFoot">
+            <button id="pwCancelBtn" class="pwModalBtn ghost" type="button">
+              Cancel
+            </button>
+            <button
+              id="pwSaveBtn"
+              class="pwModalBtn primary"
+              type="submit"
+              form="pwChangeForm"
+            >
+              Update Password
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Promotions Popup
+           NOTE: class names (hpVoucherModal, hpVoucherBackdrop, hpVoucherCard,
+           hpVoucherHeader) are unchanged - they're shared with styles.css,
+           which wasn't part of this rename. Only IDs and visible text below
+           were renamed to "promo"/"Promotions". -->
+      <div id="promoModal" class="hpVoucherModal" aria-hidden="true">
         <div class="hpVoucherBackdrop" data-close></div>
 
         <div
           class="hpVoucherCard"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="voucherModalTitle"
+          aria-labelledby="promoModalTitle"
         >
           <div class="hpVoucherHeader">
-            <h3 id="voucherModalTitle" style="margin: 0">My Vouchers</h3>
-            <button id="closeVoucherModal" class="btn small" type="button">
+            <h3 id="promoModalTitle" style="margin: 0">My Promotions</h3>
+            <button id="closePromoModal" class="btn small" type="button">
               Close
             </button>
           </div>
 
           <p
-            id="voucherModalSub"
+            id="promoModalSub"
             style="margin: 10px 0 0; font-weight: 800; opacity: 0.75"
           >
             Loading…
           </p>
-          <div id="voucherModalList" style="margin-top: 12px"></div>
+          <div id="promoModalList" style="margin-top: 12px"></div>
         </div>
       </div>
 

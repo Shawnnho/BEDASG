@@ -6,8 +6,8 @@
  * - Edit Profile (name + phone + email)
  * - Saved item count via GET /api/favitems/get (built earlier)
  *
- * SCOPE NOTE: the old Firebase version also handled vouchers, order
- * history aggregation, preferences, avatar storage, password reset, and
+ * SCOPE NOTE: the old Firebase version also handled promotions, order
+ * history aggregation, avatar storage, password reset, and
  * deactivate-with-reauth - all via Firestore/Firebase Auth/Storage.
  * None of those have a confirmed SQL endpoint yet. Rather than guess
  * wrong and silently "work", every URL below that isn't the customer
@@ -31,22 +31,32 @@ const logoutBtn = document.getElementById("logoutBtn");
 const deactivateBtn = document.getElementById("deactivateBtn");
 const accStatus = document.getElementById("accStatus");
 
-const redeemedVoucherCount = document.getElementById("redeemedVoucherCount");
-const viewVouchersBtn = document.getElementById("viewVouchersBtn");
+// Change Password modal DOM
+const pwModalOverlay = document.getElementById("pwModalOverlay");
+const pwModalClose = document.getElementById("pwModalClose");
+const pwChangeForm = document.getElementById("pwChangeForm");
+const pwCurrent = document.getElementById("pwCurrent");
+const pwNew = document.getElementById("pwNew");
+const pwConfirm = document.getElementById("pwConfirm");
+const pwNewHint = document.getElementById("pwNewHint");
+const pwConfirmHint = document.getElementById("pwConfirmHint");
+const pwModalErr = document.getElementById("pwModalErr");
+const pwCancelBtn = document.getElementById("pwCancelBtn");
+const pwSaveBtn = document.getElementById("pwSaveBtn");
+const pwToggleBtns = Array.from(document.querySelectorAll(".pwToggleBtn"));
+
+const redeemedPromoCount = document.getElementById("redeemedPromoCount");
+const viewPromoBtn = document.getElementById("viewPromoBtn");
 
 // optional badges
 const notifCount = document.getElementById("notifCount");
 const mNotifCount = document.getElementById("mNotifCount");
 
-/* Preferences DOM (from account.html) */
-const prefCuisineEls = Array.from(document.querySelectorAll(".prefCuisine"));
-const prefNotifEls = Array.from(document.querySelectorAll(".prefNotif"));
-const savePrefBtn = document.getElementById("savePrefBtn");
 
-const voucherModal = document.getElementById("voucherModal");
-const voucherModalList = document.getElementById("voucherModalList");
-const voucherModalSub = document.getElementById("voucherModalSub");
-const closeVoucherModal = document.getElementById("closeVoucherModal");
+const promoModal = document.getElementById("promoModal");
+const promoModalList = document.getElementById("promoModalList");
+const promoModalSub = document.getElementById("promoModalSub");
+const closePromoModal = document.getElementById("closePromoModal");
 
 // Order History Summary DOM
 const sumTotal = document.getElementById("sumTotal");
@@ -64,15 +74,17 @@ const savedItemsEl = document.getElementById("savedItems");
 // CONFIRMED - matches the custController/custModel you gave me
 const CUST_GET_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`;
 
-// GUESS - follows the same /api/cust/:id convention. No update route
-// exists yet; adjust the method/path once you build it.
-const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT
-const CUST_AVATAR_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/avatar`; // POST multipart
-const CUST_PREFS_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/preferences`; // PUT
+// CONFIRMED - avatar is sent as a base64 data URL in the same JSON body as
+// Name/Email/Phone (see CUST_UPDATE_URL below), matching the fileToBase64()
+// pattern used on the complaints page - no multer/multipart involved.
+const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT (application/json)
 const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
-const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST
+const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
+// CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
+const CUST_CHANGE_PASSWORD_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
 const ORDERS_SUMMARY_URL = (uid) => `/api/orders/summary/${encodeURIComponent(uid)}`; // GET
-const VOUCHERS_LIST_URL = (uid) => `/api/vouchers/${encodeURIComponent(uid)}`; // GET
+const PROMOS_LIST_URL = (uid) => `/api/promotions/${encodeURIComponent(uid)}`; // GET
+const PROMOS_COUNT_URL = (uid) => `/api/promotions/count/${encodeURIComponent(uid)}` //GET
 
 // CONFIRMED - built earlier in this project
 const FAV_ITEMS_GET_URL = "/api/favitems/get";
@@ -110,6 +122,18 @@ function isPhone(v) {
   return /^[89]\d{7}$/.test(String(v || "").trim());
 }
 
+// Reads a File as a base64 data URL (e.g. "data:image/png;base64,...").
+// Same helper used on the complaints page - replaces multer's multipart
+// file upload with a plain JSON field.
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function roleLabel(r) {
   if (!r) return "Customer";
   if (r === "storeholder") return "Store Holder";
@@ -118,58 +142,167 @@ function roleLabel(r) {
 }
 
 /* =========================
-   Preferences helpers (unchanged - not backend-specific)
+   Change Password modal
 ========================= */
-function toArraySafe(v) {
-  if (Array.isArray(v)) return v;
-  if (v == null) return [];
-  if (typeof v === "string") return [v];
+function openPwModal() {
+  if (!pwModalOverlay) return;
+  pwModalOverlay.hidden = false;
+  pwModalOverlay.setAttribute("aria-hidden", "false");
+  pwCurrent?.focus();
+}
 
-  // Handle old object/map format: { chinese: true, western: false }
-  if (typeof v === "object") {
-    return Object.keys(v).filter((k) => v[k] === true);
+function closePwModal() {
+  if (!pwModalOverlay) return;
+  pwModalOverlay.hidden = true;
+  pwModalOverlay.setAttribute("aria-hidden", "true");
+  pwChangeForm?.reset();
+  if (pwModalErr) pwModalErr.textContent = "";
+  if (pwNewHint) {
+    pwNewHint.textContent = "At least 8 characters.";
+    pwNewHint.classList.remove("isBad", "isGood");
+  }
+  if (pwConfirmHint) {
+    pwConfirmHint.textContent = "";
+    pwConfirmHint.classList.remove("isBad", "isGood");
+  }
+  // Reset any show/hide toggles back to password type
+  [pwCurrent, pwNew, pwConfirm].forEach((el) => {
+    if (el) el.type = "password";
+  });
+}
+
+/** Show/hide toggle buttons - swaps input type (icon swap is a nice-to-have,
+ * left as a single icon for now since only one icon path was confirmed). */
+pwToggleBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetId = btn.dataset.target;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+
+    input.type = input.type === "password" ? "text" : "password";
+    btn.setAttribute(
+      "aria-label",
+      input.type === "password" ? `Show ${targetId}` : `Hide ${targetId}`,
+    );
+  });
+});
+
+/** Live hint: new password length */
+pwNew?.addEventListener("input", () => {
+  if (!pwNewHint) return;
+  const val = pwNew.value;
+
+  if (!val) {
+    pwNewHint.textContent = "At least 8 characters.";
+    pwNewHint.classList.remove("isBad", "isGood");
+  } else if (val.length < 8) {
+    pwNewHint.textContent = "Too short - needs at least 8 characters.";
+    pwNewHint.classList.add("isBad");
+    pwNewHint.classList.remove("isGood");
+  } else {
+    pwNewHint.textContent = "Looks good.";
+    pwNewHint.classList.add("isGood");
+    pwNewHint.classList.remove("isBad");
   }
 
-  return [];
-}
+  // Re-check confirm match whenever the new password changes
+  if (pwConfirm?.value) pwConfirm.dispatchEvent(new Event("input"));
+});
 
-function setCheckedByValues(checkboxEls, values) {
-  const arr = toArraySafe(values);
-  const set = new Set(arr);
-  checkboxEls.forEach((el) => (el.checked = set.has(el.value)));
-}
+/** Live hint: confirm password match */
+pwConfirm?.addEventListener("input", () => {
+  if (!pwConfirmHint) return;
+  const val = pwConfirm.value;
 
-function getCheckedValues(checkboxEls) {
-  return checkboxEls.filter((el) => el.checked).map((el) => el.value);
-}
+  if (!val) {
+    pwConfirmHint.textContent = "";
+    pwConfirmHint.classList.remove("isBad", "isGood");
+  } else if (val !== pwNew?.value) {
+    pwConfirmHint.textContent = "Passwords don't match.";
+    pwConfirmHint.classList.add("isBad");
+    pwConfirmHint.classList.remove("isGood");
+  } else {
+    pwConfirmHint.textContent = "Passwords match.";
+    pwConfirmHint.classList.add("isGood");
+    pwConfirmHint.classList.remove("isBad");
+  }
+});
 
-function formatDateTime(ms) {
-  if (!ms) return "—";
+pwModalClose?.addEventListener("click", closePwModal);
+pwCancelBtn?.addEventListener("click", closePwModal);
+pwModalOverlay?.addEventListener("click", (e) => {
+  if (e.target === pwModalOverlay) closePwModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && pwModalOverlay && !pwModalOverlay.hidden) {
+    closePwModal();
+  }
+});
+
+pwChangeForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (pwModalErr) pwModalErr.textContent = "";
+
+  const currentPassword = pwCurrent?.value || "";
+  const newPassword = pwNew?.value || "";
+  const confirmPassword = pwConfirm?.value || "";
+
+  if (!currentPassword) {
+    if (pwModalErr) pwModalErr.textContent = "Current password is required.";
+    return;
+  }
+  if (newPassword.length < 8) {
+    if (pwModalErr) {
+      pwModalErr.textContent = "New password must be at least 8 characters.";
+    }
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    if (pwModalErr) pwModalErr.textContent = "New passwords don't match.";
+    return;
+  }
+  if (newPassword === currentPassword) {
+    if (pwModalErr) {
+      pwModalErr.textContent =
+        "New password must be different from the current password.";
+    }
+    return;
+  }
+
+  pwSaveBtn?.classList.add("isLoading");
+  if (pwSaveBtn) pwSaveBtn.disabled = true;
+
   try {
-    const d = new Date(ms);
-    return d.toLocaleString("en-SG", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
+    const res = await AuthClient.apiFetch(
+      CUST_CHANGE_PASSWORD_URL(currentUid),
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      },
+    );
 
-function applyBadge(count) {
-  const n = Number(count || 0);
-  if (notifCount) {
-    notifCount.hidden = n <= 0;
-    notifCount.textContent = n;
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        if (pwModalErr) pwModalErr.textContent = "Current password is incorrect.";
+        return;
+      }
+      throw new Error(`status ${res.status}`);
+    }
+
+    closePwModal();
+    setStatus("✅ Password updated.");
+  } catch (err) {
+    console.error("Failed to change password:", err);
+    if (pwModalErr) {
+      pwModalErr.textContent =
+        "Failed to update password (backend endpoint may not exist yet).";
+    }
+  } finally {
+    pwSaveBtn?.classList.remove("isLoading");
+    if (pwSaveBtn) pwSaveBtn.disabled = false;
   }
-  if (mNotifCount) {
-    mNotifCount.hidden = n <= 0;
-    mNotifCount.textContent = n;
-  }
-}
+});
 
 /* =========================
    Modal UI (unchanged - generic, not backend-specific)
@@ -310,42 +443,40 @@ async function loadOrderHistorySummary(uid) {
 }
 
 /* =========================
-   Vouchers
-   GUESS endpoints - build a Vouchers table/API and this will pick it up.
+   Promotions
+   GUESS endpoints - build a Promotions table/API and this will pick it up.
    Left as a graceful "not available yet" state rather than fake data.
 ========================= */
 async function updateRedeemedCount(uid) {
-  if (!redeemedVoucherCount) return;
+  if (!redeemedPromoCount) return;
 
   try {
-    const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(uid));
+    const res = await AuthClient.apiFetch(PROMOS_COUNT_URL(uid));
     if (!res.ok) {
-      redeemedVoucherCount.textContent = "0";
+      redeemedPromoCount.textContent = "0";
       return;
     }
-    const vouchers = await res.json();
-    redeemedVoucherCount.textContent = String(
-      vouchers.filter((v) => v.used).length,
-    );
+    const promosCount = await res.json();
+    redeemedPromoCount.textContent = promosCount.count;
   } catch (err) {
-    console.error("Failed to load redeemed voucher count:", err);
-    redeemedVoucherCount.textContent = "0";
+    console.error("Failed to load redeemed promo count:", err);
+    redeemedPromoCount.textContent = "0";
   }
 }
 
-function openVoucherModal() {
-  if (!voucherModal) return;
-  voucherModal.classList.add("isOpen");
-  voucherModal.setAttribute("aria-hidden", "false");
+function openPromoModal() {
+  if (!promoModal) return;
+  promoModal.classList.add("isOpen");
+  promoModal.setAttribute("aria-hidden", "false");
 }
 
-function closeVoucherModalFn() {
-  if (!voucherModal) return;
-  voucherModal.classList.remove("isOpen");
-  voucherModal.setAttribute("aria-hidden", "true");
+function closePromoModalFn() {
+  if (!promoModal) return;
+  promoModal.classList.remove("isOpen");
+  promoModal.setAttribute("aria-hidden", "true");
 }
 
-function isExpiredVoucher(v) {
+function isExpiredPromo(v) {
   if (!v.expiresAt) return false;
   return Date.now() > new Date(v.expiresAt).getTime();
 }
@@ -360,26 +491,26 @@ function expiryText(v) {
   return `Expires in ${days} days`;
 }
 
-function renderVoucherModal(vouchers) {
-  if (!voucherModalList) return;
+function renderPromoModal(promos) {
+  if (!promoModalList) return;
 
-  if (!vouchers.length) {
-    voucherModalList.innerHTML = `
+  if (!promos.length) {
+    promoModalList.innerHTML = `
       <div class="emptyState">
-        <h2 class="emptyTitle">No vouchers claimed</h2>
-        <p style="margin:8px 0 0; font-weight:800; opacity:.75;">Go to Promotions to claim vouchers.</p>
+        <h2 class="emptyTitle">No promotions claimed</h2>
+        <p style="margin:8px 0 0; font-weight:800; opacity:.75;">Check the Promotions page to claim more.</p>
       </div>
     `;
     return;
   }
 
-  voucherModalList.innerHTML = vouchers
+  promoModalList.innerHTML = promos
     .map((v) => {
-      const disabled = v.used === true || isExpiredVoucher(v);
+      const disabled = v.used === true || isExpiredPromo(v);
       const status =
         v.used === true
           ? "✅ Used"
-          : isExpiredVoucher(v)
+          : isExpiredPromo(v)
             ? "❌ Expired"
             : "✅ Active";
 
@@ -393,7 +524,7 @@ function renderVoucherModal(vouchers) {
         <div class="hpVoucherRight">
           <button
             class="btn small primary"
-            data-apply-voucher="${v.id}"
+            data-apply-promo="${v.id}"
             data-code="${v.code}"
             ${disabled ? "disabled" : ""}>
             ${disabled ? (v.used ? "Used" : "Expired") : "Apply"}
@@ -405,10 +536,10 @@ function renderVoucherModal(vouchers) {
     .join("");
 }
 
-async function markVoucherUsed(uid, voucherId) {
+async function markPromoUsed(uid, promoId) {
   // GUESS endpoint
   await AuthClient.apiFetch(
-    `${VOUCHERS_LIST_URL(uid)}/${encodeURIComponent(voucherId)}/use`,
+    `${PROMOS_LIST_URL(uid)}/${encodeURIComponent(promoId)}/use`,
     { method: "POST" },
   );
 }
@@ -464,40 +595,40 @@ async function markVoucherUsed(uid, voucherId) {
       window.location.href = "orders.html";
     });
 
-    // Order history + favourites + vouchers
+    // Order history + favourites + promotions
     await loadOrderHistorySummary(currentUid);
     await loadFavouriteCounts(currentUid);
     await updateRedeemedCount(currentUid);
 
-    viewVouchersBtn?.addEventListener("click", async () => {
-      openVoucherModal();
-      if (voucherModalSub) voucherModalSub.textContent = "Loading…";
-      if (voucherModalList) voucherModalList.innerHTML = "";
+    viewPromoBtn?.addEventListener("click", async () => {
+      openPromoModal();
+      if (promoModalSub) promoModalSub.textContent = "Loading…";
+      if (promoModalList) promoModalList.innerHTML = "";
 
       try {
-        const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(currentUid));
+        const res = await AuthClient.apiFetch(PROMOS_LIST_URL(currentUid));
         if (!res.ok) throw new Error(`status ${res.status}`);
-        const vouchers = await res.json();
+        const promos = await res.json();
 
-        const active = vouchers.filter(
-          (v) => !v.used && !isExpiredVoucher(v),
+        const active = promos.filter(
+          (v) => !v.used && !isExpiredPromo(v),
         ).length;
-        const used = vouchers.filter((v) => v.used).length;
+        const used = promos.filter((v) => v.used).length;
 
-        if (voucherModalSub) {
-          voucherModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${vouchers.length}`;
+        if (promoModalSub) {
+          promoModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${promos.length}`;
         }
 
-        renderVoucherModal(vouchers);
+        renderPromoModal(promos);
       } catch (err) {
-        console.error("Failed to load vouchers:", err);
-        if (voucherModalSub) {
-          voucherModalSub.textContent = "❌ Vouchers aren't available yet.";
+        console.error("Failed to load promotions:", err);
+        if (promoModalSub) {
+          promoModalSub.textContent = "❌ Promotions aren't available yet.";
         }
-        if (voucherModalList) {
-          voucherModalList.innerHTML = `
+        if (promoModalList) {
+          promoModalList.innerHTML = `
             <div class="emptyState">
-              <h2 class="emptyTitle">Unable to load vouchers</h2>
+              <h2 class="emptyTitle">Unable to load promotions</h2>
               <p style="margin:8px 0 0; font-weight:800; opacity:.75;">This feature needs its backend endpoint built.</p>
             </div>
           `;
@@ -505,63 +636,28 @@ async function markVoucherUsed(uid, voucherId) {
       }
     });
 
-    closeVoucherModal?.addEventListener("click", closeVoucherModalFn);
-    voucherModal?.addEventListener("click", (e) => {
+    closePromoModal?.addEventListener("click", closePromoModalFn);
+    promoModal?.addEventListener("click", (e) => {
       if (e.target.matches("[data-close]")) {
-        closeVoucherModalFn();
+        closePromoModalFn();
       }
     });
 
-    voucherModalList?.addEventListener("click", async (e) => {
-      const btn = e.target.closest("[data-apply-voucher]");
+    promoModalList?.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-apply-promo]");
       if (!btn || btn.disabled) return;
 
-      const voucherId = btn.dataset.applyVoucher;
+      const promoId = btn.dataset.applyPromo;
       const code = btn.dataset.code;
 
       // Save for checkout
       localStorage.setItem("hawkerpoint_applied_promo", code);
-      localStorage.setItem("hawkerpoint_applied_voucher_id", voucherId);
+      localStorage.setItem("hawkerpoint_applied_promo_id", promoId);
 
-      await markVoucherUsed(currentUid, voucherId);
+      await markPromoUsed(currentUid, promoId);
       window.location.href = "cart.html";
     });
 
-    applyBadge(0);
-
-    /* =========================
-       LOAD PREFERENCES into checkboxes
-       (from the profile response, if your /api/cust/:id ever includes them)
-    ========================= */
-    const prefs = data?.preferences || {};
-    setCheckedByValues(prefCuisineEls, prefs.cuisines);
-    setCheckedByValues(prefNotifEls, prefs.notifications);
-
-    /* =========================
-       SAVE PREFERENCES button
-    ========================= */
-    savePrefBtn?.addEventListener("click", async () => {
-      try {
-        const cuisines = getCheckedValues(prefCuisineEls);
-        const notifications = getCheckedValues(prefNotifEls);
-
-        const res = await AuthClient.apiFetch(CUST_PREFS_URL(currentUid), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cuisines, notifications }),
-        });
-
-        if (!res.ok) throw new Error(`status ${res.status}`);
-
-        setStatus("✅ Preferences saved.");
-      } catch (err) {
-        console.error(err);
-        setStatus(
-          "❌ Failed to save preferences (backend endpoint may not exist yet).",
-          false,
-        );
-      }
-    });
 
     // Edit profile
     editProfileBtn?.addEventListener("click", () => {
@@ -652,41 +748,18 @@ async function markVoucherUsed(uid, voucherId) {
             err.textContent = "Invalid SG phone number.";
             return;
           }
-
-          let avatarUrlToSave = null;
-
-          // GUESS endpoint - needs real file upload handling (e.g. multer) on the backend
-          if (avatarFile) {
-            if (avatarFile.size > 5 * 1024 * 1024) {
-              err.textContent = "Image too large (max 5MB).";
-              return;
-            }
-
-            try {
-              const formData = new FormData();
-              formData.append("avatar", avatarFile);
-
-              const uploadRes = await AuthClient.apiFetch(
-                CUST_AVATAR_URL(currentUid),
-                { method: "POST", body: formData },
-              );
-
-              if (uploadRes.ok) {
-                const uploadData = await uploadRes.json();
-                avatarUrlToSave = uploadData.avatarUrl;
-                if (accAvatar) accAvatar.src = avatarUrlToSave;
-              } else {
-                console.warn(
-                  "Avatar upload endpoint not available yet - skipping avatar save.",
-                );
-              }
-            } catch (uploadErr) {
-              console.warn(
-                "Avatar upload failed (endpoint likely not built yet):",
-                uploadErr,
-              );
-            }
+          if (avatarFile && avatarFile.size > 5 * 1024 * 1024) {
+            err.textContent = "Image too large (max 5MB).";
+            return;
           }
+
+          // Single JSON request: Name/Email/Phone as plain fields, plus
+          // AvatarUrl as a base64 data URL if a new photo was chosen. If no
+          // new photo is selected, AvatarUrl is omitted (null) and the
+          // backend leaves the existing avatar untouched.
+          const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+
+          let updatedCustomer = null;
 
           try {
             const res = await AuthClient.apiFetch(
@@ -698,11 +771,13 @@ async function markVoucherUsed(uid, voucherId) {
                   Name: newName,
                   Email: newEmail,
                   Phone: newPhone,
+                  AvatarUrl: avatarBase64,
                 }),
               },
             );
 
             if (!res.ok) throw new Error(`status ${res.status}`);
+            updatedCustomer = await res.json();
           } catch (saveErr) {
             console.error(saveErr);
             err.textContent = "Failed to save profile. Please try again.";
@@ -712,6 +787,9 @@ async function markVoucherUsed(uid, voucherId) {
           accName.textContent = newName;
           accPhone.textContent = newPhone || "—";
           accEmail.textContent = newEmail || "—";
+          if (accAvatar && updatedCustomer?.pfp) {
+            accAvatar.src = updatedCustomer.pfp;
+          }
 
           setStatus("✅ Profile updated.");
           close();
@@ -733,38 +811,9 @@ async function markVoucherUsed(uid, voucherId) {
       }
     });
 
-    // Change password
-    // GUESS endpoint - build a real "forgot password" flow on the backend
-    changePwBtn?.addEventListener("click", async () => {
-      setStatus("Sending reset email...", true);
-      accStatus?.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      try {
-        const email = (accEmail?.textContent || "").trim();
-        if (!email || email === "—") {
-          setStatus("❌ No email found on this account.", false);
-          return;
-        }
-
-        const res = await AuthClient.apiFetch(AUTH_FORGOT_PASSWORD_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-
-        if (!res.ok) throw new Error(`status ${res.status}`);
-
-        setStatus(
-          "✅ Password reset email sent. Check your inbox / spam.",
-          true,
-        );
-      } catch (err) {
-        console.error(err);
-        setStatus(
-          "❌ Failed to send reset email (backend endpoint may not exist yet).",
-          false,
-        );
-      }
+    // Change password - opens the modal (current/new/confirm)
+    changePwBtn?.addEventListener("click", () => {
+      openPwModal();
     });
 
     // Logout

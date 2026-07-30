@@ -1,49 +1,137 @@
-// booksController.test.js
-
-const favStallController = require("../controllers/favStallController");
 const favStallModel = require("../models/favStallModel");
+const {
+  getFavStalls,
+  addFavStall,
+  deleteFavStall,
+} = require("../controllers/favStallController");
 
-// Mock the Book model
-jest.mock("../models/favStallModel"); // Replace with the actual path to your Book model
+jest.mock("../models/favStallModel");
 
-describe("favStallController.getFavStalls", () => {
-  beforeEach(() => {
-    jest.clearAllMocks(); // Clear mock calls before each test
+// Helper to build a mock Express response object
+function mockResponse() {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+}
+
+// Silence console.error noise from the controller's catch blocks
+beforeEach(() => {
+  jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+describe("favStallController", () => {
+  describe("getFavStalls", () => {
+    it("returns 200 with a list of favourite stall IDs", async () => {
+      const req = { user: { userId: 1 } };
+      const res = mockResponse();
+      favStallModel.getFavStalls.mockResolvedValue([
+        { StallId: 10 },
+        { StallId: 20 },
+      ]);
+
+      await getFavStalls(req, res);
+
+      expect(favStallModel.getFavStalls).toHaveBeenCalledWith(1);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ favourites: [10, 20] });
+    });
+
+    it("returns 200 with an empty array when the user has no favourites", async () => {
+      const req = { user: { userId: 1 } };
+      const res = mockResponse();
+      favStallModel.getFavStalls.mockResolvedValue([]);
+
+      await getFavStalls(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ favourites: [] });
+    });
+
+    it("returns 500 when the model throws", async () => {
+      const req = { user: { userId: 1 } };
+      const res = mockResponse();
+      favStallModel.getFavStalls.mockRejectedValue(new Error("DB error"));
+
+      await getFavStalls(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Internal server error",
+      });
+    });
   });
 
-  it("should fetch the all favourite stalls", async () => {
-    const mockFavStalls = [
-      { userId: 1, stallId: 1 },
-      { userId: 2, stallId : 2 },
-    ];
+  describe("addFavStall", () => {
+    it("returns 201 with success result on successful insert", async () => {
+      const req = { user: { userId: 1 }, body: { stallId: 10 } };
+      const res = mockResponse();
+      favStallModel.addFavStall.mockResolvedValue(true);
 
-    // Mock the Book.getAllBooks function to return the mock data
-    Book.getAllBooks.mockResolvedValue(mockFavStalls);
+      await addFavStall(req, res);
 
-    const req = {};
-    const res = {
-      json: jest.fn(), // Mock the res.json function
-    };
+      expect(favStallModel.addFavStall).toHaveBeenCalledWith(1, 10);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({ success: true });
+    });
 
-    await favStallController.getFavStalls(req, res);
+    it("returns 409 when the stall is already a favourite (unique violation)", async () => {
+      const req = { user: { userId: 1 }, body: { stallId: 10 } };
+      const res = mockResponse();
+      const uniqueError = new Error("Violation of UNIQUE KEY constraint");
+      uniqueError.number = 2627;
+      favStallModel.addFavStall.mockRejectedValue(uniqueError);
 
-    expect(favStallModel.getFavStalls).toHaveBeenCalledTimes(1); // Check if getAllBooks was called
-    expect(res.json).toHaveBeenCalledWith(mockFavStalls); // Check the response body
+      await addFavStall(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "This stall is already a favourite",
+      });
+    });
+
+    it("returns 500 on a non-unique-violation error", async () => {
+      const req = { user: { userId: 1 }, body: { stallId: 10 } };
+      const res = mockResponse();
+      favStallModel.addFavStall.mockRejectedValue(new Error("DB error"));
+
+      await addFavStall(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Internal server error",
+      });
+    });
   });
 
-  it("should handle errors and return a 500 status with error message", async () => {
-    const errorMessage = "Database error";
-    favStallModel.getFavStalls.mockRejectedValue(new Error(errorMessage)); // Simulate an error
+  describe("deleteFavStall", () => {
+    it("returns 200 with success result on successful delete", async () => {
+      const req = { user: { userId: 1 }, body: { stallId: 10 } };
+      const res = mockResponse();
+      favStallModel.deleteFavStall.mockResolvedValue(true);
 
-    const req = {};
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      send: jest.fn(),
-    };
+      await deleteFavStall(req, res);
 
-    await favStallController.getFavStalls(req, res);
+      expect(favStallModel.deleteFavStall).toHaveBeenCalledWith(1, 10);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ success: true });
+    });
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.send).toHaveBeenCalledWith("Error retrieving favourite stalls");
+    it("returns 500 when the model throws", async () => {
+      const req = { user: { userId: 1 }, body: { stallId: 10 } };
+      const res = mockResponse();
+      favStallModel.deleteFavStall.mockRejectedValue(new Error("DB error"));
+
+      await deleteFavStall(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Internal server error",
+      });
+    });
   });
 });
