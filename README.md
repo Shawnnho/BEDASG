@@ -345,7 +345,7 @@ BEDASG/
    JWT_SECRET=your_jwt_secret
    PORT=3000
    EMAIL_USER=hawkerpointsg@gmail.com
-   EMAIL_PASS=anoj stwd gauf xrbs
+   EMAIL_PASS=your_email_app_password
    ```
 
 4. **Set up the database**
