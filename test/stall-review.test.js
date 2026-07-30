@@ -1,16 +1,23 @@
-// tests/review.test.js
-// Controller tests for stallReviewController.js (Review page + customer review flow).
-// Mocks stallReviewModel and the imageStorage middleware.
+// tests/stall-review.test.js
+// Tests for stallReviewController.js.
+// NOTE: validation (create), and existence/ownership (update, delete) are
+// handled by route MIDDLEWARE (validateCreateReview, requireReviewExists,
+// requireReviewOwnership), NOT by the controller. These unit tests call the
+// controller directly, so they only assert the branches the controller itself
+// owns: the happy paths, the base64-image 400, the no-stall 404, the
+// newCount:0 fallback, and the 500 error handlers.
 
 const reviewController = require("../controllers/stallReviewController");
 const reviewModel = require("../models/stallReviewModel");
 
 jest.mock("../models/stallReviewModel");
 jest.mock("../middlewares/imageStorage", () => ({
-  validateBase64Image: (img) => img,
+  validateBase64Image: (img) => {
+    if (img === "BAD") throw new Error("Invalid image");
+    return img;
+  },
 }));
-
-jest.mock("../dbConfig", () => ({ poolPromise: Promise.resolve({}), sql: {} }));
+jest.mock("../dbConfig", () => ({ poolPromise: Promise.resolve({}), sql: {} })); // ADD THIS
 
 function mockRes() {
   const res = {};
@@ -28,7 +35,7 @@ describe("stallReviewController.createReview", () => {
     reviewModel.createReview.mockResolvedValue({ reviewId: "r1" });
     const req = {
       user: { userId: "u1", name: "Damien" },
-      body: { stallId: "s1", rating: 5, reviewText: "Great!" },
+      body: { stallId: "s1", rating: 5, reviewText: "Great!", tags: ["Fast"] },
     };
     const res = mockRes();
     await reviewController.createReview(req, res);
@@ -36,30 +43,31 @@ describe("stallReviewController.createReview", () => {
     expect(res.json).toHaveBeenCalledWith({ reviewId: "r1" });
   });
 
-  it("returns 400 when stallId missing", async () => {
+  it("returns 400 when the attached image is invalid", async () => {
     const req = {
       user: { userId: "u1", name: "Damien" },
-      body: { rating: 5 },
+      body: { stallId: "s1", rating: 5, image: "BAD" },
     };
     const res = mockRes();
     await reviewController.createReview(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("returns 400 when rating is out of range", async () => {
+  it("returns 500 when the model throws", async () => {
+    reviewModel.createReview.mockRejectedValue(new Error("DB"));
     const req = {
       user: { userId: "u1", name: "Damien" },
-      body: { stallId: "s1", rating: 9 },
+      body: { stallId: "s1", rating: 5 },
     };
     const res = mockRes();
     await reviewController.createReview(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });
 
 /* ===================== getMyStallReviews ===================== */
 describe("stallReviewController.getMyStallReviews", () => {
-  it("returns stall reviews + item data (200)", async () => {
+  it("returns the stall's reviews and summary (200)", async () => {
     reviewModel.getStallByOwnerUid.mockResolvedValue({
       StallId: "s1",
       StallName: "Kopi-Fellas",
@@ -69,10 +77,6 @@ describe("stallReviewController.getMyStallReviews", () => {
       reviewCount: 1,
       averageRating: 5,
     });
-    reviewModel.getItemReviewsByStall.mockResolvedValue([{ ReviewId: "ir1" }]);
-    reviewModel.getItemRatingSummaryByStall.mockResolvedValue([
-      { ItemId: "m1", ItemName: "Milky Way" },
-    ]);
 
     const req = { user: { userId: "u1" } };
     const res = mockRes();
@@ -81,8 +85,7 @@ describe("stallReviewController.getMyStallReviews", () => {
     const payload = res.json.mock.calls[0][0];
     expect(payload.stallName).toBe("Kopi-Fellas");
     expect(payload.reviews).toHaveLength(1);
-    expect(payload.itemReviews).toHaveLength(1);
-    expect(payload.itemSummary).toHaveLength(1);
+    expect(payload.summary.reviewCount).toBe(1);
   });
 
   it("returns 404 when the owner has no stall", async () => {
@@ -91,6 +94,14 @@ describe("stallReviewController.getMyStallReviews", () => {
     const res = mockRes();
     await reviewController.getMyStallReviews(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 500 when the model throws", async () => {
+    reviewModel.getStallByOwnerUid.mockRejectedValue(new Error("DB"));
+    const req = { user: { userId: "u1" } };
+    const res = mockRes();
+    await reviewController.getMyStallReviews(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });
 
@@ -124,69 +135,71 @@ describe("stallReviewController.getStallRating", () => {
     const req = { params: { stallId: "s1" } };
     const res = mockRes();
     await reviewController.getStallRating(req, res);
-    expect(res.json).toHaveBeenCalledWith({
-      reviewCount: 9,
-      averageRating: 5,
-    });
+    expect(res.json).toHaveBeenCalledWith({ reviewCount: 9, averageRating: 5 });
+  });
+});
+
+/* ===================== getReview ===================== */
+describe("stallReviewController.getReview", () => {
+  it("returns a review (200) when found", async () => {
+    reviewModel.getReviewById.mockResolvedValue({ ReviewId: "r1" });
+    const req = { params: { reviewId: "r1" } };
+    const res = mockRes();
+    await reviewController.getReview(req, res);
+    expect(res.json).toHaveBeenCalledWith({ ReviewId: "r1" });
+  });
+
+  it("returns 404 when the review doesn't exist", async () => {
+    reviewModel.getReviewById.mockResolvedValue(null);
+    const req = { params: { reviewId: "rX" } };
+    const res = mockRes();
+    await reviewController.getReview(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
   });
 });
 
 /* ===================== updateReview ===================== */
+// Ownership/existence are enforced by middleware; the controller just updates.
 describe("stallReviewController.updateReview", () => {
-  it("updates own review (200)", async () => {
-    reviewModel.getReviewById.mockResolvedValue({ UserId: "u1" });
+  it("updates a review (200)", async () => {
     reviewModel.updateReview.mockResolvedValue();
     const req = {
-      user: { userId: "u1" },
       params: { reviewId: "r1" },
-      body: { rating: 4, reviewText: "Updated" },
+      body: { rating: 4, reviewText: " Updated ", tags: ["A", "B"] },
     };
     const res = mockRes();
     await reviewController.updateReview(req, res);
     expect(res.json).toHaveBeenCalledWith({ success: true });
   });
 
-  it("returns 404 when the review doesn't exist", async () => {
-    reviewModel.getReviewById.mockResolvedValue(null);
+  it("returns 500 when the model throws", async () => {
+    reviewModel.updateReview.mockRejectedValue(new Error("DB"));
     const req = {
-      user: { userId: "u1" },
-      params: { reviewId: "rX" },
-      body: { rating: 4, reviewText: "x" },
-    };
-    const res = mockRes();
-    await reviewController.updateReview(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it("returns 403 when editing someone else's review", async () => {
-    reviewModel.getReviewById.mockResolvedValue({ UserId: "someoneElse" });
-    const req = {
-      user: { userId: "u1" },
       params: { reviewId: "r1" },
-      body: { rating: 4, reviewText: "x" },
+      body: { rating: 4, reviewText: "x", tags: [] },
     };
     const res = mockRes();
     await reviewController.updateReview(req, res);
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });
 
 /* ===================== deleteReview ===================== */
+// Ownership/existence are enforced by middleware; the controller just deletes.
 describe("stallReviewController.deleteReview", () => {
-  it("deletes own review (204)", async () => {
-    reviewModel.getReviewById.mockResolvedValue({ UserId: "u1" });
-    reviewModel.deleteReview.mockResolvedValue(true);
-    const req = { user: { userId: "u1" }, params: { reviewId: "r1" } };
+  it("deletes a review (204)", async () => {
+    reviewModel.deleteReview.mockResolvedValue();
+    const req = { params: { reviewId: "r1" } };
     const res = mockRes();
     await reviewController.deleteReview(req, res);
     expect(res.status).toHaveBeenCalledWith(204);
   });
 
-  it("returns 403 when deleting someone else's review", async () => {
-    reviewModel.getReviewById.mockResolvedValue({ UserId: "someoneElse" });
-    const req = { user: { userId: "u1" }, params: { reviewId: "r1" } };
+  it("returns 500 when the model throws", async () => {
+    reviewModel.deleteReview.mockRejectedValue(new Error("DB"));
+    const req = { params: { reviewId: "r1" } };
     const res = mockRes();
     await reviewController.deleteReview(req, res);
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });
