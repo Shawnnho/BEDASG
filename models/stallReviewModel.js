@@ -17,14 +17,16 @@ async function createReview({
   const tagsJson = JSON.stringify(tags || []);
   const isItemReview = itemId ? true : false;
 
-  const userRes = await pool.request()
+  const userRes = await pool
+    .request()
     .input("searchUid", sql.NVarChar, userId)
     .query("SELECT * FROM dbo.Users WHERE UserId = @searchUid");
 
   let finalUserName = userName;
   if (userRes.recordset.length > 0) {
     const row = userRes.recordset[0];
-    finalUserName = row.Name || row.UserName || row.FullName || row.FirstName || userName;
+    finalUserName =
+      row.Name || row.UserName || row.FullName || row.FirstName || userName;
   }
 
   if (isAnonymous) {
@@ -40,8 +42,8 @@ async function createReview({
     .input("userName", sql.NVarChar, finalUserName)
     .input("rating", sql.Int, isItemReview ? null : rating)
     .input("itemStar", sql.Int, isItemReview ? rating : null)
-    .input("reviewText", sql.NVarChar, isItemReview ? null : (reviewText || null))
-    .input("itemReview", sql.NVarChar, isItemReview ? (reviewText || null) : null)
+    .input("reviewText", sql.NVarChar, isItemReview ? null : reviewText || null)
+    .input("itemReview", sql.NVarChar, isItemReview ? reviewText || null : null)
     .input("isAnonymous", sql.Bit, isAnonymous ? 1 : 0)
     .input("imageUrl", sql.NVarChar(sql.MAX), imageUrl || null)
     .input("tagsJson", sql.NVarChar, tagsJson).query(`
@@ -119,13 +121,17 @@ async function deleteReview(reviewId) {
 
 async function getStallRatingSummary(stallId) {
   const pool = await poolPromise;
+  // Only STALL reviews count toward the stall's rating. Item ratings
+  // (ItemId IS NOT NULL) live in the same table but must be excluded, or
+  // COUNT(*) inflates the review count and the average is skewed.
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
         COUNT(*) AS ReviewCount,
         ISNULL(AVG(CAST(Rating AS FLOAT)), 0) AS AverageRating
       FROM dbo.StallReviews
-      WHERE StallId = @stallId;
+      WHERE StallId = @stallId
+        AND ItemId IS NULL;
     `);
   const row = result.recordset[0];
   return { reviewCount: row.ReviewCount, averageRating: row.AverageRating };
@@ -194,6 +200,8 @@ async function getStallByOwnerUid(ownerUid) {
   return result.recordset[0] || null;
 }
 
+// STALL-LEVEL reviews only (ItemId IS NULL). These are the cards your review
+// page has always shown: UserName, Rating, ReviewText, TagsJson.
 async function getReviewsByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
@@ -205,7 +213,49 @@ async function getReviewsByStall(stallId) {
       FROM dbo.StallReviews r
       LEFT JOIN dbo.Stalls s ON r.StallId = s.StallId
       WHERE r.StallId = @stallId
+        AND r.ItemId IS NULL
       ORDER BY r.CreatedAt DESC;
+    `);
+  return result.recordset;
+}
+
+// Individual per-review item ratings (ItemId IS NOT NULL). One row per rating,
+// reading ItemStar / ItemReview. Joined to StallMenus so each row carries the
+// readable item name (ItemId equals StallMenus.MenuId).
+async function getItemReviewsByStall(stallId) {
+  const pool = await poolPromise;
+  const result = await pool.request().input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT
+        r.ReviewId, r.StallId, r.UserId, r.UserName, r.ItemId,
+        r.ItemStar, r.ItemReview, r.IsAnonymous, r.CreatedAt,
+        m.Name AS ItemName
+      FROM dbo.StallReviews r
+      LEFT JOIN dbo.StallMenus m ON m.MenuId = r.ItemId
+      WHERE r.StallId = @stallId
+        AND r.ItemId IS NOT NULL
+      ORDER BY r.CreatedAt DESC;
+    `);
+  return result.recordset;
+}
+
+// Per-item aggregate: average stars + count, grouped by ItemId, with the
+// item name joined in from StallMenus. Powers the "breakdown by item" cards.
+async function getItemRatingSummaryByStall(stallId) {
+  const pool = await poolPromise;
+  const result = await pool.request().input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT
+        r.ItemId,
+        MAX(m.Name) AS ItemName,
+        COUNT(*) AS RatingCount,
+        ISNULL(AVG(CAST(r.ItemStar AS FLOAT)), 0) AS AverageStar
+      FROM dbo.StallReviews r
+      LEFT JOIN dbo.StallMenus m ON m.MenuId = r.ItemId
+      WHERE r.StallId = @stallId
+        AND r.ItemId IS NOT NULL
+      GROUP BY r.ItemId
+      ORDER BY COUNT(*) DESC;
     `);
   return result.recordset;
 }
@@ -221,10 +271,14 @@ async function getReviewCountSince(stallId, sinceIso) {
     timeCondition = "AND CreatedAt > @since";
   }
 
+  // Only new STALL reviews should trigger the "new review" badge/popup.
+  // A new item rating is a different event and shouldn't inflate this count.
   const result = await request.query(`
     SELECT COUNT(*) AS NewCount
     FROM dbo.StallReviews
-    WHERE StallId = @stallId ${timeCondition};
+    WHERE StallId = @stallId
+      AND ItemId IS NULL
+      ${timeCondition};
   `);
 
   return result.recordset[0]?.NewCount || 0;
@@ -241,5 +295,7 @@ module.exports = {
   deleteReview,
   getStallByOwnerUid,
   getReviewsByStall,
+  getItemReviewsByStall,
+  getItemRatingSummaryByStall,
   getReviewCountSince,
 };

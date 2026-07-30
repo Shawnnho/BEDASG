@@ -260,7 +260,6 @@ body.stallHolder .hpModalFile:hover::file-selector-button {
 
 /* =========================================
    STALL HOLDER ACCOUNT LAYOUT (sidebar UI)
-   Paste at bottom of styles.css
 ========================================= */
 
 body.stallHolder {
@@ -892,7 +891,6 @@ position: sticky;
 }
 /* =========================
    Stall Dashboard: mobile fixes
-   (paste at bottom of styles.css)
 ========================= */
 
 @media (max-width: 760px) {
@@ -1329,7 +1327,6 @@ button:active {
 
 /* =========================
    Analytics Page (Stall Holder)
-   paste at bottom of stall-holder.css
 ========================= */
 
 body.stallHolder .anKpis {
@@ -3842,7 +3839,6 @@ body.stallHolder .orderActionBtn.markRefund {
 
 /* =========================================================
    HAWKER POINT — Account page modern refresh
-   >>> PASTE THIS AT THE VERY BOTTOM OF stall-holder.css <<<
    Then delete stall-account-modern.css and remove its <link>.
    Everything is scoped to body.stallHolder .shAcctModern so it
    only touches the account page and keeps existing IDs intact.
@@ -4790,4 +4786,125 @@ body.stallHolder.shAcctModern .acctDetailGrid .acctLabel {
   height: 34px;
   margin-top: 8px;
   padding: 0 14px;
+}
+/* ===== Item Ratings section  ===== */
+
+body.stallHolder .rvItemSection {
+  margin-top: 32px;
+}
+
+body.stallHolder .rvItemHeading {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 0 0 16px;
+  color: #2a2a2a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.stallHolder .rvItemHeading::before {
+  content: "";
+  width: 4px;
+  height: 20px;
+  border-radius: 4px;
+  background: #E08A2B;
+}
+
+/* ---- summary cards row (avg per item) ---- */
+body.stallHolder .rvItemSummaryRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+body.stallHolder .rvItemCard {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+body.stallHolder .rvItemCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+body.stallHolder .rvItemName {
+  font-weight: 900;
+  font-size: 15px;
+  color: #2a2a2a;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+body.stallHolder .rvItemStars {
+  color: #E08A2B;
+  font-size: 17px;
+  letter-spacing: 2px;
+}
+
+body.stallHolder .rvItemMeta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* ---- individual item review cards ---- */
+body.stallHolder .rvItemReviewCard {
+  margin-bottom: 16px;
+  padding: 20px 22px;
+}
+
+body.stallHolder .rvItemEyebrow {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0F6E56;
+  margin-bottom: 6px;
+}
+
+body.stallHolder .rvItemHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+body.stallHolder .rvItemHeadName {
+  font-size: 19px;
+  font-weight: 900;
+  color: #1f1f1f;
+  line-height: 1.15;
+}
+
+body.stallHolder .rvItemHeadStars {
+  color: #E08A2B;
+  font-size: 17px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+body.stallHolder .rvItemHeadScore {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.45);
+  letter-spacing: 0;
+}
+
+body.stallHolder .rvItemByline {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+body.stallHolder .rvItemReviewCard .rvComment {
+  margin-top: 12px;
 }

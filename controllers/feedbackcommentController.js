@@ -3,21 +3,17 @@ const feedbackCommentModel = require("../models/feedbackcommentModel");
 // POST /api/comments
 
 async function createComment(req, res) {
+  // #swagger.tags = ['Comments']
   try {
-    const userId = req.user.userId; 
+    const userId = req.user.userId;
     const userName = req.user.name || req.user.email || "User";
     const { reviewId, commentText } = req.body;
-
-    if (!reviewId) return res.status(400).json({ error: "reviewId is required." });
-    if (!commentText || !commentText.trim()) {
-      return res.status(400).json({ error: "Comment cannot be empty." });
-    }
 
     const { commentId } = await feedbackCommentModel.createComment({
       reviewId,
       userId,
       userName,
-      commentText: commentText.trim(),
+      commentText,
     });
 
     res.status(201).json({ commentId });
@@ -29,6 +25,7 @@ async function createComment(req, res) {
 
 // GET /api/comments/:reviewId
 async function getComments(req, res) {
+  // #swagger.tags = ['Comments']
   try {
     const { reviewId } = req.params;
     const comments = await feedbackCommentModel.getCommentsByReview(reviewId);

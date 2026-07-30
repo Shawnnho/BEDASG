@@ -7,6 +7,8 @@ const stallRatingModel = require("../models/stallRatingModel");
 const stallComplaintHistoryModel = require("../models/stallComplaintHistoryModel");
 const feedbackReportModel = require("../models/feedbackreportModel");
 const stallReviewModel = require("../models/stallReviewModel");
+const userLookupModel = require("../models/userLookupModel");
+const { sendReportDismissedAlert, sendReviewDeletedAlert } = require("../services/notificationEmails");
 
 function getCurrentMonthKey() {
   const d = new Date();
@@ -16,8 +18,9 @@ function getCurrentMonthKey() {
 // GET /api/operator/centres
 
 async function getMyCentres(req, res) {
+  // #swagger.tags = ['Operator']
   try {
-    const operatorId = req.user.userId; 
+    const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
 
     const centreIds = centres.map((c) => c.CentreId);
@@ -37,6 +40,7 @@ async function getMyCentres(req, res) {
 
 // GET /api/operator/overview
 async function getOverview(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -71,12 +75,9 @@ async function getOverview(req, res) {
 // GET /api/operator/centres/:centreId/stalls
 
 async function getStallsForCentre(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { centreId } = req.params;
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const stalls = await stallModel.getStallsByCentre(centreId);
 
     const stallIds = stalls.map((s) => s.StallId);
@@ -100,12 +101,9 @@ async function getStallsForCentre(req, res) {
 // GET /api/operator/centres/:centreId/rentals
 
 async function getRentalsForCentre(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { centreId } = req.params;
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(centreId);
     const monthKey = getCurrentMonthKey();
 
@@ -130,8 +128,9 @@ async function getRentalsForCentre(req, res) {
   }
 }
 
-// GET /api/operator/stalls 
+// GET /api/operator/stalls
 async function getAllStallsForOperator(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -163,8 +162,9 @@ async function getAllStallsForOperator(req, res) {
   }
 }
 
-// GET /api/operator/rentals 
+// GET /api/operator/rentals
 async function getAllRentalsForOperator(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -190,10 +190,10 @@ async function getAllRentalsForOperator(req, res) {
 // POST /api/operator/rentals
 
 async function createRental(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const {
       centreId,
-      stallId,
       ownerName,
       monthlyRent,
       startDate,
@@ -203,24 +203,7 @@ async function createRental(req, res) {
       penalty,
       other,
     } = req.body;
-
-    if (!centreId || !stallId)
-      return res.status(400).json({ error: "centreId and stallId are required." });
-    if (!ownerName)
-      return res.status(400).json({ error: "Owner name is required." });
-    if (!startDate)
-      return res.status(400).json({ error: "Start date is required." });
-    if (!Number.isFinite(Number(monthlyRent)) || Number(monthlyRent) < 0)
-      return res.status(400).json({ error: "Monthly rent must be 0 or more." });
-
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    const stall = await stallModel.getStallById(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    if (stall.CentreId !== centreId)
-      return res.status(400).json({ error: "Stall does not belong to this centre." });
+    const stall = req.stall;
 
     const latestBill = await operatorBillModel.getLatestBillForStall(stall.StallId);
     if (latestBill) {
@@ -286,17 +269,11 @@ async function createRental(req, res) {
 }
 
 // DELETE /api/operator/rentals/:agreementId
-async function deleteRental(req, res) {
-  try {
-    const { agreementId } = req.params;
-    const operatorId = req.user.userId;
 
-    const agreement = await rentalAgreementModel.getRentalAgreementById(agreementId);
-    if (!agreement) {
-      return res.status(404).json({ error: "Rental agreement not found." });
-    }
-    const centre = await centreModel.getCentreForOperator(agreement.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
+async function deleteRental(req, res) {
+  // #swagger.tags = ['Operator']
+  try {
+    const agreement = req.agreement;
 
     const latestBill = await operatorBillModel.getLatestBillForStall(agreement.StallId);
     const isUnpaid = latestBill && latestBill.IsPaid !== true && latestBill.IsPaid !== 1;
@@ -304,11 +281,7 @@ async function deleteRental(req, res) {
       await operatorBillModel.deleteBill(agreement.StallId, latestBill.BillMonth);
     }
 
-    const deleted = await rentalAgreementModel.deleteRentalAgreement(agreementId);
-    if (!deleted) {
-      return res.status(404).json({ error: "Rental agreement not found." });
-    }
-
+    await rentalAgreementModel.deleteRentalAgreement(agreement.AgreementId);
     res.status(204).send();
   } catch (err) {
     console.error("deleteRental error:", err.message);
@@ -319,20 +292,10 @@ async function deleteRental(req, res) {
 // PUT /api/operator/bills/:stallId/:billMonth
 
 async function saveBill(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { stallId, billMonth } = req.params;
     const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
-
-    if (!centreId) return res.status(400).json({ error: "centreId is required." });
-
-    const operatorId = req.user.userId;
-    const centre = await centreModel.getCentreForOperator(centreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    const stall = await stallModel.getStallCentreId(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    if (stall.CentreId !== centreId)
-      return res.status(400).json({ error: "Stall does not belong to this centre." });
 
     const currentBill = await operatorBillModel.getBill(stallId, billMonth);
     const isAlreadyPaid = currentBill?.IsPaid === true || currentBill?.IsPaid === 1;
@@ -374,16 +337,11 @@ async function saveBill(req, res) {
 }
 
 // GET /api/operator/stalls/:stallId/complaints
+
 async function getStallComplaints(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { stallId } = req.params;
-    const operatorId = req.user.userId;
-
-    const stall = await stallModel.getStallCentreId(stallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
     const complaints = await stallComplaintHistoryModel.getComplaintsByStall(stallId);
     res.json(complaints);
   } catch (err) {
@@ -392,8 +350,9 @@ async function getStallComplaints(req, res) {
   }
 }
 
-// GET /api/operator/reports 
+// GET /api/operator/reports
 async function getReportedReviews(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -407,23 +366,22 @@ async function getReportedReviews(req, res) {
   }
 }
 
-// POST /api/operator/reports/:reportId/dismiss 
+// POST /api/operator/reports/:reportId/dismiss
+
 async function dismissReport(req, res) {
+  // #swagger.tags = ['Operator']
   try {
-    const { reportId } = req.params;
-    const operatorId = req.user.userId;
+    await feedbackReportModel.dismissReport(req.report.ReportId);
 
-    const report = await feedbackReportModel.getReportById(reportId);
-    if (!report) return res.status(404).json({ error: "Report not found." });
+    userLookupModel
+      .getUserEmail(req.report.ReporterUserId)
+      .then((email) => {
+        if (email) {
+          sendReportDismissedAlert(email, { stallName: req.stall?.StallName });
+        }
+      })
+      .catch((err) => console.error("Report dismissed email failed:", err.message));
 
-    const review = await stallReviewModel.getReviewById(report.ReviewId);
-    if (!review) return res.status(404).json({ error: "Review not found." });
-    const stall = await stallModel.getStallById(review.StallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    await feedbackReportModel.dismissReport(reportId);
     res.status(204).send();
   } catch (err) {
     console.error("dismissReport error:", err.message);
@@ -431,24 +389,23 @@ async function dismissReport(req, res) {
   }
 }
 
-// DELETE /api/operator/reports/:reportId/review 
+// DELETE /api/operator/reports/:reportId/review
+
 async function deleteReportedReview(req, res) {
+  // #swagger.tags = ['Operator']
   try {
-    const { reportId } = req.params;
-    const operatorId = req.user.userId;
 
-    const report = await feedbackReportModel.getReportById(reportId);
-    if (!report) return res.status(404).json({ error: "Report not found." });
+    await feedbackReportModel.deleteReportsByReviewId(req.review.ReviewId);
+    await stallReviewModel.deleteReview(req.review.ReviewId);
 
-    const review = await stallReviewModel.getReviewById(report.ReviewId);
-    if (!review) return res.status(404).json({ error: "Review not found." });
-    const stall = await stallModel.getStallById(review.StallId);
-    if (!stall) return res.status(404).json({ error: "Stall not found." });
-    const centre = await centreModel.getCentreForOperator(stall.CentreId, operatorId);
-    if (!centre) return res.status(403).json({ error: "Forbidden: not your centre." });
-
-    await feedbackReportModel.deleteReportsByReviewId(report.ReviewId);
-    await stallReviewModel.deleteReview(report.ReviewId);
+    userLookupModel
+      .getUserEmail(req.review.UserId)
+      .then((email) => {
+        if (email) {
+          sendReviewDeletedAlert(email, { stallName: req.stall?.StallName });
+        }
+      })
+      .catch((err) => console.error("Review deleted email failed:", err.message));
 
     res.status(204).send();
   } catch (err) {

@@ -55,6 +55,8 @@ function safeTags(tagsJson) {
 
 /* ---------- state ---------- */
 let allReviews = [];
+let itemSummary = [];
+let itemReviews = [];
 let lastSeenMs = 0;
 let latestMs = 0;
 let currentUserId = null;
@@ -162,6 +164,86 @@ function render() {
     .join("");
 }
 
+/* ---------- item ratings (per-menu-item) ---------- */
+
+// Ensure the item-ratings section exists in the DOM, right after the stall
+// reviews list. Created once, reused after. No HTML edit required.
+function ensureItemSection() {
+  let section = $("itemRatingsSection");
+  if (section) return section;
+
+  const anchor = $("reviewsList");
+  if (!anchor || !anchor.parentNode) return null;
+
+  section = document.createElement("div");
+  section.id = "itemRatingsSection";
+  section.className = "rvItemSection";
+  section.innerHTML = `
+    <h2 class="rvItemHeading">Item Ratings</h2>
+    <div id="itemSummaryRow" class="rvItemSummaryRow"></div>
+    <div id="itemReviewsList" class="rvItemList"></div>
+  `;
+  // place it just after the stall reviews list
+  anchor.parentNode.insertBefore(section, anchor.nextSibling);
+  return section;
+}
+
+function renderItems() {
+  const section = ensureItemSection();
+  if (!section) return;
+
+  const summaryEl = $("itemSummaryRow");
+  const listEl = $("itemReviewsList");
+
+  // Nothing rated yet — hide the whole section.
+  if (
+    (!itemSummary || itemSummary.length === 0) &&
+    (!itemReviews || itemReviews.length === 0)
+  ) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+
+  // --- summary cards (avg stars + count per item) ---
+  summaryEl.innerHTML = (itemSummary || [])
+    .map((it) => {
+      const name = it.ItemName || it.ItemId || "Item";
+      const avg = Number(it.AverageStar) || 0;
+      const n = Number(it.RatingCount) || 0;
+      return `
+        <div class="rvItemCard">
+          <div class="rvItemName">${esc(name)}</div>
+          <div class="rvItemStars">${esc(stars(avg))}</div>
+          <div class="rvItemMeta">${avg.toFixed(1)} · ${n} rating${n === 1 ? "" : "s"}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  // --- individual item comments ---
+  listEl.innerHTML = (itemReviews || [])
+    .map((r) => {
+      const name = r.ItemName || r.ItemId || "Item";
+      const who = r.IsAnonymous ? "Anonymous" : r.UserName || "Anonymous";
+      const when = r.CreatedAt ? new Date(r.CreatedAt).toLocaleString() : "—";
+      const star = Number(r.ItemStar) || 0;
+      const comment = r.ItemReview || "";
+      return `
+        <div class="rvCard rvItemReviewCard">
+          <div class="rvItemEyebrow">Item review</div>
+          <div class="rvItemHead">
+            <div class="rvItemHeadName">${esc(name)}</div>
+            <div class="rvItemHeadStars">${esc(stars(star))}<span class="rvItemHeadScore">${star}/5</span></div>
+          </div>
+          <div class="rvItemByline">${esc(who)} · ${esc(when)}</div>
+          ${comment ? `<div class="rvComment">${esc(comment)}</div>` : ""}
+        </div>
+      `;
+    })
+    .join("");
+}
+
 /* ---------- data ---------- */
 function mapRow(row) {
   return {
@@ -207,6 +289,10 @@ async function loadReviews() {
       ? Math.max(...allReviews.map((r) => r.createdAtMs))
       : 0;
 
+    // Per-item ratings (names already resolved server-side via StallMenus).
+    itemSummary = data.itemSummary || [];
+    itemReviews = data.itemReviews || [];
+
     // Opening this page = the owner has now seen every review.
     // Stamp the newest one so other pages know what counts as "new".
     if (currentUserId && latestMs) {
@@ -216,6 +302,7 @@ async function loadReviews() {
 
     setStatus("");
     render();
+    renderItems();
   } catch (err) {
     console.error("loadReviews error:", err);
     setStatus("❌ Failed to load reviews.");
