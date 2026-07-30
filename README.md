@@ -17,7 +17,10 @@ A Singapore hawker centre food ordering platform built for the Back-End Developm
 | Authentication | JWT in HTTP-only cookies (`jsonwebtoken` + `cookie-parser`) |
 | Password hashing | `bcrypt` |
 | Validation | `joi` |
+| API documentation | Swagger (`swagger-autogen` + `swagger-ui-express`) |
+| Email | `nodemailer` |
 | Config | `dotenv` |
+| Testing | `jest` |
 | Dev tooling | `nodemon` |
 
 The application follows an **MVC architecture** — models handle database access, controllers hold the business logic, and routes map HTTP endpoints to controllers. The front end is served as static files from `public/` and communicates with the back end through a JSON REST API.
@@ -29,10 +32,10 @@ The application follows an **MVC architecture** — models handle database acces
 | Member | Responsibility |
 |---|---|
 | Shawn Ho | Stall-holder side — Dashboard, Orders, Menu, Reviews, Analytics, Hygiene, Account, Manage Payment |
-| Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart, Customer Settings|
-| Matthew Tan| Order History, View/Delete/Reorder orders, Promotion Page, View/Claim Promotions, Checkout Cart, Edit quantity, Apply Promotion |
+| Wynn Lee | Customer — Homepage, Stall Browsing, View Stall Details, View Stall Menu Items, Choose Stall Addons, Adding Items to Cart, Customer Settings |
+| Matthew Tan | Order History, View/Delete/Reorder orders, Promotion Page, View/Claim Promotions, Checkout Cart, Edit quantity, Apply Promotion |
 | Matthew Tay Jun Kai | Feedback, Complaints & Operator side — Submit/Edit/Delete Reviews and Complaints, Personal Feedback History, General Feedback Page, Operator Dashboard (Centres, Stalls, Rental Agreements, Monthly Billing, Revenue) |
-| Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygenie Grade (Customer, Stall-holder and Inspector side), Hygiene Inspections and Manage Complaints |
+| Jovan Soo | Login, Signup and NEA officer side — Token Creation, Cookie, Authentication, Hygiene Grade (Customer, Stall-holder and Inspector side), Hygiene Inspections and Manage Complaints |
 
 ---
 
@@ -40,10 +43,10 @@ The application follows an **MVC architecture** — models handle database acces
 
 ```
 BEDASG/
-├── app.js                  # Entry point — mounts middleware and routes
-├── dbConfig.js             # SQL Server connection config
+├── app.js                          # Entry point — mounts middleware, routes, and Swagger
+├── dbConfig.js                     # SQL Server connection pool
 ├── package.json
-├── .env                    # Environment variables (not committed)
+├── .env                            # Environment variables (not committed)
 ├── .gitignore
 │
 ├── controllers/
@@ -54,28 +57,30 @@ BEDASG/
 │   ├── checkoutCardController.js
 │   ├── complaintController.js
 │   ├── contactController.js
+│   ├── custController.js
 │   ├── customerOrdersController.js
 │   ├── faqController.js
 │   ├── favItemController.js
+│   ├── favouriteOrderController.js
 │   ├── favStallController.js
 │   ├── feedbackcommentController.js
 │   ├── feedbackreportController.js
 │   ├── hygieneController.js
 │   ├── menuController.js
+│   ├── menuPricesController.js
 │   ├── neaController.js
 │   ├── operatorController.js
 │   ├── orderController.js
 │   ├── paymentController.js
 │   ├── promotionController.js
 │   ├── rentalController.js
+│   ├── savedCardController.js
 │   ├── stallAccountController.js
 │   ├── stallAnalyticsController.js
+│   ├── stallClosureController.js
 │   ├── stallController.js
 │   ├── stallMenuController.js
-│   ├── stallReviewController.js
-│   ├── favouriteOrderController.js
-│   ├── menuPricesController.js
-│   └── stallClosureController.js 
+│   └── stallReviewController.js
 │
 ├── models/
 │   ├── addonModel.js
@@ -84,14 +89,17 @@ BEDASG/
 │   ├── checkoutCardModel.js
 │   ├── complaintModel.js
 │   ├── contactModel.js
+│   ├── custModel.js
 │   ├── customerOrdersModel.js
 │   ├── faqModel.js
 │   ├── favItemModel.js
+│   ├── favouriteOrderModel.js
 │   ├── favStallModel.js
 │   ├── feedbackcommentModel.js
 │   ├── feedbackreportModel.js
 │   ├── hygieneModel.js
 │   ├── menuModel.js
+│   ├── menuPricesModel.js
 │   ├── neaModel.js
 │   ├── operatorbillModel.js
 │   ├── operatorRevenueModel.js
@@ -100,15 +108,18 @@ BEDASG/
 │   ├── promotionModel.js
 │   ├── refreshTokenModel.js
 │   ├── rentalAgreementModel.js
+│   ├── savedCardModel.js
 │   ├── stallAccountModel.js
 │   ├── stallAnalyticsModel.js
+│   ├── stallClosureModel.js
+│   ├── stallComplaintHistoryModel.js
 │   ├── stallMenuModel.js
 │   ├── stallModel.js
-│   ├── stallReviewModel.js
-│   ├── userModel.js
-│   ├── stallClosureModel.js
+│   ├── stallOwnerLookupModel.js
 │   ├── stallRatingModel.js
-│   └── stallComplaintHistoryModel.js       
+│   ├── stallReviewModel.js
+│   ├── userLookUpModel.js
+│   └── userModel.js
 │
 ├── routes/
 │   ├── addonRoutes.js
@@ -119,11 +130,14 @@ BEDASG/
 │   ├── commentRoutes.js
 │   ├── complaintRoutes.js
 │   ├── contactRoutes.js
+│   ├── custAccountRoutes.js
 │   ├── customerOrdersRoutes.js
 │   ├── faqRoutes.js
 │   ├── favItemRoutes.js
+│   ├── favouriteOrderRoutes.js
 │   ├── favStallRoutes.js
 │   ├── hygieneRoutes.js
+│   ├── menuPricesRoutes.js
 │   ├── menuRoutes.js
 │   ├── neaRoutes.js
 │   ├── operatorRoutes.js
@@ -133,74 +147,107 @@ BEDASG/
 │   ├── rentalRoutes.js
 │   ├── reportRoutes.js
 │   ├── reviewRoutes.js
+│   ├── savedCardRoutes.js
 │   ├── stallAccountRoutes.js
 │   ├── stallAnalyticsRoutes.js
+│   ├── stallClosureRoutes.js
 │   ├── stallMenuRoutes.js
 │   ├── stallRoutes.js
-│   ├── favouriteOrderRoutes.js       
-│   ├── menuPricesRoutes.js
-│   ├── favStallRoutes.js     
-│   └── stallClosureRoutes.js          
-│
-├── services/                           # NEW folder
-│   └── holidayService.js
+│   ├── swagger.js                  # Swagger generator
+│   └── swagger-output.json         # Generated API spec
 │
 ├── middlewares/
-│   ├── auth.js
+│   ├── auth.js                     # verifyToken + requireRole
+│   ├── feedbackAuth.js
+│   ├── feedbackValidation.js
 │   ├── imageStorage.js
+│   ├── operatorAuth.js
+│   ├── operatorValidation.js
 │   ├── rentPaywall.js
-│   ├── validation.js
-│   └── verifyToken.js
+│   └── validation.js
 │
-├── database/               # SQL creation script + sample data
-│   └── dbscript.sql
-└── public/                 # Static front end
-    ├── HTML pages
-    │   ├── index.html
-    │   ├── home.html
-    │   ├── about.html
-    │   ├── how-it-works.html
-    │   ├── pricing.html
-    │   ├── credits.html
-    │   ├── privacy.html
-    │   ├── terms-of-service.html
-    │   ├── help.html
-    │   ├── contact.html
-    │   ├── signin.html
-    │   ├── signup.html
-    │   ├── account.html
-    │   ├── centres.html
-    │   ├── stall.html
-    │   ├── menu.html
-    │   ├── item.html
-    │   ├── cart.html
-    │   ├── card.html
-    │   ├── orders.html
-    │   ├── qr.html
-    │   ├── payment_recieved.html
-    │   ├── promotions.html
-    │   ├── review.html
-    │   ├── complaint.html
-    │   ├── report.html
-    │   ├── feedback.html
-    │   ├── feedback_history.html
-    │   ├── general-feedback.html
-    │   ├── nea.html
-    │   ├── hygiene.html
-    │   ├── hygiene-history.html
-    │   ├── hygiene-trend.html
-    │   ├── operator.html
-    │   ├── rental-payment.html
-    │   ├── stall-dashboard.html
-    │   ├── stall-hygiene.html
-    │   ├── stall-orders.html
-    │   ├── stall-menu.html
-    │   ├── stall-review.html
-    │   ├── payment-modal.js
-    │   ├── stall-analytics.html
-    │   ├── stall-promotions.html
-    │   └── stall-account.html
-
+├── services/
+│   ├── holidayService.js           # data.gov.sg public holidays API
+│   ├── mailer.js
+│   └── notificationEmails.js
+│
+├── database/
+│   └── dbscript.sql                # Schema + sample data
+│
+├── test/                           # Jest unit tests
+│   ├── account.test.js
+│   ├── analytics.test.js
+│   ├── commentendpoint.test.js
+│   ├── complaintendpoint.test.js
+│   ├── complainthistoryendpoint.test.js
+│   ├── createcomplaint.test.js
+│   ├── createRental.test.js
+│   ├── dashboard.test.js
+│   ├── favStallController.test.js
+│   ├── feedbackAuth.test.js
+│   ├── feedbackreportModel.test.js
+│   ├── hygiene.test.js
+│   ├── menu.test.js
+│   ├── operatorAuth.test.js
+│   ├── operatorbillModel.test.js
+│   ├── operatorcentreModel.test.js
+│   ├── orders.test.js
+│   ├── payment.test.js
+│   ├── promotions.test.js
+│   ├── rental.test.js
+│   ├── rentalendpoints.test.js
+│   ├── reportendpoints.test.js
+│   ├── review.test.js
+│   ├── reviewendpoint.test.js
+│   └── savebill.test.js
+│
+├── __mocks__/
+│   └── dbConfig.js                 # DB mock for tests
+│
+└── public/                         # Static front end
+    ├── index.html
+    ├── home.html
+    ├── about.html
+    ├── how-it-works.html
+    ├── pricing.html
+    ├── credits.html
+    ├── privacy.html
+    ├── terms-of-service.html
+    ├── help.html
+    ├── contact.html
+    ├── signin.html
+    ├── signup.html
+    ├── account.html
+    ├── centres.html
+    ├── stall.html
+    ├── menu.html
+    ├── item.html
+    ├── cart.html
+    ├── card.html
+    ├── orders.html
+    ├── qr.html
+    ├── payment_recieved.html
+    ├── promotions.html
+    ├── review.html
+    ├── complaint.html
+    ├── report.html
+    ├── feedback.html
+    ├── feedback_history.html
+    ├── general-feedback.html
+    ├── nea.html
+    ├── hygiene.html
+    ├── hygiene-history.html
+    ├── hygiene-trend.html
+    ├── operator.html
+    ├── rental-payment.html
+    ├── stall-dashboard.html
+    ├── stall-hygiene.html
+    ├── stall-orders.html
+    ├── stall-menu.html
+    ├── stall-review.html
+    ├── stall-analytics.html
+    ├── stall-promotions.html
+    ├── stall-account.html
     │
     ├── css/
     │   ├── styles.css
@@ -210,12 +257,13 @@ BEDASG/
     │   ├── hygiene.css
     │   ├── nea.css
     │   ├── operator.css
+    │   ├── payment-qr.css
     │   ├── stall-holder.css
     │   ├── feedback-redesign.css
     │   ├── general-feedback.css
     │   └── upload-feedback.css
     │
-    ├── js/                  # One script per page
+    ├── js/                         # One script per page
     │   ├── authClient.js
     │   ├── authNav.js
     │   ├── home.js
@@ -225,10 +273,12 @@ BEDASG/
     │   ├── menu.js
     │   ├── item.js
     │   ├── cart.js
+    │   ├── cart-badge.js
     │   ├── card.js
     │   ├── orders.js
     │   ├── qr.js
     │   ├── payment_recieved.js
+    │   ├── payment-modal.js
     │   ├── promotions.js
     │   ├── account.js
     │   ├── signin.js
@@ -255,15 +305,14 @@ BEDASG/
     │   ├── stall-review.js
     │   ├── stall-analytics.js
     │   ├── stall-account.js
-    │   └── stall-badges.js
-    │   ├── stall-closures.js               # NEW — closures card logic
+    │   ├── stall-badges.js
+    │   ├── stall-closures.js
     │   └── stall-promotions.js
-
     │
     └── images/
-        ├── menu/           # Menu item images (per-stall subfolders)
-        ├── stalls/         # Stall hero images
-        └── uploads/
+        ├── menu/                   # Menu item images (per-stall subfolders)
+        ├── stalls/                 # Stall hero images
+        └── uploads/                # User-uploaded complaint/review images
 ```
 
 ---
@@ -287,11 +336,12 @@ BEDASG/
 **Stall Holder**
 - Dashboard with key stats
 - Orders — view, update status, cancel with refund
-- Menu — add, edit, delete items
-- Reviews — read and respond
+- Menu — add, edit, delete items and add-ons
+- Reviews — read stall and item ratings
 - Analytics — sales and performance
 - Hygiene — NEA grade records
-- Account and rental payment management
+- Stall closures — schedule closed days (integrates the data.gov.sg holidays API)
+- Account settings and rental / operator bill payments (with saved cards)
 
 **NEA Officer**
 - Schedule, complete, or cancel hygiene inspections
@@ -299,13 +349,14 @@ BEDASG/
 - Manually override a stall's hygiene grade
 - Grade distribution overview across all stalls
 
- **Hawker Operator**
+**Hawker Operator**
 - Dashboard overview — centre count, total stalls, active agreements, revenue
 - View hawker centres, with revenue per centre
 - View stalls by one centre or across all centres at once
 - Create rental agreements — stall, owner, monthly rent, plus utilities, cleaning, penalty, and other charges, with a live running total
 - Edit and delete rental agreements
 - Manage monthly bills per stall
+
 ---
 
 ## Prerequisites
@@ -317,7 +368,6 @@ BEDASG/
   - Mixed Mode authentication enabled
 
 ---
-
 
 ## Setup & Installation
 
@@ -344,7 +394,7 @@ BEDASG/
    DB_TRUST_SERVER_CERTIFICATE=true
    JWT_SECRET=your_jwt_secret
    PORT=3000
-   EMAIL_USER=hawkerpointsg@gmail.com
+   EMAIL_USER=your_email@gmail.com
    EMAIL_PASS=your_email_app_password
    ```
 
@@ -364,15 +414,43 @@ BEDASG/
 | Script | Command | Description |
 |---|---|---|
 | `devStart` | `nodemon app.js` | Run in development with auto-restart |
+| `test` | `jest` | Run the Jest unit test suite |
 
 To run without nodemon: `node app.js`
+
+---
+
+## API Documentation
+
+Interactive Swagger documentation for every endpoint is served at:
+
+```
+http://localhost:3000/api-docs
+```
+
+To regenerate the spec after adding or changing routes:
+
+```bash
+node routes/swagger.js
+```
+
+---
+
+## Testing
+
+Unit tests are written with **Jest** and live in the `test/` folder. They test the controllers with the database layer mocked (via `__mocks__/dbConfig.js`), covering the success, validation, not-found, and server-error branches of each endpoint.
+
+```bash
+npm test              # run the full suite
+npx jest orders       # run a single suite, e.g. orders
+```
 
 ---
 
 ## Authentication
 
 - On login, the server issues a **JWT** stored in an **HTTP-only cookie**.
-- The `verifyToken` middleware validates the token on protected routes and attaches the user to the request.
+- The `verifyToken` middleware (in `middlewares/auth.js`) validates the token on protected routes and attaches the user to the request; `requireRole` restricts routes by role.
 - Passwords are hashed with **bcrypt** before storage.
 
 ---
