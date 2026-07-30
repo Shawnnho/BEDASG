@@ -3,8 +3,9 @@ const { validateBase64Image } = require("../middlewares/imageStorage");
 
 // POST /api/reviews  (application/json — image sent as a base64 data URL)
 async function createReview(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
-    const userId = req.user.userId; // set by verifyToken from the accessToken cookie
+    const userId = req.user.userId; 
     const userName = req.user.name || req.user.email || "User";
 
     const { stallId, rating, reviewText, isAnonymous, image } = req.body;
@@ -39,6 +40,7 @@ async function createReview(req, res) {
 
 // GET /api/reviews/latest?limit=20 — public, no auth required (feeds the carousel)
 async function getLatestReviews(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const limitCount = Math.min(Number(req.query.limit) || 20, 50);
     const reviews = await stallReviewModel.getLatestReviews(limitCount);
@@ -51,6 +53,7 @@ async function getLatestReviews(req, res) {
 
 // GET /api/reviews/mine
 async function getMyReviews(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const reviews = await stallReviewModel.getReviewsByUser(req.user.userId);
     res.json(reviews);
@@ -62,6 +65,7 @@ async function getMyReviews(req, res) {
 
 // GET /api/reviews/summary/:stallId — public, e.g. for a stall page's ★ badge
 async function getStallRating(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { stallId } = req.params;
     const summary = await stallReviewModel.getStallRatingSummary(stallId);
@@ -74,6 +78,7 @@ async function getStallRating(req, res) {
 
 // GET /api/reviews/search?stallName=...&rating=...
 async function searchReviews(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { stallName, rating } = req.query;
     const reviews = await stallReviewModel.searchReviews({ stallName, rating });
@@ -86,6 +91,7 @@ async function searchReviews(req, res) {
 
 // GET /api/reviews/:reviewId — public, used by report.html to show what's being reported
 async function getReview(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { reviewId } = req.params;
     const review = await stallReviewModel.getReviewById(reviewId);
@@ -99,6 +105,7 @@ async function getReview(req, res) {
 
 // GET /api/reviews/stall/:stallId — unchanged, out of scope for this refactor
 async function getReviewsByStall(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { stallId } = req.params;
     const reviews = await stallReviewModel.getReviewsByStall(stallId);
@@ -111,6 +118,7 @@ async function getReviewsByStall(req, res) {
 
 // GET /api/reviews/my-stall — unchanged, out of scope for this refactor
 async function getMyStallReviews(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const ownerUid = req.user.userId;
 
@@ -136,6 +144,7 @@ async function getMyStallReviews(req, res) {
 
 // GET /api/reviews/my-stall/count?since=<iso> — unchanged, out of scope for this refactor
 async function getMyStallReviewCount(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const ownerUid = req.user.userId;
 
@@ -154,6 +163,7 @@ async function getMyStallReviewCount(req, res) {
 
 // PUT /api/reviews/:reviewId
 async function updateReview(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { reviewId } = req.params;
     const { rating, reviewText, isAnonymous, tags } = req.body;
@@ -174,6 +184,7 @@ async function updateReview(req, res) {
 
 // DELETE /api/reviews/:reviewId
 async function deleteReview(req, res) {
+  // #swagger.tags = ['Reviews']
   try {
     const { reviewId } = req.params;
     await stallReviewModel.deleteReview(reviewId);

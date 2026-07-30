@@ -18,6 +18,7 @@ function getCurrentMonthKey() {
 // GET /api/operator/centres
 
 async function getMyCentres(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -39,6 +40,7 @@ async function getMyCentres(req, res) {
 
 // GET /api/operator/overview
 async function getOverview(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -73,6 +75,7 @@ async function getOverview(req, res) {
 // GET /api/operator/centres/:centreId/stalls
 
 async function getStallsForCentre(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { centreId } = req.params;
     const stalls = await stallModel.getStallsByCentre(centreId);
@@ -98,6 +101,7 @@ async function getStallsForCentre(req, res) {
 // GET /api/operator/centres/:centreId/rentals
 
 async function getRentalsForCentre(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { centreId } = req.params;
     const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(centreId);
@@ -126,6 +130,7 @@ async function getRentalsForCentre(req, res) {
 
 // GET /api/operator/stalls
 async function getAllStallsForOperator(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -159,6 +164,7 @@ async function getAllStallsForOperator(req, res) {
 
 // GET /api/operator/rentals
 async function getAllRentalsForOperator(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -184,6 +190,7 @@ async function getAllRentalsForOperator(req, res) {
 // POST /api/operator/rentals
 
 async function createRental(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const {
       centreId,
@@ -264,9 +271,10 @@ async function createRental(req, res) {
 // DELETE /api/operator/rentals/:agreementId
 
 async function deleteRental(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const agreement = req.agreement;
-    
+
     const latestBill = await operatorBillModel.getLatestBillForStall(agreement.StallId);
     const isUnpaid = latestBill && latestBill.IsPaid !== true && latestBill.IsPaid !== 1;
     if (isUnpaid) {
@@ -284,6 +292,7 @@ async function deleteRental(req, res) {
 // PUT /api/operator/bills/:stallId/:billMonth
 
 async function saveBill(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { stallId, billMonth } = req.params;
     const { centreId, agreementId, rent, utilities, cleaningFee, penalty, other } = req.body;
@@ -330,6 +339,7 @@ async function saveBill(req, res) {
 // GET /api/operator/stalls/:stallId/complaints
 
 async function getStallComplaints(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const { stallId } = req.params;
     const complaints = await stallComplaintHistoryModel.getComplaintsByStall(stallId);
@@ -342,6 +352,7 @@ async function getStallComplaints(req, res) {
 
 // GET /api/operator/reports
 async function getReportedReviews(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     const operatorId = req.user.userId;
     const centres = await centreModel.getCentresByOperator(operatorId);
@@ -358,6 +369,7 @@ async function getReportedReviews(req, res) {
 // POST /api/operator/reports/:reportId/dismiss
 
 async function dismissReport(req, res) {
+  // #swagger.tags = ['Operator']
   try {
     await feedbackReportModel.dismissReport(req.report.ReportId);
 
@@ -380,6 +392,7 @@ async function dismissReport(req, res) {
 // DELETE /api/operator/reports/:reportId/review
 
 async function deleteReportedReview(req, res) {
+  // #swagger.tags = ['Operator']
   try {
 
     await feedbackReportModel.deleteReportsByReviewId(req.review.ReviewId);

@@ -3,6 +3,7 @@ const feedbackCommentModel = require("../models/feedbackcommentModel");
 // POST /api/comments
 
 async function createComment(req, res) {
+  // #swagger.tags = ['Comments']
   try {
     const userId = req.user.userId;
     const userName = req.user.name || req.user.email || "User";
@@ -24,6 +25,7 @@ async function createComment(req, res) {
 
 // GET /api/comments/:reviewId
 async function getComments(req, res) {
+  // #swagger.tags = ['Comments']
   try {
     const { reviewId } = req.params;
     const comments = await feedbackCommentModel.getCommentsByReview(reviewId);

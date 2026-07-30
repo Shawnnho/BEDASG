@@ -1,12 +1,34 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "My API",
+    "title": "HawkerPoint API",
     "description": "Description of your API",
     "version": "1.0.0"
   },
   "host": "localhost:3000",
   "basePath": "/",
+  "tags": [
+    {
+      "name": "Complaints",
+      "description": "Submit, view, edit, and delete complaints against a stall"
+    },
+    {
+      "name": "Reviews",
+      "description": "Submit, view, edit, and delete stall reviews and ratings"
+    },
+    {
+      "name": "Comments",
+      "description": "Comment on reviews"
+    },
+    {
+      "name": "Reports",
+      "description": "Report a review as spam, fake, or inappropriate"
+    },
+    {
+      "name": "Operator",
+      "description": "Centre/stall management, rental agreements, billing, and report moderation"
+    }
+  ],
   "schemes": [
     "http"
   ],
@@ -1112,6 +1134,9 @@
     },
     "/api/operator/centres": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1131,6 +1156,9 @@
     },
     "/api/operator/overview": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1150,6 +1178,9 @@
     },
     "/api/operator/stalls": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1169,6 +1200,9 @@
     },
     "/api/operator/centres/{centreId}/stalls": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1194,8 +1228,41 @@
         }
       }
     },
+    "/api/operator/stalls/{stallId}/complaints": {
+      "get": {
+        "tags": [
+          "Operator"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "stallId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/api/operator/rentals": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1213,6 +1280,9 @@
         }
       },
       "post": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1222,9 +1292,6 @@
               "type": "object",
               "properties": {
                 "centreId": {
-                  "example": "any"
-                },
-                "stallId": {
                   "example": "any"
                 },
                 "ownerName": {
@@ -1268,9 +1335,6 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "409": {
             "description": "Conflict"
           },
@@ -1282,6 +1346,9 @@
     },
     "/api/operator/centres/{centreId}/rentals": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1307,38 +1374,11 @@
         }
       }
     },
-    "/api/operator/stalls/{stallId}/complaints": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "stallId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
     "/api/operator/rentals/{agreementId}": {
       "delete": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1358,9 +1398,6 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -1369,6 +1406,9 @@
     },
     "/api/operator/bills/{stallId}/{billMonth}": {
       "put": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1427,9 +1467,6 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -1438,6 +1475,9 @@
     },
     "/api/operator/reports": {
       "get": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1457,6 +1497,9 @@
     },
     "/api/operator/reports/{reportId}/dismiss": {
       "post": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1475,9 +1518,6 @@
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1487,6 +1527,9 @@
     },
     "/api/operator/reports/{reportId}/review": {
       "delete": {
+        "tags": [
+          "Operator"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1505,9 +1548,6 @@
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1569,7 +1609,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "grade": {
+                "score": {
                   "example": "any"
                 }
               }
@@ -1864,6 +1904,9 @@
     },
     "/api/complaints/": {
       "post": {
+        "tags": [
+          "Complaints"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1918,6 +1961,9 @@
     },
     "/api/complaints/mine": {
       "get": {
+        "tags": [
+          "Complaints"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -1937,6 +1983,9 @@
     },
     "/api/complaints/{complaintId}": {
       "put": {
+        "tags": [
+          "Complaints"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1962,17 +2011,11 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request"
-          },
           "401": {
             "description": "Unauthorized"
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1980,6 +2023,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "Complaints"
+        ],
         "description": "",
         "parameters": [
           {
@@ -1999,9 +2045,6 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -2010,6 +2053,9 @@
     },
     "/api/reviews/latest": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2030,6 +2076,9 @@
     },
     "/api/reviews/summary/{stallId}": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2051,6 +2100,9 @@
     },
     "/api/reviews/search": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2076,6 +2128,9 @@
     },
     "/api/reviews/": {
       "post": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2127,6 +2182,9 @@
     },
     "/api/reviews/mine": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -2146,6 +2204,9 @@
     },
     "/api/reviews/{reviewId}": {
       "put": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2180,17 +2241,11 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request"
-          },
           "401": {
             "description": "Unauthorized"
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2198,6 +2253,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2217,15 +2275,15 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "500": {
             "description": "Internal Server Error"
           }
         }
       },
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2250,6 +2308,9 @@
     },
     "/api/reviews/my-stall": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -2272,6 +2333,9 @@
     },
     "/api/reviews/my-stall/count": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2298,6 +2362,9 @@
     },
     "/api/reviews/stall/{stallId}": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2548,6 +2615,9 @@
     },
     "/api/reports/": {
       "post": {
+        "tags": [
+          "Reports"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2582,12 +2652,6 @@
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -2596,6 +2660,9 @@
     },
     "/api/comments/{reviewId}": {
       "get": {
+        "tags": [
+          "Comments"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2617,6 +2684,9 @@
     },
     "/api/comments/": {
       "post": {
+        "tags": [
+          "Comments"
+        ],
         "description": "",
         "parameters": [
           {
@@ -2638,9 +2708,6 @@
         "responses": {
           "201": {
             "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
           },
           "401": {
             "description": "Unauthorized"
@@ -2984,6 +3051,118 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/savedcards/{uid}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "brand": {
+                  "example": "any"
+                },
+                "last4": {
+                  "example": "any"
+                },
+                "expMonth": {
+                  "example": "any"
+                },
+                "expYear": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/savedcards/{uid}/{savedCardId}": {
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "savedCardId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"
