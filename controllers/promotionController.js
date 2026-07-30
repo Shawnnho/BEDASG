@@ -50,6 +50,42 @@ const redeemPromotion = async (req, res) => {
   }
 };
 
+async function getPromotionsByUserId(req, res) {
+  try {
+    const userId = req.params.userId;
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+ 
+    const rows = await promoModel.getPromotionsByUserId(userId);
+    const promotions = rows.map((r) => ({
+      id: r.PromoId,
+      code: r.PromoCode,
+      expiresAt: r.ExpiresAt || null,
+    }));
+ 
+    res.json(promotions);
+  } catch (error) {
+    console.error("Error fetching promotions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getPromotionCountByUserId(req,res) {
+    try {
+    const userId = req.params.userId;
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+ 
+    const count = await promoModel.getPromotionCountByUserId(userId);
+    res.json({ count });
+  } catch (error) {
+    console.error("Error fetching promotions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 // ============================================================
 // STALLHOLDER-FACING (new — manage this stall's own promotions)
 // ============================================================
@@ -209,6 +245,8 @@ module.exports = {
   // customer
   getPromotions,
   redeemPromotion,
+  getPromotionsByUserId,
+  getPromotionCountByUserId,
   // stallholder
   getMyPromotions,
   createPromotion,

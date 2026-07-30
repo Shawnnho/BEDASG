@@ -102,6 +102,24 @@ async function redeemPromotion(promoCode, userId) {
   }
 }
 
+async function getPromotionsByUserId(userId) {
+  const pool = await poolPromise;
+  const result = await pool
+  .request()
+  .input("UserId", sql.NVarChar(255), userId)
+  .query(`SELECT * FROM UserPromoClaims pc INNER JOIN Promotions p ON pc.PromoId = p.PromotionId WHERE UserId = @UserId`)
+  return result.recordset;
+}
+
+async function getPromotionCountByUserId(userId) {
+  const pool = await poolPromise;
+  const result = await pool
+  .request()
+  .input("userId", sql.NVarChar(255), userId)
+  .query(`SELECT COUNT('ClaimId') AS count FROM UserPromoClaims WHERE UserId = @userId`)
+  return result.recordset[0].count;
+}
+
 // ============================================================
 // STALLHOLDER-FACING (new — manage this stall's own promotions)
 // Every query is scoped by StallId so an owner can only ever see or
@@ -262,6 +280,8 @@ module.exports = {
   // customer
   getAllPromotions,
   redeemPromotion,
+  getPromotionsByUserId,
+  getPromotionCountByUserId,
   // stallholder
   getPromotionsByStall,
   getPromotionByIdForStall,

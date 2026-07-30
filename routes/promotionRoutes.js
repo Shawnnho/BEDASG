@@ -7,8 +7,11 @@ const { verifyToken, requireRole } = require("../middlewares/auth");
 // ============================================================
 // GET  /api/promotions        -> list all promotions
 // POST /api/promotions/redeem -> redeem a promo code
+// GET /api/promotions/:userId -> list claimed promotions by a user
 router.get("/", promoController.getPromotions);
 router.post("/redeem", verifyToken, promoController.redeemPromotion);
+router.get("/:userId",promoController.getPromotionsByUserId)
+router.get("/count/:userId",promoController.getPromotionCountByUserId)
 // ============================================================
 // STALLHOLDER-FACING (new)
 // All require a valid JWT cookie AND the "storeholder" role, and are

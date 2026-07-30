@@ -6,7 +6,7 @@
  * - Edit Profile (name + phone + email)
  * - Saved item count via GET /api/favitems/get (built earlier)
  *
- * SCOPE NOTE: the old Firebase version also handled vouchers, order
+ * SCOPE NOTE: the old Firebase version also handled promotions, order
  * history aggregation, avatar storage, password reset, and
  * deactivate-with-reauth - all via Firestore/Firebase Auth/Storage.
  * None of those have a confirmed SQL endpoint yet. Rather than guess
@@ -45,17 +45,18 @@ const pwCancelBtn = document.getElementById("pwCancelBtn");
 const pwSaveBtn = document.getElementById("pwSaveBtn");
 const pwToggleBtns = Array.from(document.querySelectorAll(".pwToggleBtn"));
 
-const redeemedVoucherCount = document.getElementById("redeemedVoucherCount");
-const viewVouchersBtn = document.getElementById("viewVouchersBtn");
+const redeemedPromoCount = document.getElementById("redeemedPromoCount");
+const viewPromoBtn = document.getElementById("viewPromoBtn");
 
 // optional badges
 const notifCount = document.getElementById("notifCount");
 const mNotifCount = document.getElementById("mNotifCount");
 
-const voucherModal = document.getElementById("voucherModal");
-const voucherModalList = document.getElementById("voucherModalList");
-const voucherModalSub = document.getElementById("voucherModalSub");
-const closeVoucherModal = document.getElementById("closeVoucherModal");
+
+const promoModal = document.getElementById("promoModal");
+const promoModalList = document.getElementById("promoModalList");
+const promoModalSub = document.getElementById("promoModalSub");
+const closePromoModal = document.getElementById("closePromoModal");
 
 // Order History Summary DOM
 const sumTotal = document.getElementById("sumTotal");
@@ -82,7 +83,8 @@ const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, u
 // CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
 const CUST_CHANGE_PASSWORD_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
 const ORDERS_SUMMARY_URL = (uid) => `/api/orders/summary/${encodeURIComponent(uid)}`; // GET
-const VOUCHERS_LIST_URL = (uid) => `/api/vouchers/${encodeURIComponent(uid)}`; // GET
+const PROMOS_LIST_URL = (uid) => `/api/promotions/${encodeURIComponent(uid)}`; // GET
+const PROMOS_COUNT_URL = (uid) => `/api/promotions/count/${encodeURIComponent(uid)}` //GET
 
 // CONFIRMED - built earlier in this project
 const FAV_ITEMS_GET_URL = "/api/favitems/get";
@@ -137,44 +139,6 @@ function roleLabel(r) {
   if (r === "storeholder") return "Store Holder";
   if (r === "stall_owner") return "Store Holder";
   return r.charAt(0).toUpperCase() + r.slice(1);
-}
-
-function setCheckedByValues(checkboxEls, values) {
-  const arr = toArraySafe(values);
-  const set = new Set(arr);
-  checkboxEls.forEach((el) => (el.checked = set.has(el.value)));
-}
-
-function getCheckedValues(checkboxEls) {
-  return checkboxEls.filter((el) => el.checked).map((el) => el.value);
-}
-
-function formatDateTime(ms) {
-  if (!ms) return "—";
-  try {
-    const d = new Date(ms);
-    return d.toLocaleString("en-SG", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
-
-function applyBadge(count) {
-  const n = Number(count || 0);
-  if (notifCount) {
-    notifCount.hidden = n <= 0;
-    notifCount.textContent = n;
-  }
-  if (mNotifCount) {
-    mNotifCount.hidden = n <= 0;
-    mNotifCount.textContent = n;
-  }
 }
 
 /* =========================
@@ -479,42 +443,40 @@ async function loadOrderHistorySummary(uid) {
 }
 
 /* =========================
-   Vouchers
-   GUESS endpoints - build a Vouchers table/API and this will pick it up.
+   Promotions
+   GUESS endpoints - build a Promotions table/API and this will pick it up.
    Left as a graceful "not available yet" state rather than fake data.
 ========================= */
 async function updateRedeemedCount(uid) {
-  if (!redeemedVoucherCount) return;
+  if (!redeemedPromoCount) return;
 
   try {
-    const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(uid));
+    const res = await AuthClient.apiFetch(PROMOS_COUNT_URL(uid));
     if (!res.ok) {
-      redeemedVoucherCount.textContent = "0";
+      redeemedPromoCount.textContent = "0";
       return;
     }
-    const vouchers = await res.json();
-    redeemedVoucherCount.textContent = String(
-      vouchers.filter((v) => v.used).length,
-    );
+    const promosCount = await res.json();
+    redeemedPromoCount.textContent = promosCount.count;
   } catch (err) {
-    console.error("Failed to load redeemed voucher count:", err);
-    redeemedVoucherCount.textContent = "0";
+    console.error("Failed to load redeemed promo count:", err);
+    redeemedPromoCount.textContent = "0";
   }
 }
 
-function openVoucherModal() {
-  if (!voucherModal) return;
-  voucherModal.classList.add("isOpen");
-  voucherModal.setAttribute("aria-hidden", "false");
+function openPromoModal() {
+  if (!promoModal) return;
+  promoModal.classList.add("isOpen");
+  promoModal.setAttribute("aria-hidden", "false");
 }
 
-function closeVoucherModalFn() {
-  if (!voucherModal) return;
-  voucherModal.classList.remove("isOpen");
-  voucherModal.setAttribute("aria-hidden", "true");
+function closePromoModalFn() {
+  if (!promoModal) return;
+  promoModal.classList.remove("isOpen");
+  promoModal.setAttribute("aria-hidden", "true");
 }
 
-function isExpiredVoucher(v) {
+function isExpiredPromo(v) {
   if (!v.expiresAt) return false;
   return Date.now() > new Date(v.expiresAt).getTime();
 }
@@ -529,26 +491,26 @@ function expiryText(v) {
   return `Expires in ${days} days`;
 }
 
-function renderVoucherModal(vouchers) {
-  if (!voucherModalList) return;
+function renderPromoModal(promos) {
+  if (!promoModalList) return;
 
-  if (!vouchers.length) {
-    voucherModalList.innerHTML = `
+  if (!promos.length) {
+    promoModalList.innerHTML = `
       <div class="emptyState">
-        <h2 class="emptyTitle">No vouchers claimed</h2>
-        <p style="margin:8px 0 0; font-weight:800; opacity:.75;">Go to Promotions to claim vouchers.</p>
+        <h2 class="emptyTitle">No promotions claimed</h2>
+        <p style="margin:8px 0 0; font-weight:800; opacity:.75;">Check the Promotions page to claim more.</p>
       </div>
     `;
     return;
   }
 
-  voucherModalList.innerHTML = vouchers
+  promoModalList.innerHTML = promos
     .map((v) => {
-      const disabled = v.used === true || isExpiredVoucher(v);
+      const disabled = v.used === true || isExpiredPromo(v);
       const status =
         v.used === true
           ? "✅ Used"
-          : isExpiredVoucher(v)
+          : isExpiredPromo(v)
             ? "❌ Expired"
             : "✅ Active";
 
@@ -562,7 +524,7 @@ function renderVoucherModal(vouchers) {
         <div class="hpVoucherRight">
           <button
             class="btn small primary"
-            data-apply-voucher="${v.id}"
+            data-apply-promo="${v.id}"
             data-code="${v.code}"
             ${disabled ? "disabled" : ""}>
             ${disabled ? (v.used ? "Used" : "Expired") : "Apply"}
@@ -574,10 +536,10 @@ function renderVoucherModal(vouchers) {
     .join("");
 }
 
-async function markVoucherUsed(uid, voucherId) {
+async function markPromoUsed(uid, promoId) {
   // GUESS endpoint
   await AuthClient.apiFetch(
-    `${VOUCHERS_LIST_URL(uid)}/${encodeURIComponent(voucherId)}/use`,
+    `${PROMOS_LIST_URL(uid)}/${encodeURIComponent(promoId)}/use`,
     { method: "POST" },
   );
 }
@@ -633,40 +595,40 @@ async function markVoucherUsed(uid, voucherId) {
       window.location.href = "orders.html";
     });
 
-    // Order history + favourites + vouchers
+    // Order history + favourites + promotions
     await loadOrderHistorySummary(currentUid);
     await loadFavouriteCounts(currentUid);
     await updateRedeemedCount(currentUid);
 
-    viewVouchersBtn?.addEventListener("click", async () => {
-      openVoucherModal();
-      if (voucherModalSub) voucherModalSub.textContent = "Loading…";
-      if (voucherModalList) voucherModalList.innerHTML = "";
+    viewPromoBtn?.addEventListener("click", async () => {
+      openPromoModal();
+      if (promoModalSub) promoModalSub.textContent = "Loading…";
+      if (promoModalList) promoModalList.innerHTML = "";
 
       try {
-        const res = await AuthClient.apiFetch(VOUCHERS_LIST_URL(currentUid));
+        const res = await AuthClient.apiFetch(PROMOS_LIST_URL(currentUid));
         if (!res.ok) throw new Error(`status ${res.status}`);
-        const vouchers = await res.json();
+        const promos = await res.json();
 
-        const active = vouchers.filter(
-          (v) => !v.used && !isExpiredVoucher(v),
+        const active = promos.filter(
+          (v) => !v.used && !isExpiredPromo(v),
         ).length;
-        const used = vouchers.filter((v) => v.used).length;
+        const used = promos.filter((v) => v.used).length;
 
-        if (voucherModalSub) {
-          voucherModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${vouchers.length}`;
+        if (promoModalSub) {
+          promoModalSub.textContent = `Active: ${active} • Used: ${used} • Total: ${promos.length}`;
         }
 
-        renderVoucherModal(vouchers);
+        renderPromoModal(promos);
       } catch (err) {
-        console.error("Failed to load vouchers:", err);
-        if (voucherModalSub) {
-          voucherModalSub.textContent = "❌ Vouchers aren't available yet.";
+        console.error("Failed to load promotions:", err);
+        if (promoModalSub) {
+          promoModalSub.textContent = "❌ Promotions aren't available yet.";
         }
-        if (voucherModalList) {
-          voucherModalList.innerHTML = `
+        if (promoModalList) {
+          promoModalList.innerHTML = `
             <div class="emptyState">
-              <h2 class="emptyTitle">Unable to load vouchers</h2>
+              <h2 class="emptyTitle">Unable to load promotions</h2>
               <p style="margin:8px 0 0; font-weight:800; opacity:.75;">This feature needs its backend endpoint built.</p>
             </div>
           `;
@@ -674,63 +636,28 @@ async function markVoucherUsed(uid, voucherId) {
       }
     });
 
-    closeVoucherModal?.addEventListener("click", closeVoucherModalFn);
-    voucherModal?.addEventListener("click", (e) => {
+    closePromoModal?.addEventListener("click", closePromoModalFn);
+    promoModal?.addEventListener("click", (e) => {
       if (e.target.matches("[data-close]")) {
-        closeVoucherModalFn();
+        closePromoModalFn();
       }
     });
 
-    voucherModalList?.addEventListener("click", async (e) => {
-      const btn = e.target.closest("[data-apply-voucher]");
+    promoModalList?.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-apply-promo]");
       if (!btn || btn.disabled) return;
 
-      const voucherId = btn.dataset.applyVoucher;
+      const promoId = btn.dataset.applyPromo;
       const code = btn.dataset.code;
 
       // Save for checkout
       localStorage.setItem("hawkerpoint_applied_promo", code);
-      localStorage.setItem("hawkerpoint_applied_voucher_id", voucherId);
+      localStorage.setItem("hawkerpoint_applied_promo_id", promoId);
 
-      await markVoucherUsed(currentUid, voucherId);
+      await markPromoUsed(currentUid, promoId);
       window.location.href = "cart.html";
     });
 
-    applyBadge(0);
-
-    /* =========================
-       LOAD PREFERENCES into checkboxes
-       (from the profile response, if your /api/cust/:id ever includes them)
-    ========================= */
-    const prefs = data?.preferences || {};
-    setCheckedByValues(prefCuisineEls, prefs.cuisines);
-    setCheckedByValues(prefNotifEls, prefs.notifications);
-
-    /* =========================
-       SAVE PREFERENCES button
-    ========================= */
-    savePrefBtn?.addEventListener("click", async () => {
-      try {
-        const cuisines = getCheckedValues(prefCuisineEls);
-        const notifications = getCheckedValues(prefNotifEls);
-
-        const res = await AuthClient.apiFetch(CUST_PREFS_URL(currentUid), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cuisines, notifications }),
-        });
-
-        if (!res.ok) throw new Error(`status ${res.status}`);
-
-        setStatus("✅ Preferences saved.");
-      } catch (err) {
-        console.error(err);
-        setStatus(
-          "❌ Failed to save preferences (backend endpoint may not exist yet).",
-          false,
-        );
-      }
-    });
 
     // Edit profile
     editProfileBtn?.addEventListener("click", () => {
