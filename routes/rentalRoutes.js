@@ -9,8 +9,20 @@ const rentalController = require("../controllers/rentalController");
 // must always be able to reach these to see status and pay.
 router.use(verifyToken, requireRole("storeholder"));
 
-router.get("/status", rentalController.getStatus);
-router.post("/pay", rentalController.payRent);
-router.get("/notifications", rentalController.getNotifications);
+router.get("/status", (req, res) => {
+  // #swagger.tags = ['Rental Bill']
+  // #swagger.summary = 'Get the current rental/operator bill status for the stall'
+  rentalController.getStatus(req, res);
+});
+router.post("/pay", (req, res) => {
+  // #swagger.tags = ['Rental Bill']
+  // #swagger.summary = 'Pay the outstanding rental bill (simulated)'
+  rentalController.payRent(req, res);
+});
+router.get("/notifications", (req, res) => {
+  // #swagger.tags = ['Rental Bill']
+  // #swagger.summary = 'Rental bill notifications and payment history'
+  rentalController.getNotifications(req, res);
+});
 
 module.exports = router;

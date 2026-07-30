@@ -8,10 +8,26 @@ const { verifyToken, requireRole } = require("../middlewares/auth");
 // GET  /api/promotions        -> list all promotions
 // POST /api/promotions/redeem -> redeem a promo code
 // GET /api/promotions/:userId -> list claimed promotions by a user
-router.get("/", promoController.getPromotions);
-router.post("/redeem", verifyToken, promoController.redeemPromotion);
-router.get("/:userId",promoController.getPromotionsByUserId)
-router.get("/count/:userId",promoController.getPromotionCountByUserId)
+router.get("/", (req, res) => {
+  // #swagger.tags = ['Promotions (Customer)']
+  // #swagger.summary = 'List all promotions'
+  promoController.getPromotions(req, res);
+});
+router.post("/redeem", verifyToken, (req, res) => {
+  // #swagger.tags = ['Promotions (Customer)']
+  // #swagger.summary = 'Redeem a promo code'
+  promoController.redeemPromotion(req, res);
+});
+router.get("/:userId", (req, res) => {
+  // #swagger.tags = ['Promotions (Customer)']
+  // #swagger.summary = 'List claimed promotions for a user'
+  promoController.getPromotionsByUserId(req, res);
+});
+router.get("/count/:userId", (req, res) => {
+  // #swagger.tags = ['Promotions (Customer)']
+  // #swagger.summary = 'Count of claimed promotions for a user'
+  promoController.getPromotionCountByUserId(req, res);
+});
 // ============================================================
 // STALLHOLDER-FACING (new)
 // All require a valid JWT cookie AND the "storeholder" role, and are
@@ -21,28 +37,24 @@ router.get("/count/:userId",promoController.getPromotionCountByUserId)
 // POST   /api/promotions         -> create a promotion
 // PUT    /api/promotions/:id     -> update a promotion
 // DELETE /api/promotions/:id     -> delete a promotion
-router.get(
-  "/mine",
-  verifyToken,
-  requireRole("storeholder"),
-  promoController.getMyPromotions,
-);
-router.post(
-  "/",
-  verifyToken,
-  requireRole("storeholder"),
-  promoController.createPromotion,
-);
-router.put(
-  "/:id",
-  verifyToken,
-  requireRole("storeholder"),
-  promoController.updatePromotion,
-);
-router.delete(
-  "/:id",
-  verifyToken,
-  requireRole("storeholder"),
-  promoController.deletePromotion,
-);
+router.get("/mine", verifyToken, requireRole("storeholder"), (req, res) => {
+  // #swagger.tags = ['Stall Promotions']
+  // #swagger.summary = "List the promotions created by the owner's stall"
+  promoController.getMyPromotions(req, res);
+});
+router.post("/", verifyToken, requireRole("storeholder"), (req, res) => {
+  // #swagger.tags = ['Stall Promotions']
+  // #swagger.summary = 'Create a promotion'
+  promoController.createPromotion(req, res);
+});
+router.put("/:id", verifyToken, requireRole("storeholder"), (req, res) => {
+  // #swagger.tags = ['Stall Promotions']
+  // #swagger.summary = 'Edit a promotion'
+  promoController.updatePromotion(req, res);
+});
+router.delete("/:id", verifyToken, requireRole("storeholder"), (req, res) => {
+  // #swagger.tags = ['Stall Promotions']
+  // #swagger.summary = 'Delete a promotion'
+  promoController.deletePromotion(req, res);
+});
 module.exports = router;
