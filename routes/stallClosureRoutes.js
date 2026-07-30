@@ -21,12 +21,32 @@ const controller = require("../controllers/stallClosureController");
 router.use(verifyToken, requireRole("storeholder"));
 
 // Upcoming SG public holidays (server-side data.gov.sg call).
-router.get("/holidays", controller.getHolidays);
+router.get("/holidays", (req, res) => {
+  // #swagger.tags = ['Stall Closures']
+  // #swagger.summary = 'Fetch Singapore public holidays (data.gov.sg) as closure suggestions'
+  controller.getHolidays(req, res);
+});
 
 // CRUD for this stall's closures.
-router.get("/", controller.getClosures); // Read all
-router.post("/", controller.createClosure); // Create
-router.put("/:closureId", controller.updateClosure); // Update
-router.delete("/:closureId", controller.deleteClosure); // Delete
+router.get("/", (req, res) => {
+  // #swagger.tags = ['Stall Closures']
+  // #swagger.summary = "List the stall's scheduled closures"
+  controller.getClosures(req, res);
+});
+router.post("/", (req, res) => {
+  // #swagger.tags = ['Stall Closures']
+  // #swagger.summary = 'Create a stall closure'
+  controller.createClosure(req, res);
+});
+router.put("/:closureId", (req, res) => {
+  // #swagger.tags = ['Stall Closures']
+  // #swagger.summary = 'Edit a stall closure'
+  controller.updateClosure(req, res);
+});
+router.delete("/:closureId", (req, res) => {
+  // #swagger.tags = ['Stall Closures']
+  // #swagger.summary = 'Delete a stall closure'
+  controller.deleteClosure(req, res);
+});
 
 module.exports = router;
