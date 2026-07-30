@@ -3,11 +3,12 @@ const { validateBase64Image } = require("../middlewares/imageStorage");
 const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
 const { sendComplaintAlert } = require("../services/notificationEmails");
 
-// POST /api/complaints  
+// POST /api/complaints  (application/json — image sent as a base64 data URL)
 
 async function createComplaint(req, res) {
+  // #swagger.tags = ['Complaints']
   try {
-    const uid = req.user.userId; 
+    const uid = req.user.userId; // set by verifyToken from the accessToken cookie
     const { stall, stallName, firstName, lastName, email, message, image } = req.body;
 
     let imageUrl = null;
@@ -55,6 +56,7 @@ async function createComplaint(req, res) {
 
 // GET /api/complaints/mine
 async function getMyComplaints(req, res) {
+  // #swagger.tags = ['Complaints']
   try {
     const complaints = await complaintModel.getComplaintsByUser(req.user.userId);
     res.json(complaints);
@@ -67,6 +69,7 @@ async function getMyComplaints(req, res) {
 // PUT /api/complaints/:complaintId
 
 async function updateComplaint(req, res) {
+  // #swagger.tags = ['Complaints']
   try {
     const { complaintId } = req.params;
     const { message } = req.body;
@@ -82,6 +85,7 @@ async function updateComplaint(req, res) {
 // DELETE /api/complaints/:complaintId
 
 async function deleteComplaint(req, res) {
+  // #swagger.tags = ['Complaints']
   try {
     const { complaintId } = req.params;
     await complaintModel.deleteComplaint(complaintId);

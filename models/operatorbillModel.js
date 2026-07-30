@@ -4,24 +4,12 @@ function computeBillId(stallId, billMonth) {
   return `${stallId}_${billMonth}`;
 }
 
-function serverMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 function computeDueDate(billMonth, dueDay = 15) {
   const [yy, mm] = billMonth.split("-").map(Number);
-  const daysInMonth = new Date(yy, mm, 0).getDate();
-  const clampedDay = Math.min(dueDay, daysInMonth);
-  let dueDate = new Date(yy, mm - 1, clampedDay);
-
-  const now = new Date();
-  if (billMonth === serverMonthKey() && now > dueDate) {
-    const nextMonthDays = new Date(yy, mm + 1, 0).getDate();
-    const clampedNextDay = Math.min(dueDay, nextMonthDays);
-    dueDate = new Date(yy, mm, clampedNextDay);
-  }
-  return dueDate;
+  const daysInDueMonth = new Date(yy, mm + 1, 0).getDate();
+  const clampedDay = Math.min(dueDay, daysInDueMonth);
+  return new Date(yy, mm, clampedDay);
 }
 
 async function getBill(stallId, billMonth) {

@@ -5,6 +5,7 @@ const VALID_REASONS = ["Spam", "Inappropriate Content", "Fake Review", "Harassme
 // POST /api/reports
 
 async function createReport(req, res) {
+  // #swagger.tags = ['Reports']
   try {
     const reporterUserId = req.user.userId;
     const { reviewId, reason, details } = req.body;
