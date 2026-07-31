@@ -428,7 +428,13 @@ Interactive Swagger documentation for every endpoint is served at:
 http://localhost:3000/api-docs
 ```
 
-To regenerate the spec after adding or changing routes:
+The spec (`routes/swagger-output.json`) is auto-generated from route comments and is regenerated automatically every time you run:
+
+```bash
+npm run devStart
+```
+
+If you ever need to regenerate it manually (e.g. running `node app.js` directly without `devStart`), you can trigger it yourself:
 
 ```bash
 node routes/swagger.js
