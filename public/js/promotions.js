@@ -1,6 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-  let claimedCodes = new Set(JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"));
-  let claimedDailyIds = new Set(JSON.parse(localStorage.getItem("hp_claimedDailyIds") || "[]"));
+  let claimedCodes = new Set(
+    JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"),
+  );
+  let claimedDailyIds = new Set(
+    JSON.parse(localStorage.getItem("hp_claimedDailyIds") || "[]"),
+  );
 
   function todayKey() {
     const d = new Date();
@@ -12,6 +16,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const DAY = 24 * 60 * 60 * 1000;
   let promos = [];
+
+  async function isGuestCheckLoggedIn() {
+    try {
+      const res = await fetch("/api/auth/me");
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
 
   const promoList = document.getElementById("promoList");
   const promoSearch = document.getElementById("promoSearch");
@@ -26,23 +39,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadPromos() {
     try {
-      const response = await fetch('/api/promotions');
+      const response = await fetch("/api/promotions");
       const data = await response.json();
-      
-      promos = data.map(item => ({
+
+      promos = data.map((item) => ({
         id: item.PromoCode || item.promoCode || item.Id || item.id || "",
-        title: item.PromoTitle || item.promoTitle || item.title || "Special Promotion",
-        desc: item.Desc || item.desc || item.description || "No description available.",
+        title:
+          item.PromoTitle ||
+          item.promoTitle ||
+          item.title ||
+          "Special Promotion",
+        desc:
+          item.Desc ||
+          item.desc ||
+          item.description ||
+          "No description available.",
         code: item.PromoCode || item.promoCode || "NOCODE",
-        img: item.ImageUrl || item.imageUrl || item.img || "images/promo_placeholder.png",
-        popular: item.IsPopular == 1 || item.isPopular == 1 || item.IsPopular === true || item.isPopular === true,
-        isHidden: item.IsHidden == 1 || item.isHidden == 1 || item.IsHidden === true || item.isHidden === true,
+        img:
+          item.ImageUrl ||
+          item.imageUrl ||
+          item.img ||
+          "images/promo_placeholder.png",
+        popular:
+          item.IsPopular == 1 ||
+          item.isPopular == 1 ||
+          item.IsPopular === true ||
+          item.isPopular === true,
+        isHidden:
+          item.IsHidden == 1 ||
+          item.isHidden == 1 ||
+          item.IsHidden === true ||
+          item.isHidden === true,
         redemptionsLeft: item.RedemptionsLeft ?? item.redemptionsLeft,
-        type: (item.PromoType || item.promoType || 'cash').toLowerCase(),
-        expiresAt: new Date(item.ExpiresAt || item.expiresAt || '2099-12-31').getTime(),
-        claimOnce: item.ClaimOnce == 1 || item.claimOnce == 1 || item.ClaimOnce === true || item.claimOnce === true
+        type: (item.PromoType || item.promoType || "cash").toLowerCase(),
+        expiresAt: new Date(
+          item.ExpiresAt || item.expiresAt || "2099-12-31",
+        ).getTime(),
+        claimOnce:
+          item.ClaimOnce == 1 ||
+          item.claimOnce == 1 ||
+          item.ClaimOnce === true ||
+          item.claimOnce === true,
       }));
-      
+
       render();
     } catch (err) {
       promoList.innerHTML = `<div class="emptyState"><h2 class="emptyTitle">Error loading promotions</h2></div>`;
@@ -71,11 +110,78 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast._t = setTimeout(() => toast.classList.remove("show"), 1400);
   }
 
+  // Modal shown when a guest tries to claim/redeem a promo. Self-contained —
+  // injects its own styles + DOM, no HTML/CSS changes needed.
+  function showPromoLoginModal() {
+    if (!document.getElementById("hpPromoModalStyles")) {
+      const style = document.createElement("style");
+      style.id = "hpPromoModalStyles";
+      style.textContent = `
+        .hpModalBackdrop{position:fixed;inset:0;background:rgba(40,25,15,.55);
+          display:flex;align-items:center;justify-content:center;z-index:9999;
+          animation:hpFade .15s ease}
+        @keyframes hpFade{from{opacity:0}to{opacity:1}}
+        .hpModalCard{background:#fffdf8;max-width:400px;width:calc(100% - 48px);
+          box-sizing:border-box;margin:0 auto;
+          border-radius:18px;padding:28px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+          font-family:inherit;text-align:center;animation:hpPop .18s ease}
+        @keyframes hpPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+        .hpModalIcon{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;
+          background:#fbe4d6;display:flex;align-items:center;justify-content:center;font-size:26px}
+        .hpModalTitle{font-size:19px;font-weight:700;color:#7a3e1d;margin:0 0 8px}
+        .hpModalMsg{font-size:15px;line-height:1.5;color:#4a3a2c;margin:0 0 20px}
+        .hpModalActions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+        .hpModalBtn{border:none;border-radius:12px;padding:11px 22px;font-size:15px;
+          font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;
+          display:inline-flex;align-items:center;justify-content:center;
+          line-height:1;text-align:center;flex:0 0 auto;min-width:110px}
+        .hpModalBtn.primary{background:#df8f3b;color:#fff}
+        .hpModalBtn.primary:hover{background:#c97c2c}
+        .hpModalBtn.ghost{background:#f0e6da;color:#7a3e1d}
+        .hpModalBtn.ghost:hover{background:#e6d8c6}
+      `;
+      document.head.appendChild(style);
+    }
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "hpModalBackdrop";
+    backdrop.innerHTML = `
+      <div class="hpModalCard" role="dialog" aria-modal="true">
+        <div class="hpModalIcon">&#128274;</div>
+        <h3 class="hpModalTitle">Login to claim</h3>
+        <p class="hpModalMsg">Promo codes are for members. Log in or sign up free to claim this deal.</p>
+        <div class="hpModalActions">
+          <button class="hpModalBtn ghost" data-close>Not now</button>
+          <button class="hpModalBtn primary" data-login>Log in</button>
+        </div>
+      </div>`;
+
+    const close = () => backdrop.remove();
+    backdrop.addEventListener("click", (ev) => {
+      if (ev.target === backdrop || ev.target.hasAttribute("data-close"))
+        close();
+      if (ev.target.hasAttribute("data-login"))
+        window.location.href = "signin.html";
+    });
+    document.addEventListener("keydown", function onKey(ev) {
+      if (ev.key === "Escape") {
+        close();
+        document.removeEventListener("keydown", onKey);
+      }
+    });
+
+    document.body.appendChild(backdrop);
+  }
+
   function isPromoRevealed(p) {
     const safeCode = String(p.code).toUpperCase();
     const dailyIdUpper = `${safeCode}_${todayKey()}`.toUpperCase();
-    const isClaimed = p.claimOnce === false ? claimedDailyIds.has(dailyIdUpper) : claimedCodes.has(safeCode);
-    const isApplied = localStorage.getItem("hawkerpoint_applied_promo") === safeCode;
+    const isClaimed =
+      p.claimOnce === false
+        ? claimedDailyIds.has(dailyIdUpper)
+        : claimedCodes.has(safeCode);
+    const isApplied =
+      localStorage.getItem("hawkerpoint_applied_promo") === safeCode;
     return p.isHidden && (isClaimed || isApplied);
   }
 
@@ -92,7 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const descStr = String(p.desc).toLowerCase();
     const codeStr = String(p.code).toLowerCase();
 
-    const qOk = !q || titleStr.includes(q) || descStr.includes(q) || codeStr.includes(q);
+    const qOk =
+      !q || titleStr.includes(q) || descStr.includes(q) || codeStr.includes(q);
     const tOk = t === "all" || p.type === t;
     const sOk = s === "all" || statusOf(p) === s;
 
@@ -101,11 +208,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function sortPromos(arr) {
     const mode = sortFilter.value;
-    
+
     return [...arr].sort((a, b) => {
       const aRevealed = isPromoRevealed(a);
       const bRevealed = isPromoRevealed(b);
-      
+
       if (aRevealed && !bRevealed) return -1;
       if (!aRevealed && bRevealed) return 1;
 
@@ -113,7 +220,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return daysLeft(a) - daysLeft(b);
       }
       if (mode === "best") {
-        const score = (p) => p.type === "percent" ? 3 : p.type === "cash" ? 2 : 1;
+        const score = (p) =>
+          p.type === "percent" ? 3 : p.type === "cash" ? 2 : 1;
         return score(b) - score(a);
       }
       return (b.popular === true) - (a.popular === true);
@@ -121,6 +229,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function claimVoucher(codeRaw) {
+    // Guests can view promos but not claim them.
+    const loggedIn = await isGuestCheckLoggedIn();
+    if (!loggedIn) {
+      showPromoLoginModal();
+      return;
+    }
+
     const code = (codeRaw || "").trim().toUpperCase();
     const promo = promos.find((p) => String(p.code).toUpperCase() === code);
 
@@ -128,17 +243,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isExpired(promo)) return showToast("This promo is expired");
 
     try {
-      const response = await fetch('/api/promotions/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promo.code })
+      const response = await fetch("/api/promotions/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promo.code }),
       });
 
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         if (response.status === 401) {
-          showToast("Please log in to claim promo codes.");
+          showPromoLoginModal();
           return;
         }
         if (response.status === 409) {
@@ -152,10 +267,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
       if (promo.claimOnce === false) {
         claimedDailyIds.add(dailyIdUpper);
-        localStorage.setItem("hp_claimedDailyIds", JSON.stringify([...claimedDailyIds]));
+        localStorage.setItem(
+          "hp_claimedDailyIds",
+          JSON.stringify([...claimedDailyIds]),
+        );
       } else {
         claimedCodes.add(code);
-        localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
+        localStorage.setItem(
+          "hp_claimedCodes",
+          JSON.stringify([...claimedCodes]),
+        );
       }
 
       showToast(`Claimed: ${code}`);
@@ -185,7 +306,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeUpper = safeCode.toUpperCase();
     const dailyIdUpper = `${codeUpper}_${todayKey()}`.toUpperCase();
 
-    const isClaimed = p.claimOnce === false ? claimedDailyIds.has(dailyIdUpper) : claimedCodes.has(codeUpper);
+    const isClaimed =
+      p.claimOnce === false
+        ? claimedDailyIds.has(dailyIdUpper)
+        : claimedCodes.has(codeUpper);
 
     return `
     <article class="card">
@@ -249,7 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const filtered = sortPromos(promos.filter(matches));
 
     const sortText = sortFilter.options[sortFilter.selectedIndex].text;
-    promoSub.textContent = `Showing ${filtered.length} promo codes • Sorted by ${sortText.replace('Sort: ', '')}`;
+    promoSub.textContent = `Showing ${filtered.length} promo codes • Sorted by ${sortText.replace("Sort: ", "")}`;
 
     if (filtered.length === 0) return renderEmpty();
 
@@ -295,20 +419,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const response = await fetch('/api/promotions/redeem', {
-        method: 'POST',
+      const response = await fetch("/api/promotions/redeem", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ code: promo.code })
+        body: JSON.stringify({ code: promo.code }),
       });
 
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         if (response.status === 401) {
-          redeemMsg.textContent = "Please log in to redeem promo codes.";
-          showToast("Log in required");
+          showPromoLoginModal();
           return;
         }
         if (response.status === 409) {
@@ -328,10 +451,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
       if (promo.claimOnce === false) {
         claimedDailyIds.add(dailyIdUpper);
-        localStorage.setItem("hp_claimedDailyIds", JSON.stringify([...claimedDailyIds]));
+        localStorage.setItem(
+          "hp_claimedDailyIds",
+          JSON.stringify([...claimedDailyIds]),
+        );
       } else {
         claimedCodes.add(code);
-        localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
+        localStorage.setItem(
+          "hp_claimedCodes",
+          JSON.stringify([...claimedCodes]),
+        );
       }
 
       loadPromos();

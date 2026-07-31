@@ -98,8 +98,7 @@ async function assertStallsOpen(pool, stallIds) {
     const res = await pool
       .request()
       .input("StallId", sql.NVarChar(255), stallId)
-      .input("DayOfWeek", sql.TinyInt, dayNum)
-      .query(`
+      .input("DayOfWeek", sql.TinyInt, dayNum).query(`
         SELECT
           s.StallName,
           s.OpenTime, s.CloseTime, s.OperatingHours,
@@ -320,6 +319,9 @@ async function createCheckoutOrder(orderData) {
   const pool = await poolPromise;
   const userId = String(orderData.userId || "guest");
   const dbUserId = userId === "guest" || !orderData.userId ? null : userId;
+  // For guests, tag the order with their session id so their in-session
+  // history can be filtered. Registered orders leave this null.
+  const guestSessionId = dbUserId ? null : orderData.guestSessionId || null;
 
   const items = Array.isArray(orderData.items) ? orderData.items : [];
   if (!items.length) throw new Error("Cart is empty");
@@ -489,6 +491,7 @@ async function createCheckoutOrder(orderData) {
         .input("CustomerId", sql.NVarChar(255), dbUserId)
         .input("CustomerName", sql.NVarChar(255), user.Name || "Guest")
         .input("CustomerEmail", sql.NVarChar(255), user.Email || null)
+        .input("GuestSessionId", sql.NVarChar(100), guestSessionId)
         .input("CheckoutId", sql.NVarChar(255), checkoutId)
         .input("OrderStatus", sql.NVarChar(50), "pending_payment")
         .input("FulfillmentType", sql.NVarChar(50), fulfillment)
@@ -509,12 +512,12 @@ async function createCheckoutOrder(orderData) {
         .input("PromoDiscount", sql.Decimal(18, 2), orderPromoDiscount).query(`
           INSERT INTO dbo.Orders (
             OrderId, OrderNo, StallId, StallName, CustomerId, CustomerName, CustomerEmail,
-            CheckoutId, OrderStatus, FulfillmentType, FulfillmentAddress, FulfillmentPostal,
+            GuestSessionId, CheckoutId, OrderStatus, FulfillmentType, FulfillmentAddress, FulfillmentPostal,
             FulfillmentUnit, PaymentMethod, PaymentStatus, DeliveryFee, SmallOrderFee,
             Subtotal, TotalAmount, PromoCode, PromoDiscount, CreatedAt, UpdatedAt
           ) VALUES (
             @OrderId, @OrderNo, @StallId, @StallName, @CustomerId, @CustomerName, @CustomerEmail,
-            @CheckoutId, @OrderStatus, @FulfillmentType, @FulfillmentAddress, @FulfillmentPostal,
+            @GuestSessionId, @CheckoutId, @OrderStatus, @FulfillmentType, @FulfillmentAddress, @FulfillmentPostal,
             @FulfillmentUnit, @PaymentMethod, @PaymentStatus, @DeliveryFee, @SmallOrderFee,
             @Subtotal, @TotalAmount, @PromoCode, @PromoDiscount, SYSUTCDATETIME(), SYSUTCDATETIME()
           )

@@ -61,6 +61,40 @@ const getMyOrders = async (req, res) => {
   }
 };
 
+// Guest version of getMyOrders — identical shaping, but scoped to the guest
+// session id set by the guestSession middleware instead of a logged-in user.
+// If a real user hits this (req.user set), send them to the authed endpoint
+// so their orders aren't silently missed.
+const getGuestOrders = async (req, res) => {
+  try {
+    if (req.user) {
+      return res
+        .status(400)
+        .json({
+          error: "Use the authenticated orders endpoint when logged in.",
+        });
+    }
+
+    const guestSessionId = req.guestSessionId || null;
+    if (!guestSessionId) return res.json({ orders: [] });
+
+    const checkoutIdFilter = req.query.checkoutId || null;
+
+    const rows = await customerOrdersModel.getOrdersForGuest(
+      guestSessionId,
+      checkoutIdFilter,
+    );
+    const orderIds = rows.map((r) => r.OrderId);
+    const items = await customerOrdersModel.getItemsForOrderIds(orderIds);
+
+    const orders = rows.map((r) => shapeOrder(r, items));
+    res.json({ orders });
+  } catch (err) {
+    console.error("getGuestOrders error:", err);
+    res.status(500).json({ error: "Failed to load orders" });
+  }
+};
+
 const deleteMyOrder = async (req, res) => {
   try {
     const userId = req.user?.UserId || req.user?.userId;
@@ -93,7 +127,9 @@ const cancelMyOrder = async (req, res) => {
     if (affected === 0) {
       return res
         .status(409)
-        .json({ error: "Order not found, not yours, or already completed/cancelled" });
+        .json({
+          error: "Order not found, not yours, or already completed/cancelled",
+        });
     }
 
     res.json({ success: true, cancelledCount: affected });
@@ -102,4 +138,4 @@ const cancelMyOrder = async (req, res) => {
   }
 };
 
-module.exports = { getMyOrders, deleteMyOrder, cancelMyOrder };
+module.exports = { getMyOrders, getGuestOrders, deleteMyOrder, cancelMyOrder };

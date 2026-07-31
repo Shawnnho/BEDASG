@@ -17,6 +17,19 @@
  *************************************************/
 
 /* =========================
+   Guest guard — accounts are for registered users only. If not logged in,
+   bounce to signup before any of the profile logic runs.
+========================= */
+(async () => {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+    if (!res.ok) window.location.replace("signup.html");
+  } catch {
+    window.location.replace("signup.html");
+  }
+})();
+
+/* =========================
    DOM
 ========================= */
 const accAvatar = document.getElementById("accAvatar");
@@ -52,7 +65,6 @@ const viewPromoBtn = document.getElementById("viewPromoBtn");
 const notifCount = document.getElementById("notifCount");
 const mNotifCount = document.getElementById("mNotifCount");
 
-
 const promoModal = document.getElementById("promoModal");
 const promoModalList = document.getElementById("promoModalList");
 const promoModalSub = document.getElementById("promoModalSub");
@@ -81,13 +93,16 @@ const CUST_GET_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`;
 // Name/Email/Phone (see CUST_UPDATE_URL below), matching the fileToBase64()
 // pattern used on the complaints page - no multer/multipart involved.
 const CUST_UPDATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}`; // PUT (application/json)
-const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
+const CUST_DEACTIVATE_URL = (uid) =>
+  `/api/cust/${encodeURIComponent(uid)}/deactivate`; // PATCH
 const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
 // CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
-const CUST_CHANGE_PASSWORD_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
+const CUST_CHANGE_PASSWORD_URL = (uid) =>
+  `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
 const ORDERS_URL = (uid) => `/api/orders/`; // GET
 const PROMOS_LIST_URL = (uid) => `/api/promotions/${encodeURIComponent(uid)}`; // GET
-const PROMOS_COUNT_URL = (uid) => `/api/promotions/count/${encodeURIComponent(uid)}` //GET
+const PROMOS_COUNT_URL = (uid) =>
+  `/api/promotions/count/${encodeURIComponent(uid)}`; //GET
 
 // CONFIRMED - built earlier in this project
 const FAV_ITEMS_GET_URL = "/api/favitems/get";
@@ -96,9 +111,12 @@ const FAV_ITEMS_GET_URL = "/api/favitems/get";
 const FAV_STALLS_GET_URL = "/api/favstalls/get";
 
 // NEW - Saved Cards Endpoints
-const SAVED_CARDS_GET_URL = (uid) => `/api/savedcards/${encodeURIComponent(uid)}`;
-const SAVED_CARDS_ACTIVE_URL = (uid, cardId) => `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}/active`;
-const SAVED_CARDS_DELETE_URL = (uid, cardId) => `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}`;
+const SAVED_CARDS_GET_URL = (uid) =>
+  `/api/savedcards/${encodeURIComponent(uid)}`;
+const SAVED_CARDS_ACTIVE_URL = (uid, cardId) =>
+  `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}/active`;
+const SAVED_CARDS_DELETE_URL = (uid, cardId) =>
+  `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}`;
 
 let currentUid = null;
 
@@ -293,7 +311,8 @@ pwChangeForm?.addEventListener("submit", async (e) => {
 
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        if (pwModalErr) pwModalErr.textContent = "Current password is incorrect.";
+        if (pwModalErr)
+          pwModalErr.textContent = "Current password is incorrect.";
         return;
       }
       throw new Error(`status ${res.status}`);
@@ -394,7 +413,9 @@ async function loadFavouriteCounts(uid) {
       );
       if (res.ok) {
         const rows = await res.json();
-        savedItemsEl.textContent = String(Array.isArray(rows) ? rows.length : 0);
+        savedItemsEl.textContent = String(
+          Array.isArray(rows) ? rows.length : 0,
+        );
       } else {
         savedItemsEl.textContent = "—";
       }
@@ -411,7 +432,9 @@ async function loadFavouriteCounts(uid) {
       );
       if (res.ok) {
         const rows = await res.json();
-        savedStoresEl.textContent = String(Array.isArray(rows) ? rows.length : 0);
+        savedStoresEl.textContent = String(
+          Array.isArray(rows) ? rows.length : 0,
+        );
       } else {
         savedStoresEl.textContent = "—";
       }
@@ -435,7 +458,7 @@ async function loadOrderHistorySummary(uid) {
     if (!res.ok) return; // endpoint not built yet - leave defaults
 
     const orders = await res.json();
-    console.log(new Date(orders.orders[0].createdAt))
+    console.log(new Date(orders.orders[0].createdAt));
     if (sumTotal) sumTotal.textContent = String(orders.orders.length ?? 0);
     if (sumLast) {
       sumLast.textContent = orders.orders[0].createdAt
@@ -449,11 +472,11 @@ async function loadOrderHistorySummary(uid) {
 }
 
 function formatDateTime(date) {
-  const formatted = date.toLocaleString('en-SG', {
-  dateStyle: 'medium',
-  timeStyle: 'short'
+  const formatted = date.toLocaleString("en-SG", {
+    dateStyle: "medium",
+    timeStyle: "short",
   });
-  return formatted
+  return formatted;
 }
 
 function getMostOrderedStall(orders) {
@@ -578,38 +601,43 @@ async function markPromoUsed(uid, promoId) {
 ========================= */
 async function fetchAndRenderSavedCards(uid) {
   if (!savedCardsContainer) return;
-  savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#666;">Loading payment methods...</p>';
-  
+  savedCardsContainer.innerHTML =
+    '<p style="margin:0; font-size:14px; color:#666;">Loading payment methods...</p>';
+
   try {
     const res = await AuthClient.apiFetch(SAVED_CARDS_GET_URL(uid));
-    if (!res.ok) throw new Error('Failed to load cards');
+    if (!res.ok) throw new Error("Failed to load cards");
     const cards = await res.json();
-    
+
     if (!cards || cards.length === 0) {
-        savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#666;">No saved payment methods.</p>';
-        return;
+      savedCardsContainer.innerHTML =
+        '<p style="margin:0; font-size:14px; color:#666;">No saved payment methods.</p>';
+      return;
     }
 
-    savedCardsContainer.innerHTML = cards.map(card => {
-       const inUse = card.InUse === 1 || card.InUse === true;
-       return `
-         <div class="savedCardRow ${inUse ? 'activeCard' : ''}">
+    savedCardsContainer.innerHTML = cards
+      .map((card) => {
+        const inUse = card.InUse === 1 || card.InUse === true;
+        return `
+         <div class="savedCardRow ${inUse ? "activeCard" : ""}">
             <div class="savedCardInfo">
                 <span class="savedCardBrand">${card.CardBrand}</span>
                 <span class="cardNum">•••• ${card.Last4}</span>
-                <span class="cardExp">Exp: ${String(card.ExpMonth).padStart(2, '0')}/${String(card.ExpYear).slice(-2)}</span>
-                ${inUse ? '<span class="inUseBadge">In Use</span>' : ''}
+                <span class="cardExp">Exp: ${String(card.ExpMonth).padStart(2, "0")}/${String(card.ExpYear).slice(-2)}</span>
+                ${inUse ? '<span class="inUseBadge">In Use</span>' : ""}
             </div>
             <div class="savedCardActions">
-                ${!inUse ? `<button class="btn small primary useCardBtn" data-id="${card.SavedCardId}">Use</button>` : ''}
+                ${!inUse ? `<button class="btn small primary useCardBtn" data-id="${card.SavedCardId}">Use</button>` : ""}
                 <button class="btn small dangerBtn deleteCardBtn" data-id="${card.SavedCardId}">Delete</button>
             </div>
          </div>
        `;
-    }).join('');
+      })
+      .join("");
   } catch (err) {
     console.error("Error loading saved cards:", err);
-    savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#b00020;">Failed to load cards.</p>';
+    savedCardsContainer.innerHTML =
+      '<p style="margin:0; font-size:14px; color:#b00020;">Failed to load cards.</p>';
   }
 }
 
@@ -619,32 +647,38 @@ savedCardsContainer?.addEventListener("click", async (e) => {
   const delBtn = e.target.closest(".deleteCardBtn");
 
   if (useBtn) {
-      const cardId = useBtn.dataset.id;
-      useBtn.disabled = true;
-      try {
-          const res = await AuthClient.apiFetch(SAVED_CARDS_ACTIVE_URL(currentUid, cardId), { method: "PATCH" });
-          if (!res.ok) throw new Error("Failed to set active card");
-          await fetchAndRenderSavedCards(currentUid); // Refresh the list
-          setStatus("✅ Card set as active payment method.");
-      } catch(err) {
-          setStatus("❌ Failed to update card.", false);
-          useBtn.disabled = false;
-      }
+    const cardId = useBtn.dataset.id;
+    useBtn.disabled = true;
+    try {
+      const res = await AuthClient.apiFetch(
+        SAVED_CARDS_ACTIVE_URL(currentUid, cardId),
+        { method: "PATCH" },
+      );
+      if (!res.ok) throw new Error("Failed to set active card");
+      await fetchAndRenderSavedCards(currentUid); // Refresh the list
+      setStatus("✅ Card set as active payment method.");
+    } catch (err) {
+      setStatus("❌ Failed to update card.", false);
+      useBtn.disabled = false;
+    }
   }
 
   if (delBtn) {
-      if (!confirm("Are you sure you want to delete this card?")) return;
-      const cardId = delBtn.dataset.id;
-      delBtn.disabled = true;
-      try {
-          const res = await AuthClient.apiFetch(SAVED_CARDS_DELETE_URL(currentUid, cardId), { method: "DELETE" });
-          if (!res.ok) throw new Error("Failed to delete card");
-          await fetchAndRenderSavedCards(currentUid); // Refresh the list
-          setStatus("✅ Card deleted.");
-      } catch(err) {
-          setStatus("❌ Failed to delete card.", false);
-          delBtn.disabled = false;
-      }
+    if (!confirm("Are you sure you want to delete this card?")) return;
+    const cardId = delBtn.dataset.id;
+    delBtn.disabled = true;
+    try {
+      const res = await AuthClient.apiFetch(
+        SAVED_CARDS_DELETE_URL(currentUid, cardId),
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error("Failed to delete card");
+      await fetchAndRenderSavedCards(currentUid); // Refresh the list
+      setStatus("✅ Card deleted.");
+    } catch (err) {
+      setStatus("❌ Failed to delete card.", false);
+      delBtn.disabled = false;
+    }
   }
 });
 
@@ -654,7 +688,7 @@ savedCardsContainer?.addEventListener("click", async (e) => {
 (async () => {
   if (typeof AuthClient === "undefined") {
     setStatus(
-      "❌ Auth script not loaded. Add <script src=\"js/auth-client.js\"></script> to account.html before account.js.",
+      '❌ Auth script not loaded. Add <script src="js/auth-client.js"></script> to account.html before account.js.',
       false,
       8000,
     );
@@ -763,7 +797,6 @@ savedCardsContainer?.addEventListener("click", async (e) => {
       window.location.href = "cart.html";
     });
 
-
     // Edit profile
     editProfileBtn?.addEventListener("click", () => {
       const currentName = (accName?.textContent || "").trim();
@@ -771,8 +804,7 @@ savedCardsContainer?.addEventListener("click", async (e) => {
       const currentPhone =
         phoneText === "—" || phoneText === "-" ? "" : phoneText;
       const currentEmailText = (accEmail?.textContent || "").trim();
-      const currentEmail =
-        currentEmailText === "—" ? "" : currentEmailText;
+      const currentEmail = currentEmailText === "—" ? "" : currentEmailText;
 
       const { overlay } = openModal({
         title: "Edit Profile",
@@ -862,24 +894,23 @@ savedCardsContainer?.addEventListener("click", async (e) => {
           // AvatarUrl as a base64 data URL if a new photo was chosen. If no
           // new photo is selected, AvatarUrl is omitted (null) and the
           // backend leaves the existing avatar untouched.
-          const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+          const avatarBase64 = avatarFile
+            ? await fileToBase64(avatarFile)
+            : null;
 
           let updatedCustomer = null;
 
           try {
-            const res = await AuthClient.apiFetch(
-              CUST_UPDATE_URL(currentUid),
-              {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  Name: newName,
-                  Email: newEmail,
-                  Phone: newPhone,
-                  AvatarUrl: avatarBase64,
-                }),
-              },
-            );
+            const res = await AuthClient.apiFetch(CUST_UPDATE_URL(currentUid), {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                Name: newName,
+                Email: newEmail,
+                Phone: newPhone,
+                AvatarUrl: avatarBase64,
+              }),
+            });
 
             if (!res.ok) throw new Error(`status ${res.status}`);
             updatedCustomer = await res.json();

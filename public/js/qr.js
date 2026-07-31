@@ -7,20 +7,20 @@
  *   (no real payment gateway — this just simulates success)
  *************************************************/
 
-async function api(endpoint, method = 'GET', body = null) {
+async function api(endpoint, method = "GET", body = null) {
   const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      ...(body && { body: JSON.stringify(body) })
+    method,
+    headers: { "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }),
   };
   const res = await fetch(`/api${endpoint}`, options);
-  if (!res.ok) throw new Error('API Error');
+  if (!res.ok) throw new Error("API Error");
   return await res.json();
 }
 
 async function checkLogin() {
   try {
-    const res = await fetch('/api/auth/me');
+    const res = await fetch("/api/auth/me");
     if (res.ok) {
       const data = await res.json();
       return { uid: data.user.id };
@@ -50,7 +50,7 @@ async function loadCheckout(checkoutId) {
 }
 
 async function markCheckoutPaid(checkoutId, paymentRef) {
-  return await api(`/checkoutCard/${checkoutId}/pay`, 'POST', { paymentRef });
+  return await api(`/checkoutCard/${checkoutId}/pay`, "POST", { paymentRef });
 }
 
 async function main() {
@@ -65,12 +65,10 @@ async function main() {
     return;
   }
 
+  // Guests can pay too — the checkoutId in the URL is the unguessable key,
+  // and the server (ownsCheckoutOrForbid) only restricts checkouts that
+  // belong to a registered user. So we don't block on login here.
   const user = await checkLogin();
-  if (!user) {
-    alert("Please sign in to continue.");
-    window.location.href = "account.html";
-    return;
-  }
 
   confirmBtn.disabled = true;
 
@@ -81,10 +79,11 @@ async function main() {
     return;
   }
 
-  // Ownership check — Checkout row's UserId, or the order's CustomerId if
-  // there's no linked Checkout row (bare single-order case).
+  // Ownership check — only enforced when the checkout actually belongs to a
+  // registered user. A guest checkout (UserId null / "guest") is payable by
+  // whoever holds the checkoutId.
   const ownerId = summary.checkout?.UserId ?? summary.orders[0]?.CustomerId;
-  if (ownerId && ownerId !== "guest" && ownerId !== user.uid) {
+  if (ownerId && ownerId !== "guest" && ownerId !== user?.uid) {
     alert("You do not have access to this checkout.");
     window.location.href = "home.html";
     return;

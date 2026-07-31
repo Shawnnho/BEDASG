@@ -1,4 +1,11 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+
+// Guest sessions: a JWT carrying a random guestSessionId, delivered as a
+// SESSION cookie (no maxAge) so it dies when the browser session ends —
+// which is what makes a guest's in-session order history "disappear". The
+// short TTL is just a backstop against a cookie that somehow lingers.
+const GUEST_TOKEN_TTL = "3h";
 
 function verifyToken(req, res, next) {
   const token = req.cookies?.accessToken;
@@ -31,6 +38,45 @@ function optionalAuth(req, res, next) {
   });
 }
 
+// For guest-capable routes: if the caller is a logged-in user (req.user set
+// by optionalAuth), do nothing. Otherwise ensure a guest token exists —
+// reading its guestSessionId if valid, or minting a fresh one — and expose
+// it as req.guestSessionId for the checkout model to stamp onto orders.
+function guestSession(req, res, next) {
+  if (req.user) return next(); // logged-in users don't need a guest id
+
+  const existing = req.cookies?.guestToken;
+  if (existing) {
+    try {
+      const decoded = jwt.verify(existing, process.env.JWT_SECRET);
+      if (decoded?.guest && decoded.guestSessionId) {
+        req.guestSessionId = decoded.guestSessionId;
+        return next();
+      }
+    } catch {
+      // fall through and mint a new one
+    }
+  }
+
+  const guestSessionId = "GS_" + crypto.randomBytes(16).toString("hex");
+  const token = jwt.sign(
+    { guest: true, guestSessionId },
+    process.env.JWT_SECRET,
+    { expiresIn: GUEST_TOKEN_TTL },
+  );
+
+  // No maxAge/expires → session cookie → cleared on browser close.
+  res.cookie("guestToken", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+
+  req.guestSessionId = guestSessionId;
+  next();
+}
+
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -40,4 +86,4 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { verifyToken, requireRole, optionalAuth };
+module.exports = { verifyToken, requireRole, optionalAuth, guestSession };

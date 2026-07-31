@@ -24,8 +24,10 @@ function money(n) {
 function prettyPayMethod(m) {
   const x = String(m || "").toLowerCase();
   if (x.includes("cash")) return "Cash";
-  if (x.includes("paynow") || x.includes("nets") || x === "qr") return "PayNow / NETS QR";
-  if (x.includes("card") || x.includes("credit") || x.includes("debit")) return "Card";
+  if (x.includes("paynow") || x.includes("nets") || x === "qr")
+    return "PayNow / NETS QR";
+  if (x.includes("card") || x.includes("credit") || x.includes("debit"))
+    return "Card";
   return (m || "—").toString();
 }
 
@@ -66,12 +68,15 @@ function formatDateTime(d) {
 }
 
 function addMinutes(date, mins) {
-  return new Date(date.getTime() + mins * 60000);
+  return new Date(date.getTime() + mins * 30000);
 }
 
 function formatTimeOnly(d) {
   if (!d) return "—";
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function setPaidAtAndPickup(paidAtRaw, isCash, createdAtRaw) {
@@ -125,7 +130,9 @@ function renderItems(orders, items) {
         o.StallName ? `Stall: ${o.StallName}` : "",
         `${it.Quantity} x ${it.ItemName}`,
         it.VariantKey ? `Selected: ${formatVariantLabel(it.VariantKey)}` : "",
-        addons.length ? `Add-ons: ${addons.map((a) => a.label || a.id || "").join(", ")}` : "",
+        addons.length
+          ? `Add-ons: ${addons.map((a) => a.label || a.id || "").join(", ")}`
+          : "",
         it.ItemNote ? `Note: ${it.ItemNote}` : "",
       ].filter(Boolean);
 
@@ -202,7 +209,8 @@ function applyRefundState(orders) {
   }
 
   const titleEl = document.querySelector(".pr-title");
-  if (titleEl) titleEl.textContent = isRefund ? "Order Refunded" : "Order Cancelled";
+  if (titleEl)
+    titleEl.textContent = isRefund ? "Order Refunded" : "Order Cancelled";
 
   const subEl = document.querySelector(".pr-sub");
   if (subEl) {
@@ -222,7 +230,7 @@ function applyRefundState(orders) {
   }
 }
 
-const QR_REVEAL_DELAY_MS = 60000;
+const QR_REVEAL_DELAY_MS = 5000;
 
 // Once the QR has been shown for an order, remember it in localStorage so
 // leaving the page and coming back doesn't restart the wait — it just
@@ -288,9 +296,17 @@ function hideInlineQr() {
   container.hidden = true;
 }
 
-function setupCancelButton(id, orders) {
+async function setupCancelButton(id, orders) {
   const btn = document.getElementById("btnCancel");
   if (!btn) return;
+
+  // Guests are view-only — no cancelling. The cancel endpoint requires login
+  // anyway, so hide the button rather than let it fail.
+  const user = await checkLogin();
+  if (!user) {
+    btn.hidden = true;
+    return;
+  }
 
   const isRefunded = orders.some(
     (o) => String(o.RefundStatus || "").toLowerCase() === "refunded",
@@ -340,7 +356,8 @@ async function loadSummary(id) {
   const orderIdEl = document.getElementById("prOrderId");
   if (orderIdEl) orderIdEl.textContent = primaryOrderNo;
 
-  const fulfillmentType = checkout?.FulfillmentType || orders[0].FulfillmentType;
+  const fulfillmentType =
+    checkout?.FulfillmentType || orders[0].FulfillmentType;
   const address = {
     line1: checkout?.FulfillmentAddress || orders[0].FulfillmentAddress,
     postal: checkout?.FulfillmentPostal || orders[0].FulfillmentPostal,
@@ -349,15 +366,20 @@ async function loadSummary(id) {
   setDeliveryBox(fulfillmentType, address);
 
   const paymentMethodRaw = checkout?.PaymentMethod || orders[0].PaymentMethod;
-  const isCash = String(paymentMethodRaw || "").toLowerCase().includes("cash");
+  const isCash = String(paymentMethodRaw || "")
+    .toLowerCase()
+    .includes("cash");
   const paidAt = checkout?.PaymentPaidAt || orders[0].PaidAt;
   const createdAt = checkout?.CreatedAt || orders[0].CreatedAt;
   setPaidAtAndPickup(paidAt, isCash, createdAt);
 
   const titleEl = document.querySelector(".pr-title");
-  if (titleEl) titleEl.textContent = isCash ? "Order Received" : "Payment Received";
+  if (titleEl)
+    titleEl.textContent = isCash ? "Order Received" : "Payment Received";
 
-  const stallNames = Array.from(new Set(orders.map((o) => o.StallName).filter(Boolean)));
+  const stallNames = Array.from(
+    new Set(orders.map((o) => o.StallName).filter(Boolean)),
+  );
   const stallsEl = document.getElementById("prStalls");
   if (stallsEl) {
     if (!stallNames.length) {
@@ -372,11 +394,15 @@ async function loadSummary(id) {
 
   const payMethodEl = document.getElementById("prPayMethod");
   if (payMethodEl) {
-    payMethodEl.textContent = prettyPayMethod(checkout?.PaymentMethod || orders[0].PaymentMethod);
+    payMethodEl.textContent = prettyPayMethod(
+      checkout?.PaymentMethod || orders[0].PaymentMethod,
+    );
   }
 
   const totalEl = document.getElementById("prTotalPaid");
-  const total = checkout?.PricingTotal ?? orders.reduce((s, o) => s + Number(o.TotalAmount || 0), 0);
+  const total =
+    checkout?.PricingTotal ??
+    orders.reduce((s, o) => s + Number(o.TotalAmount || 0), 0);
   if (totalEl) totalEl.textContent = `$${money(total)}`;
 
   const btnStatus = document.getElementById("btnStatus");
@@ -400,12 +426,9 @@ async function loadSummary(id) {
 
 (async () => {
   try {
-    const user = await checkLogin();
-    if (!user) {
-      showError("Please sign in to view your payment receipt.");
-      return;
-    }
-
+    // No login gate — the checkoutId/orderId in the URL is the key, and the
+    // server only restricts receipts that belong to a registered user. Guests
+    // can view their own receipt straight after paying.
     const id = getQueryParam("checkoutId") || getQueryParam("orderId");
     if (!id) {
       showError("Missing checkoutId or orderId in the URL.");
