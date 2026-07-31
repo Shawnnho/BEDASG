@@ -8,7 +8,7 @@ class SavedCardModel {
             .query(`
                 SELECT SavedCardId, CardBrand, Last4, ExpMonth, ExpYear, CreatedAt, InUse
                 FROM dbo.SavedCards
-                WHERE UserId = @uid
+                WHERE UserId = @uid AND InUse = 1
                 ORDER BY CreatedAt DESC
             `);
         return result.recordset;
