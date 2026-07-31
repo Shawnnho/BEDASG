@@ -120,25 +120,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function claimVoucher(codeRaw) {
+  async function claimVoucher(codeRaw) {
     const code = (codeRaw || "").trim().toUpperCase();
     const promo = promos.find((p) => String(p.code).toUpperCase() === code);
 
     if (!promo) return showToast("Promo not found");
     if (isExpired(promo)) return showToast("This promo is expired");
 
-    const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
+    try {
+      const response = await fetch('/api/promotions/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promo.code })
+      });
 
-    if (promo.claimOnce === false) {
-      claimedDailyIds.add(dailyIdUpper);
-      localStorage.setItem("hp_claimedDailyIds", JSON.stringify([...claimedDailyIds]));
-    } else {
-      claimedCodes.add(code);
-      localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          showToast("Please log in to claim promo codes.");
+          return;
+        }
+        if (response.status === 409) {
+          showToast("You've already claimed this promo.");
+          return;
+        }
+        showToast(data.error || "Could not claim this code.");
+        return;
+      }
+
+      const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
+      if (promo.claimOnce === false) {
+        claimedDailyIds.add(dailyIdUpper);
+        localStorage.setItem("hp_claimedDailyIds", JSON.stringify([...claimedDailyIds]));
+      } else {
+        claimedCodes.add(code);
+        localStorage.setItem("hp_claimedCodes", JSON.stringify([...claimedCodes]));
+      }
+
+      showToast(`Claimed: ${code}`);
+      await loadPromos(); // re-fetch so RedemptionsLeft reflects the real DB value
+    } catch (err) {
+      showToast("An error occurred while claiming.");
     }
-
-    render();
-    showToast(`Claimed: ${code}`);
   }
 
   function renderCard(p) {

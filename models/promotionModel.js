@@ -60,10 +60,10 @@ async function redeemPromotion(promoCode, userId) {
     if (promo.ClaimOnce) {
       const claimRes = await transaction.request()
         .input('userId', sql.NVarChar(255), userId)
-        .input('promotionId', sql.NVarChar(255), promo.PromotionId)
+        .input('promoId', sql.NVarChar(255), promo.PromotionId)
         .query(`
           SELECT ClaimId FROM dbo.UserPromoClaims
-          WHERE UserId = @userId AND PromotionId = @promotionId
+          WHERE UserId = @userId AND PromoId = @promoId
         `);
 
       if (claimRes.recordset.length > 0) {
@@ -87,11 +87,11 @@ async function redeemPromotion(promoCode, userId) {
 
     await transaction.request()
       .input('userId', sql.NVarChar(255), userId)
-      .input('promotionId', sql.NVarChar(255), promo.PromotionId)
+      .input('promoId', sql.NVarChar(255), promo.PromotionId)
       .input('promoCode', sql.NVarChar(255), promoCode)
       .query(`
-        INSERT INTO dbo.UserPromoClaims (UserId, PromotionId, PromoCode, ClaimedAt)
-        VALUES (@userId, @promotionId, @promoCode, SYSUTCDATETIME())
+        INSERT INTO dbo.UserPromoClaims (UserId, PromoId, PromoCode, ClaimedAt)
+        VALUES (@userId, @promoId, @promoCode, SYSUTCDATETIME())
       `);
 
     await transaction.commit();
