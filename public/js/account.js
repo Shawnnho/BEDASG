@@ -82,7 +82,7 @@ const CUST_DEACTIVATE_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/deact
 const AUTH_FORGOT_PASSWORD_URL = "/api/auth/forgot-password"; // POST - GUESS, unused now that Change Password uses the modal below
 // CONFIRMED - matches the custController/custModel/custRoutes changePassword you just built
 const CUST_CHANGE_PASSWORD_URL = (uid) => `/api/cust/${encodeURIComponent(uid)}/password`; // PATCH
-const ORDERS_SUMMARY_URL = (uid) => `/api/orders/summary/${encodeURIComponent(uid)}`; // GET
+const ORDERS_URL = (uid) => `/api/orders/`; // GET
 const PROMOS_LIST_URL = (uid) => `/api/promotions/${encodeURIComponent(uid)}`; // GET
 const PROMOS_COUNT_URL = (uid) => `/api/promotions/count/${encodeURIComponent(uid)}` //GET
 
@@ -426,20 +426,47 @@ async function loadOrderHistorySummary(uid) {
   if (sumFav) sumFav.textContent = "—";
 
   try {
-    const res = await AuthClient.apiFetch(ORDERS_SUMMARY_URL(uid));
+    const res = await AuthClient.apiFetch(ORDERS_URL(uid));
     if (!res.ok) return; // endpoint not built yet - leave defaults
 
-    const summary = await res.json();
-    if (sumTotal) sumTotal.textContent = String(summary.total ?? 0);
+    const orders = await res.json();
+    console.log(new Date(orders.orders[0].createdAt))
+    if (sumTotal) sumTotal.textContent = String(orders.orders.length ?? 0);
     if (sumLast) {
-      sumLast.textContent = summary.lastOrderAt
-        ? formatDateTime(new Date(summary.lastOrderAt).getTime())
+      sumLast.textContent = orders.orders[0].createdAt
+        ? formatDateTime(new Date(orders.orders[0].createdAt))
         : "—";
     }
-    if (sumFav) sumFav.textContent = summary.favouriteStall || "—";
+    if (sumFav) sumFav.textContent = getMostOrderedStall(orders.orders) || "—";
   } catch (err) {
     console.error("Failed to load order history summary:", err);
   }
+}
+
+function formatDateTime(date) {
+  const formatted = date.toLocaleString('en-SG', {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+  });
+  return formatted
+}
+
+function getMostOrderedStall(orders) {
+  const counts = {};
+
+  for (const order of orders) {
+    const stall = order.stallName;
+    counts[stall] = (counts[stall] || 0) + 1;
+  }
+  let mostOrderedStall = null;
+  let maxCount = 0;
+  for (const stall in counts) {
+    if (counts[stall] > maxCount) {
+      maxCount = counts[stall];
+      mostOrderedStall = stall;
+    }
+  }
+  return mostOrderedStall;
 }
 
 /* =========================
@@ -463,6 +490,8 @@ async function updateRedeemedCount(uid) {
     redeemedPromoCount.textContent = "0";
   }
 }
+
+
 
 function openPromoModal() {
   if (!promoModal) return;
