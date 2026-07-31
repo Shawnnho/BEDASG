@@ -1,6 +1,5 @@
 const Joi = require("joi");
 
-
 const createComplaintSchema = Joi.object({
   stall: Joi.string().required(),
   stallName: Joi.string().allow("", null),
@@ -26,6 +25,7 @@ const createReviewSchema = Joi.object({
     "any.required": "Please select a stall.",
     "string.empty": "Please select a stall.",
   }),
+  itemId: Joi.string().allow("", null), // Added itemId here so the server accepts it
   rating: Joi.number().min(1).max(5).required().messages({
     "number.min": "Rating must be between 1 and 5.",
     "number.max": "Rating must be between 1 and 5.",
@@ -86,7 +86,6 @@ const complaintIdParamSchema = Joi.object({
 const reviewIdParamSchema = Joi.object({
   reviewId: Joi.string().required(),
 });
-
 
 function formatJoiError(error) {
   const messages = [...new Set(error.details.map((detail) => detail.message))];
