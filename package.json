@@ -4,8 +4,10 @@
   "description": "This is for BED Assignment 2026",
   "main": "app.js",
   "scripts": {
+    "swagger": "node routes/swagger.js",
+    "predevStart": "node routes/swagger.js",
     "devStart": "nodemon app.js",
-    "test" : "jest"
+    "test": "jest"
   },
   "repository": {
     "type": "git",

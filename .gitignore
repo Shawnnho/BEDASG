@@ -42,3 +42,6 @@ Thumbs.db
 
 request.js
 "test connection.js/"
+
+# Auto-generated Swagger spec (regenerate with: node routes/swagger.js)
+routes/swagger-output.json
