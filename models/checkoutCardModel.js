@@ -72,32 +72,89 @@ function getStallOpenState(operatingHours, openTime, closeTime) {
 }
 
 // Throws a STALL_CLOSED error if any stall in the checkout is outside its
-// opening hours. Called before the DB transaction so nothing is written.
+// opening hours. Reads the normalized StallHours table (the same table the
+// stall-account editor writes to). Falls back to the Stalls.OperatingHours
+// JSON only when a stall has no StallHours rows. Called before the DB
+// transaction so nothing is written.
 async function assertStallsOpen(pool, stallIds) {
+  // Current Singapore day + minutes (order timestamps are stored UTC).
+  const sg = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" }),
+  );
+  const dayNum = sg.getDay(); // 0=Sun .. 6=Sat, matches StallHours.DayOfWeek
+  const nowMins = sg.getHours() * 60 + sg.getMinutes();
+
+  function minsOpen(openTime, closeTime) {
+    const o = hhmmToMins(openTime);
+    const c = hhmmToMins(closeTime);
+    return c > o
+      ? nowMins >= o && nowMins < c // normal same-day window
+      : nowMins >= o || nowMins < c; // overnight window (closes after midnight)
+  }
+
   for (const stallId of stallIds) {
+    // Look up today's StallHours row (if any) alongside the stall name and
+    // the legacy JSON, in one query.
     const res = await pool
       .request()
       .input("StallId", sql.NVarChar(255), stallId)
-      .query(
-        "SELECT StallName, OpenTime, CloseTime, OperatingHours FROM dbo.Stalls WHERE StallId = @StallId",
-      );
+      .input("DayOfWeek", sql.TinyInt, dayNum)
+      .query(`
+        SELECT
+          s.StallName,
+          s.OpenTime, s.CloseTime, s.OperatingHours,
+          h.IsClosed, h.OpenTime AS HrOpen, h.CloseTime AS HrClose,
+          (SELECT COUNT(*) FROM dbo.StallHours WHERE StallId = s.StallId) AS HoursRowCount
+        FROM dbo.Stalls s
+        LEFT JOIN dbo.StallHours h
+          ON h.StallId = s.StallId AND h.DayOfWeek = @DayOfWeek
+        WHERE s.StallId = @StallId
+      `);
     const row = res.recordset[0];
     if (!row) continue; // stall row missing → let downstream logic handle it
 
-    const { open, window } = getStallOpenState(
-      row.OperatingHours,
-      row.OpenTime,
-      row.CloseTime,
-    );
-    if (!open) {
-      const name = row.StallName || stallId;
-      const err = new Error(
-        window
-          ? `${name} is currently closed (today's hours: ${window}). Orders can only be placed during opening hours.`
-          : `${name} is closed today. Orders can only be placed during opening hours.`,
+    const name = row.StallName || stallId;
+
+    if (row.HoursRowCount > 0) {
+      // StallHours is the source of truth for this stall.
+      // No row for today, explicitly closed, or missing times → closed.
+      const closed =
+        row.IsClosed === true ||
+        row.IsClosed === 1 ||
+        !row.HrOpen ||
+        !row.HrClose;
+
+      if (closed) {
+        const err = new Error(
+          `${name} is closed today. Orders can only be placed during opening hours.`,
+        );
+        err.code = "STALL_CLOSED";
+        throw err;
+      }
+
+      if (!minsOpen(row.HrOpen, row.HrClose)) {
+        const err = new Error(
+          `${name} is currently closed (today's hours: ${row.HrOpen}–${row.HrClose}). Orders can only be placed during opening hours.`,
+        );
+        err.code = "STALL_CLOSED";
+        throw err;
+      }
+    } else {
+      // Fallback: no StallHours rows → use the legacy OperatingHours JSON.
+      const { open, window } = getStallOpenState(
+        row.OperatingHours,
+        row.OpenTime,
+        row.CloseTime,
       );
-      err.code = "STALL_CLOSED";
-      throw err;
+      if (!open) {
+        const err = new Error(
+          window
+            ? `${name} is currently closed (today's hours: ${window}). Orders can only be placed during opening hours.`
+            : `${name} is closed today. Orders can only be placed during opening hours.`,
+        );
+        err.code = "STALL_CLOSED";
+        throw err;
+      }
     }
   }
 }
