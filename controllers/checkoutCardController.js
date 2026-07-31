@@ -1,7 +1,10 @@
 const checkoutCardModel = require("../models/checkoutCardModel");
 const CartModel = require("../models/cartModel");
 const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
-const { sendOrderConfirmation, sendNewOrderAlert } = require("../services/notificationEmails");
+const {
+  sendOrderConfirmation,
+  sendNewOrderAlert,
+} = require("../services/notificationEmails");
 const QRCode = require("qrcode");
 
 // Guest checkouts (checkout.UserId is null) are viewable/payable by anyone
@@ -34,7 +37,9 @@ function parseAddonLabels(addonsJson) {
   if (!addonsJson) return [];
   try {
     const arr = JSON.parse(addonsJson);
-    return Array.isArray(arr) ? arr.map((a) => a.label || a.id || String(a)) : [];
+    return Array.isArray(arr)
+      ? arr.map((a) => a.label || a.id || String(a))
+      : [];
   } catch {
     return [];
   }
@@ -46,9 +51,6 @@ function capitalize(s) {
 
 const createCheckout = async (req, res) => {
   try {
-    // userId always comes from the verified JWT (or "guest" when
-    // anonymous) — never from the request body, otherwise a caller could
-    // attach an order to any other account just by naming its id.
     const userId = req.user?.userId || "guest";
     const result = await checkoutCardModel.createCheckoutOrder({
       ...req.body,
@@ -62,6 +64,9 @@ const createCheckout = async (req, res) => {
     });
   } catch (error) {
     console.error("createCheckout error:", error);
+    if (error.code === "STALL_CLOSED") {
+      return res.status(409).json({ error: error.message });
+    }
     res.status(500).json({ error: "Failed to create order" });
   }
 };
@@ -142,7 +147,9 @@ const payCheckout = async (req, res) => {
             .then((ownerEmail) => {
               if (ownerEmail) sendNewOrderAlert(ownerEmail, emailOrder);
             })
-            .catch((err) => console.error("New order alert email failed:", err.message));
+            .catch((err) =>
+              console.error("New order alert email failed:", err.message),
+            );
         }
       }
     }

@@ -1,23 +1,92 @@
-async function api(endpoint, method = 'GET', body = null) {
+async function api(endpoint, method = "GET", body = null) {
   const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      ...(body && { body: JSON.stringify(body) })
+    method,
+    headers: { "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }),
   };
-  try {
-      const res = await fetch(`/api${endpoint}`, options);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-  } catch (err) {
-      throw err;
+  const res = await fetch(`/api${endpoint}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // Surface the server's real message (e.g. stall closed) to callers
+    const err = new Error(data.error || "API Error");
+    err.status = res.status;
+    err.serverError = data.error || null;
+    throw err;
   }
+  return data;
+}
+
+// Themed modal popup — replaces the native alert() for checkout messages.
+// Self-contained: injects its own styles + DOM, so no cart.html / styles.css
+// changes are needed. Returns a Promise that resolves when dismissed.
+function showModal(
+  message,
+  { title = "Heads up", okText = "OK", icon = "&#128336;" } = {},
+) {
+  if (!document.getElementById("hpModalStyles")) {
+    const style = document.createElement("style");
+    style.id = "hpModalStyles";
+    style.textContent = `
+      .hpModalBackdrop{position:fixed;inset:0;background:rgba(40,25,15,.55);
+        display:flex;align-items:center;justify-content:center;z-index:9999;
+        animation:hpFade .15s ease}
+      @keyframes hpFade{from{opacity:0}to{opacity:1}}
+      .hpModalCard{background:#fffdf8;max-width:420px;width:calc(100% - 48px);
+        border-radius:18px;padding:28px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+        font-family:inherit;text-align:center;animation:hpPop .18s ease}
+      @keyframes hpPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+      .hpModalIcon{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;
+        background:#fbe4d6;display:flex;align-items:center;justify-content:center;
+        font-size:26px}
+      .hpModalTitle{font-size:19px;font-weight:700;color:#7a3e1d;margin:0 0 8px}
+      .hpModalMsg{font-size:15px;line-height:1.5;color:#4a3a2c;margin:0 0 20px}
+      .hpModalBtn{background:#b23b2e;color:#fff;border:none;border-radius:12px;
+        padding:11px 30px;font-size:15px;font-weight:600;cursor:pointer;
+        font-family:inherit;transition:background .15s}
+      .hpModalBtn:hover{background:#9a3025}
+    `;
+    document.head.appendChild(style);
+  }
+
+  return new Promise((resolve) => {
+    const backdrop = document.createElement("div");
+    backdrop.className = "hpModalBackdrop";
+    backdrop.innerHTML = `
+      <div class="hpModalCard" role="dialog" aria-modal="true">
+        <div class="hpModalIcon">${icon}</div>
+        <h3 class="hpModalTitle"></h3>
+        <p class="hpModalMsg"></p>
+        <button class="hpModalBtn"></button>
+      </div>`;
+    backdrop.querySelector(".hpModalTitle").textContent = title;
+    backdrop.querySelector(".hpModalMsg").textContent = message;
+    const btn = backdrop.querySelector(".hpModalBtn");
+    btn.textContent = okText;
+
+    function close() {
+      backdrop.remove();
+      document.removeEventListener("keydown", onKey);
+      resolve();
+    }
+    function onKey(ev) {
+      if (ev.key === "Escape") close();
+    }
+    btn.addEventListener("click", close);
+    backdrop.addEventListener("click", (ev) => {
+      if (ev.target === backdrop) close();
+    });
+    document.addEventListener("keydown", onKey);
+
+    document.body.appendChild(backdrop);
+    btn.focus();
+  });
 }
 
 let currentUser = null;
 
 async function checkLogin() {
   try {
-    const res = await fetch('/api/auth/me');
+    const res = await fetch("/api/auth/me");
     if (res.ok) {
       const data = await res.json();
       return { uid: data.user.id };
@@ -29,35 +98,43 @@ async function checkLogin() {
 }
 
 const CART_KEY = "hp_cart";
-let lastPricing = { subtotal: 0, promoDiscount: 0, smallOrderFee: 0, deliveryFee: 0, total: 0 };
+let lastPricing = {
+  subtotal: 0,
+  promoDiscount: 0,
+  smallOrderFee: 0,
+  deliveryFee: 0,
+  total: 0,
+};
 let appliedPromo = null;
 
 function readLocalCart() {
   try {
     const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
     return Array.isArray(cart) ? cart : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function writeLocalCart(cart) {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart || []));
+  localStorage.setItem(CART_KEY, JSON.stringify(cart || []));
 }
 
 function clearLocalCart() {
-    localStorage.removeItem(CART_KEY);
+  localStorage.removeItem(CART_KEY);
 }
 
 async function readCloudCart(uid) {
   try {
-      const data = await api(`/cart/${uid}`);
-      return Array.isArray(data) ? data : (data.items || data.data || []);
+    const data = await api(`/cart/${uid}`);
+    return Array.isArray(data) ? data : data.items || data.data || [];
   } catch (e) {
-      return [];
+    return [];
   }
 }
 
 async function writeCloudCart(uid, cart) {
-  await api(`/cart/${uid}`, 'POST', { items: cart });
+  await api(`/cart/${uid}`, "POST", { items: cart });
 }
 
 async function readCart() {
@@ -71,29 +148,33 @@ async function saveCart(cart) {
 }
 
 async function fetchPromoByCode(codeRaw) {
-  const code = String(codeRaw || "").trim().toUpperCase();
+  const code = String(codeRaw || "")
+    .trim()
+    .toUpperCase();
   if (!code) return null;
   try {
-      const promos = await api('/promotions');
-      if (!promos) return null;
-      return promos.find(p => String(p.PromoCode).toUpperCase() === code) || null;
+    const promos = await api("/promotions");
+    if (!promos) return null;
+    return (
+      promos.find((p) => String(p.PromoCode).toUpperCase() === code) || null
+    );
   } catch (e) {
-      return null;
+    return null;
   }
 }
 
 function showToast(message, isSuccess = true) {
-    const toast = document.getElementById("toastNotification");
-    if (!toast) return;
+  const toast = document.getElementById("toastNotification");
+  if (!toast) return;
 
-    toast.textContent = message;
-    toast.className = "toast";
-    toast.classList.add("show");
-    toast.classList.add(isSuccess ? "success" : "error");
+  toast.textContent = message;
+  toast.className = "toast";
+  toast.classList.add("show");
+  toast.classList.add(isSuccess ? "success" : "error");
 
-    setTimeout(() => {
-        toast.classList.remove("show");
-    }, 3000);
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000);
 }
 
 function validatePromoLocally(promo, cart, subtotal) {
@@ -109,21 +190,34 @@ function validatePromoLocally(promo, cart, subtotal) {
 
   if (promo.MinSpend && subtotal < Number(promo.MinSpend)) {
     const shortfall = Number(promo.MinSpend) - subtotal;
-    return { ok: false, error: `Add $${shortfall.toFixed(2)} more to use this promo.` };
+    return {
+      ok: false,
+      error: `Add $${shortfall.toFixed(2)} more to use this promo.`,
+    };
   }
 
   if (promo.StallId) {
-    const hasStall = cart.some(it => (it.stallId ?? it.StallId) === promo.StallId);
+    const hasStall = cart.some(
+      (it) => (it.stallId ?? it.StallId) === promo.StallId,
+    );
     if (!hasStall) {
-      return { ok: false, error: "This promo isn't valid for the stalls in your cart." };
+      return {
+        ok: false,
+        error: "This promo isn't valid for the stalls in your cart.",
+      };
     }
   }
 
   if (promo.RequiredKeyword) {
     const kw = String(promo.RequiredKeyword).toLowerCase();
-    const hasKeyword = cart.some(it => (it.name ?? it.Name ?? "").toLowerCase().includes(kw));
+    const hasKeyword = cart.some((it) =>
+      (it.name ?? it.Name ?? "").toLowerCase().includes(kw),
+    );
     if (!hasKeyword) {
-      return { ok: false, error: `Requires "${promo.RequiredKeyword}" in your cart.` };
+      return {
+        ok: false,
+        error: `Requires "${promo.RequiredKeyword}" in your cart.`,
+      };
     }
   }
 
@@ -132,7 +226,9 @@ function validatePromoLocally(promo, cart, subtotal) {
       return { ok: false, error: "Log in to use this promo." };
     }
     const claimedKey = "hp_claimedPromoIds";
-    const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
+    const claimed = new Set(
+      JSON.parse(localStorage.getItem(claimedKey) || "[]"),
+    );
     if (claimed.has(promo.PromotionId)) {
       return { ok: false, error: "You have already used this promo." };
     }
@@ -146,7 +242,15 @@ function calcPromoDiscount(promo, subtotal) {
   const type = String(promo.PromoType || "cash").toLowerCase();
   let discount = 0;
 
-  const value = Number(promo.Value ?? promo.DiscountValue ?? promo.DiscountAmount ?? promo.ExactDollarAmount ?? promo.Percentage ?? promo.Discount ?? 0);
+  const value = Number(
+    promo.Value ??
+      promo.DiscountValue ??
+      promo.DiscountAmount ??
+      promo.ExactDollarAmount ??
+      promo.Percentage ??
+      promo.Discount ??
+      0,
+  );
 
   if (type === "cash") discount = value;
   if (type === "percent") discount = subtotal * (value / 100);
@@ -168,18 +272,27 @@ async function clearAppliedPromo(message = "") {
 }
 
 function money(n) {
-    return (Number(n) || 0).toFixed(2);
+  return (Number(n) || 0).toFixed(2);
 }
 
 function calcCount(cart) {
-  return cart.reduce((c, it) => c + (Number(it.qty ?? it.Qty ?? it.Quantity ?? 1) || 1), 0);
+  return cart.reduce(
+    (c, it) => c + (Number(it.qty ?? it.Qty ?? it.Quantity ?? 1) || 1),
+    0,
+  );
 }
 
 function updateBadges(count) {
   const el = document.getElementById("cartCount");
-  if (el) { el.textContent = String(count); el.classList.toggle("isZero", count <= 0); }
+  if (el) {
+    el.textContent = String(count);
+    el.classList.toggle("isZero", count <= 0);
+  }
   const elM = document.getElementById("cartCountMobile");
-  if (elM) { elM.textContent = String(count); elM.classList.toggle("isZero", count <= 0); }
+  if (elM) {
+    elM.textContent = String(count);
+    elM.classList.toggle("isZero", count <= 0);
+  }
 }
 
 function showReq(id, show) {
@@ -208,19 +321,19 @@ function validateDeliveryFields() {
 
   if (!address) {
     showReq("reqAddress", true);
-    if(addressEl) addressEl.classList.add("isInvalid");
+    if (addressEl) addressEl.classList.add("isInvalid");
     ok = false;
   }
 
   if (!/^\d{6}$/.test(postal)) {
     showReq("reqPostal", true);
-    if(postalEl) postalEl.classList.add("isInvalid");
+    if (postalEl) postalEl.classList.add("isInvalid");
     ok = false;
   }
 
   if (!unit) {
     showReq("reqUnit", true);
-    if(unitEl) unitEl.classList.add("isInvalid");
+    if (unitEl) unitEl.classList.add("isInvalid");
     ok = false;
   }
 
@@ -233,20 +346,25 @@ function getSelectedPayMethod() {
 }
 
 function clearPaySelection() {
-    document.querySelectorAll('input[name="payMethod"]').forEach(el => el.checked = false);
-    syncProceedBtn();
+  document
+    .querySelectorAll('input[name="payMethod"]')
+    .forEach((el) => (el.checked = false));
+  syncProceedBtn();
 }
 
 function calcDeliveryFee(subtotal) {
-    return 2.50;
+  return 2.5;
 }
 
 function syncProceedBtn() {
   const btn = document.getElementById("checkoutBtn");
   if (!btn) return;
   const selectedPay = Boolean(getSelectedPayMethod());
-  const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
-  let deliveryOk = fulfillment === "delivery" ? validateDeliveryFields().ok : true;
+  const fulfillment =
+    document.querySelector('input[name="fulfillment"]:checked')?.value ||
+    "pickup";
+  let deliveryOk =
+    fulfillment === "delivery" ? validateDeliveryFields().ok : true;
 
   const ready = selectedPay && deliveryOk;
   btn.classList.toggle("isReady", ready);
@@ -255,21 +373,24 @@ function syncProceedBtn() {
 }
 
 document.addEventListener("change", (e) => {
-  if (e.target.matches('input[name="payMethod"]') || e.target.matches('input[name="fulfillment"]')) {
-      if (e.target.matches('input[name="fulfillment"]')) {
-          const deliveryFields = document.getElementById("deliveryFields");
-          if (deliveryFields) {
-              deliveryFields.hidden = e.target.value !== "delivery";
-          }
-          render();
+  if (
+    e.target.matches('input[name="payMethod"]') ||
+    e.target.matches('input[name="fulfillment"]')
+  ) {
+    if (e.target.matches('input[name="fulfillment"]')) {
+      const deliveryFields = document.getElementById("deliveryFields");
+      if (deliveryFields) {
+        deliveryFields.hidden = e.target.value !== "delivery";
       }
-      syncProceedBtn();
+      render();
+    }
+    syncProceedBtn();
   }
 });
 
 document.addEventListener("input", (e) => {
   if (e.target.matches("#delAddress, #delPostal, #delUnit")) {
-      syncProceedBtn();
+    syncProceedBtn();
   }
 });
 
@@ -305,13 +426,13 @@ async function render() {
     if (proceedBtn) proceedBtn.hidden = true;
     if (fulfillBox) fulfillBox.hidden = true;
     if (clearAllWrap) clearAllWrap.hidden = true;
-    
+
     let hasFav = false;
     if (currentUser) {
-        try {
-            const fav = await api(`/favourites/${currentUser.uid}`);
-            hasFav = Array.isArray(fav?.items) && fav.items.length > 0;
-        } catch (e) {}
+      try {
+        const fav = await api(`/favourites/${currentUser.uid}`);
+        hasFav = Array.isArray(fav?.items) && fav.items.length > 0;
+      } catch (e) {}
     }
     if (loadFavBtn) loadFavBtn.hidden = !hasFav;
 
@@ -334,23 +455,23 @@ async function render() {
 
   clearPaySelection();
 
-function formatVariantLabel(variant) {
-  return String(variant || "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
+  function formatVariantLabel(variant) {
+    return String(variant || "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
 
   let subtotal = 0;
 
   cart.forEach((it, idx) => {
     const name = it.name || it.Name || "Unknown Item";
-    const img = it.img || it.Img || 'images/defaultFood.png';
+    const img = it.img || it.Img || "images/defaultFood.png";
     const qty = Number(it.qty ?? it.Qty ?? 1);
     const unitPrice = Number(it.unitPrice ?? it.UnitPrice ?? 0);
-    const line = Number(it.totalPrice ?? it.TotalPrice) || (unitPrice * qty);
-    let variant = it.variantKey || ""
+    const line = Number(it.totalPrice ?? it.TotalPrice) || unitPrice * qty;
+    let variant = it.variantKey || "";
 
-    if (variant) variant = `(${variant.replace("_"," ")})`
+    if (variant) variant = `(${variant.replace("_", " ")})`;
 
     subtotal += line;
 
@@ -380,7 +501,9 @@ function formatVariantLabel(variant) {
   }
 
   let promoDiscount = calcPromoDiscount(appliedPromo, subtotal);
-  const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
+  const fulfillment =
+    document.querySelector('input[name="fulfillment"]:checked')?.value ||
+    "pickup";
 
   let smallOrderFee = 0;
   if (fulfillment === "delivery" && subtotal < 15) {
@@ -400,7 +523,10 @@ function formatVariantLabel(variant) {
   if (smallEl) smallEl.textContent = money(smallOrderFee);
   if (delEl) delEl.textContent = money(deliveryFee);
 
-  const total = Math.max(0, subtotal - promoDiscount + smallOrderFee + deliveryFee);
+  const total = Math.max(
+    0,
+    subtotal - promoDiscount + smallOrderFee + deliveryFee,
+  );
   if (totalEl) totalEl.textContent = money(total);
 
   lastPricing = { subtotal, promoDiscount, smallOrderFee, deliveryFee, total };
@@ -427,17 +553,19 @@ function normalizeCheckoutItem(it) {
 document.addEventListener("click", async (e) => {
   if (e.target.closest("#saveFavBtn")) {
     if (!currentUser) {
-        alert("Please log in to save a favourite order.");
-        return;
+      showModal("Please log in to save a favourite order.", {
+        title: "Log in required",
+      });
+      return;
     }
     const cart = await readCart();
     if (cart.length > 0) {
-        try {
-            await api(`/favourites/${currentUser.uid}`, 'PUT', { items: cart });
-            showToast("Order saved as favourite!", true);
-        } catch (err) {
-            showToast("Could not save favourite. Please try again.", false);
-        }
+      try {
+        await api(`/favourites/${currentUser.uid}`, "PUT", { items: cart });
+        showToast("Order saved as favourite!", true);
+      } catch (err) {
+        showToast("Could not save favourite. Please try again.", false);
+      }
     }
     return;
   }
@@ -445,12 +573,12 @@ document.addEventListener("click", async (e) => {
   if (e.target.closest("#loadFavBtn")) {
     if (!currentUser) return;
     try {
-        const fav = await api(`/favourites/${currentUser.uid}`);
-        if (fav && Array.isArray(fav.items) && fav.items.length > 0) {
-            await saveCart(fav.items);
-            render();
-        }
-    } catch(err) {}
+      const fav = await api(`/favourites/${currentUser.uid}`);
+      if (fav && Array.isArray(fav.items) && fav.items.length > 0) {
+        await saveCart(fav.items);
+        render();
+      }
+    } catch (err) {}
     return;
   }
 
@@ -471,12 +599,21 @@ document.addEventListener("click", async (e) => {
       // Logged-in users: real per-item PUT/DELETE against the DB cart.
       try {
         if (currentQty <= 0) {
-          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'DELETE');
+          await api(
+            `/cart/${currentUser.uid}/items/${item.cartItemId}`,
+            "DELETE",
+          );
         } else {
-          await api(`/cart/${currentUser.uid}/items/${item.cartItemId}`, 'PUT', { qty: currentQty });
+          await api(
+            `/cart/${currentUser.uid}/items/${item.cartItemId}`,
+            "PUT",
+            { qty: currentQty },
+          );
         }
       } catch (err) {
-        alert("Could not update cart. Please try again.");
+        showModal("Could not update cart. Please try again.", {
+          title: "Something went wrong",
+        });
         return;
       }
     } else {
@@ -499,8 +636,8 @@ document.addEventListener("click", async (e) => {
 
   if (e.target.closest("#clearAllBtn")) {
     if (confirm("Are you sure you want to empty your entire cart?")) {
-        await saveCart([]);
-        render();
+      await saveCart([]);
+      render();
     }
     return;
   }
@@ -516,16 +653,16 @@ document.addEventListener("click", async (e) => {
     const check = validatePromoLocally(promo, cart, subtotal);
 
     if (check.ok) {
-        appliedPromo = promo;
-        if (msg) {
-            msg.textContent = "Promo applied successfully!";
-            msg.style.color = "green";
-        }
-        const label = document.getElementById("promoCodeLabel");
-        if (label) label.textContent = promo.PromoCode;
+      appliedPromo = promo;
+      if (msg) {
+        msg.textContent = "Promo applied successfully!";
+        msg.style.color = "green";
+      }
+      const label = document.getElementById("promoCodeLabel");
+      if (label) label.textContent = promo.PromoCode;
     } else {
-        await clearAppliedPromo(check.error);
-        if (msg) msg.style.color = "red";
+      await clearAppliedPromo(check.error);
+      if (msg) msg.style.color = "red";
     }
     render();
   }
@@ -536,58 +673,73 @@ document.addEventListener("click", async (e) => {
     checkoutBtn.disabled = true;
 
     const cart = await readCart();
-    const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "pickup";
+    const fulfillment =
+      document.querySelector('input[name="fulfillment"]:checked')?.value ||
+      "pickup";
     const paymentMethod = getSelectedPayMethod();
 
     const payload = {
-        userId: currentUser ? currentUser.uid : "guest",
-        items: cart.map(normalizeCheckoutItem),
-        paymentMethod,
-        fulfillment,
-        pricing: lastPricing,
-        promoCode: appliedPromo ? appliedPromo.PromoCode : "NONE",
+      userId: currentUser ? currentUser.uid : "guest",
+      items: cart.map(normalizeCheckoutItem),
+      paymentMethod,
+      fulfillment,
+      pricing: lastPricing,
+      promoCode: appliedPromo ? appliedPromo.PromoCode : "NONE",
     };
 
     if (fulfillment === "delivery") {
-        payload.address = validateDeliveryFields().addressObj;
+      payload.address = validateDeliveryFields().addressObj;
     }
 
     try {
-        const res = await api('/checkoutCard/create', 'POST', payload);
-        if (res && res.success) {
-            if (appliedPromo && appliedPromo.ClaimOnce) {
-              const claimedKey = "hp_claimedPromoIds";
-              const claimed = new Set(JSON.parse(localStorage.getItem(claimedKey) || "[]"));
-              claimed.add(appliedPromo.PromotionId);
-              localStorage.setItem(claimedKey, JSON.stringify([...claimed]));
-            }
-
-            if (paymentMethod === 'cash') {
-                await saveCart([]);
-                window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
-            } else if (paymentMethod === 'card') {
-                window.location.href = `card.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
-            } else {
-                window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
-            }
-        } else {
-            alert(res?.error || "Order failed. Please try again.");
-            checkoutBtn.disabled = false;
+      const res = await api("/checkoutCard/create", "POST", payload);
+      if (res && res.success) {
+        if (appliedPromo && appliedPromo.ClaimOnce) {
+          const claimedKey = "hp_claimedPromoIds";
+          const claimed = new Set(
+            JSON.parse(localStorage.getItem(claimedKey) || "[]"),
+          );
+          claimed.add(appliedPromo.PromotionId);
+          localStorage.setItem(claimedKey, JSON.stringify([...claimed]));
         }
-    } catch (err) {
-        alert("Server error: Could not submit order. Is your backend running?");
+
+        if (paymentMethod === "cash") {
+          await saveCart([]);
+          window.location.href = `payment_recieved.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
+        } else if (paymentMethod === "card") {
+          window.location.href = `card.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
+        } else {
+          window.location.href = `qr.html?checkoutId=${encodeURIComponent(res.checkoutId)}`;
+        }
+      } else {
+        await showModal(res?.error || "Order failed. Please try again.", {
+          title: "Order failed",
+        });
         checkoutBtn.disabled = false;
+      }
+    } catch (err) {
+      // A closed stall (or any handled rejection) arrives with a real message.
+      // Only show the connection fallback for genuine network errors.
+      if (err.serverError) {
+        await showModal(err.serverError, { title: "Stall closed" });
+      } else {
+        await showModal(
+          "Could not submit order. Please check your connection and try again.",
+          { title: "Something went wrong" },
+        );
+      }
+      checkoutBtn.disabled = false;
     }
   }
 });
 
 async function initCart() {
-    currentUser = await checkLogin();
-    render();
+  currentUser = await checkLogin();
+  render();
 }
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initCart);
+  document.addEventListener("DOMContentLoaded", initCart);
 } else {
-    initCart();
+  initCart();
 }
