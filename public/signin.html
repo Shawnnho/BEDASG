@@ -54,52 +54,16 @@
             </label>
           </div>
 
-          <div class="roleDivider"></div>
-
-          <div class="roles" role="group" aria-label="Continue as">
-            <button
-              type="button"
-              class="role"
-              data-role="guest"
-              aria-pressed="true"
-            >
-              <div class="roleIcon">
-                <img src="images/user (1).png" alt="Guest" />
-              </div>
-              <div class="roleText">Guest</div>
-            </button>
-
-            <button
-              type="button"
-              class="role"
-              data-role="customer"
-              aria-pressed="false"
-            >
-              <div class="roleIcon">
-                <img src="images/user (1).png" alt="Customer" />
-              </div>
-              <div class="roleText">Customer</div>
-            </button>
-
-            <button
-              type="button"
-              class="role"
-              data-role="storeholder"
-              aria-pressed="false"
-            >
-              <div class="roleIcon">
-                <img src="images/chef.png" alt="Store Holder" />
-              </div>
-              <div class="roleText">Store Holder</div>
-            </button>
-          </div>
-
           <button class="btn primary" type="submit">Sign in</button>
 
           <p class="foot">
             Don't have an account?
             <a class="link" href="signup.html" id="signUp">Sign up now</a>
           </p>
+
+          <button class="btn outline" type="button" id="guestBtn">
+            Continue as guest
+          </button>
 
           <p id="statusMsg" class="status" aria-live="polite"></p>
         </form>
