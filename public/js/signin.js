@@ -1,9 +1,6 @@
 /*************************************************
  * signin.js
- * - Guest: skips login, goes straight to index.html?mode=guest
- * - Customer / Store Holder buttons are just a visual preference —
- *   the actual role always comes from the server's response after login,
- *   never from which button was clicked.
+ * - Continue as guest: skips login, goes straight to index.html?mode=guest
  *************************************************/
 
 const form = document.getElementById("loginForm");
@@ -17,23 +14,13 @@ const pwError = document.getElementById("pwError");
 const togglePasswordBtn = document.getElementById("togglePassword");
 const eyeIcon = document.getElementById("eyeIcon");
 
-const roleButtons = Array.from(document.querySelectorAll(".role"));
+const guestBtn = document.getElementById("guestBtn");
 
 /* =========================
-   Role buttons (guest = skip login entirely)
+   Continue as guest
 ========================= */
-roleButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const role = btn.dataset.role;
-
-    if (role === "guest") {
-      window.location.href = "index.html?mode=guest";
-      return;
-    }
-
-    roleButtons.forEach((b) => b.setAttribute("aria-pressed", "false"));
-    btn.setAttribute("aria-pressed", "true");
-  });
+guestBtn?.addEventListener("click", () => {
+  window.location.href = "index.html?mode=guest";
 });
 
 /* =========================
