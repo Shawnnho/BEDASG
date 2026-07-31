@@ -48,6 +48,40 @@ class SavedCardModel {
         }
     }
 
+    // New function to swap which card is currently InUse
+    static async setActiveCard(userId, savedCardId) {
+        const pool = await poolPromise;
+        const transaction = pool.transaction();
+
+        await transaction.begin();
+        try {
+            // Step 1: Turn off all cards for this user
+            await transaction.request()
+                .input('uid', sql.NVarChar(255), userId)
+                .query(`
+                    UPDATE dbo.SavedCards 
+                    SET InUse = 0 
+                    WHERE UserId = @uid
+                `);
+
+            // Step 2: Turn on only the selected card
+            const result = await transaction.request()
+                .input('uid', sql.NVarChar(255), userId)
+                .input('id', sql.Int, savedCardId)
+                .query(`
+                    UPDATE dbo.SavedCards
+                    SET InUse = 1
+                    WHERE SavedCardId = @id AND UserId = @uid
+                `);
+
+            await transaction.commit();
+            return result.rowsAffected[0];
+        } catch (err) {
+            await transaction.rollback();
+            throw err;
+        }
+    }
+
     static async deleteSavedCard(userId, savedCardId) {
         const pool = await poolPromise;
         const result = await pool.request()

@@ -24,8 +24,6 @@ const saveCard = async (req, res) => {
     try {
         const { brand, last4, expMonth, expYear } = req.body;
 
-        // Server-side sanity checks — never trust the client blindly, even
-        // for non-sensitive data like this.
         if (!/^\d{4}$/.test(String(last4 || ''))) {
             return res.status(400).json({ error: 'Invalid last4' });
         }
@@ -56,6 +54,19 @@ const saveCard = async (req, res) => {
     }
 };
 
+const setActiveCard = async (req, res) => {
+    if (!ownCardsOrForbid(req, res)) return;
+    try {
+        const affected = await SavedCardModel.setActiveCard(req.params.uid, req.params.savedCardId);
+        if (!affected) {
+            return res.status(404).json({ error: 'Saved card not found' });
+        }
+        res.status(200).json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to set active card', details: error.message });
+    }
+};
+
 const deleteSavedCard = async (req, res) => {
     if (!ownCardsOrForbid(req, res)) return;
     try {
@@ -69,4 +80,4 @@ const deleteSavedCard = async (req, res) => {
     }
 };
 
-module.exports = { getSavedCards, saveCard, deleteSavedCard };
+module.exports = { getSavedCards, saveCard, setActiveCard, deleteSavedCard };

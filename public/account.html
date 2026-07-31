@@ -1,337 +1,330 @@
 <!doctype html>
-  <html lang="en">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title>Hawker Point — Account</title>
-      <link rel="stylesheet" href="css/styles.css" />
-    </head>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hawker Point — Account</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
 
-    <body>
-      <header class="topbar">
-        <div class="topbar-inner">
-          <a class="brand" href="home.html" aria-label="Hawker Point Home">
-            <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="home.html" aria-label="Hawker Point Home">
+          <img src="images/logo.png" alt="Hawker Point" class="brand-logo" />
+        </a>
+
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="pill active" href="home.html">Home</a>
+          <a class="pill" href="promotions.html">Promotions</a>
+          <a class="pill" href="orders.html">Orders</a>
+          <a class="pill" href="feedback.html">Feedback</a>
+          <a class="pill" href="hygiene.html">Hygiene</a>
+          <a class="pill cartPill" href="cart.html">
+            Cart <span id="cartCount" class="cartBadge isZero">0</span>
           </a>
 
-          <!-- Desktop nav (same as your current) -->
-          <nav class="nav" aria-label="Primary navigation">
-            <a class="pill active" href="home.html">Home</a>
-            <a class="pill" href="promotions.html">Promotions</a>
-            <a class="pill" href="orders.html">Orders</a>
-            <a class="pill" href="feedback.html">Feedback</a>
-            <a class="pill" href="hygiene.html">Hygiene</a>
-            <a class="pill cartPill" href="cart.html">
-              Cart <span id="cartCount" class="cartBadge isZero">0</span>
-            </a>
+          <a class="pill account" href="account.html">
+            Account
+            <span class="notif" id="notifCount" hidden></span>
+          </a>
+        </nav>
 
-            <a class="pill account" href="account.html">
-              Account
-              <span class="notif" id="notifCount" hidden></span>
-            </a>
-          </nav>
+        <button
+          id="menuBtn"
+          class="menuBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+      </div>
 
-          <!-- Hamburger button (mobile only via CSS) -->
+      <div id="navBackdrop" class="navBackdrop"></div>
+      <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
+        <a class="mLink" href="home.html">Home</a>
+        <a class="mLink" href="promotions.html">Promotions</a>
+        <a class="mLink" href="orders.html">Orders</a>
+        <a class="mLink" href="feedback.html">Feedback</a>
+        <a class="mLink" href="hygiene.html">Hygiene</a>
+        <a class="mLink" href="cart.html">
+          Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
+        </a>
+
+        <a class="mLink active" href="account.html">
+          Account <span class="mNotif" id="mNotifCount" hidden></span>
+        </a>
+      </nav>
+    </header>
+
+    <main class="page accountPage">
+      <section class="accHead">
+        <h1>Account Settings</h1>
+        <p>Manage your account</p>
+      </section>
+
+      <section class="accCard">
+        <div class="accCardTitle">Profile Information</div>
+
+        <div class="profileGrid">
+          <img
+            id="accAvatar"
+            class="accAvatar"
+            src="images/defaultprofile.png"
+            alt="Profile photo"
+          />
+
+          <div class="profileInfo">
+            <div id="accName" class="accName">—</div>
+
+            <div class="accMeta">
+              <div>
+                <span class="k">Role:</span> <span id="accRole">—</span>
+              </div>
+              <div>
+                <span class="k">Email:</span> <span id="accEmail">—</span>
+              </div>
+              <div>
+                <span class="k">Phone:</span> <span id="accPhone">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profileBtns">
+            <button id="editProfileBtn" class="btn small">Edit Profile</button>
+            <button id="changePwBtn" class="btn small ghost">
+              Change Password
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="accCard">
+        <div class="accCardTitle">Promotions</div>
+
+        <div class="summaryGrid" style="align-items: center">
+          <div>
+            <b>Redeemed Promotions:</b>
+            <span id="redeemedPromoCount">0</span>
+          </div>
+
+          <button id="viewPromoBtn" class="btn small primary">
+            View My Promotions
+          </button>
+        </div>
+      </section>
+
+      <section class="accCard">
+        <div class="accCardTitle">Order History Summary</div>
+
+        <div class="summaryGrid">
+          <div><b>Total Orders:</b> <span id="sumTotal">0</span></div>
+          <div><b>Last Ordered:</b> <span id="sumLast">—</span></div>
+          <div><b>Most Ordered Stall:</b> <span id="sumFav">—</span></div>
+        </div>
+
+        <button id="viewOrdersBtn" class="btn small">View Order History</button>
+      </section>
+
+      <section class="accCard">
+        <div class="accCardTitle">Saved Favourites</div>
+        <div class="summaryGrid">
+          <div><b>Saved Menu Items:</b> <span id="savedItems">0</span></div>
+          <div><b>Saved Store:</b> <span id="savedStores">0</span></div>
+        </div>
+      </section>
+
+      <section class="accCard">
+        <div class="accCardTitle">Saved Payment Methods</div>
+        <div id="savedCardsContainer" class="savedCardsWrap">
+          <p style="margin:0; font-size:14px; color:#666;">Loading payment methods...</p>
+        </div>
+      </section>
+
+      <section class="accCard accDanger">
+        <div class="accCardTitle">Account Actions</div>
+
+        <div class="actionsRow">
+          <button id="logoutBtn" class="btn small">Logout</button>
+          <button id="deactivateBtn" class="btn small dangerBtn">
+            Deactivate Account
+          </button>
+        </div>
+      </section>
+      <p id="accStatus" class="status" aria-live="polite"></p>
+    </main>
+    
+    <div id="pwModalOverlay" class="pwModalOverlay" hidden aria-hidden="true">
+      <div class="pwModalCard" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle">
+        <div class="pwModalHead">
+          <div id="pwModalTitle" class="pwModalTitle">Change Password</div>
+          <button id="pwModalClose" class="pwModalClose" type="button" aria-label="Close">✕</button>
+        </div>
+
+        <div class="pwModalBody">
+          <form id="pwChangeForm" novalidate>
+            <div class="pwField">
+              <label class="pwLabel" for="pwCurrent">Current Password</label>
+              <div class="pwInputWrap">
+                <input
+                  id="pwCurrent"
+                  class="pwInput"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  class="pwToggleBtn"
+                  data-target="pwCurrent"
+                  aria-label="Show current password"
+                >
+                  <img src="images/show.png" alt="" />
+                </button>
+              </div>
+            </div>
+
+            <div class="pwField">
+              <label class="pwLabel" for="pwNew">New Password</label>
+              <div class="pwInputWrap">
+                <input
+                  id="pwNew"
+                  class="pwInput"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  required
+                />
+                <button
+                  type="button"
+                  class="pwToggleBtn"
+                  data-target="pwNew"
+                  aria-label="Show new password"
+                >
+                  <img src="images/show.png" alt="" />
+                </button>
+              </div>
+              <div id="pwNewHint" class="pwHint">At least 8 characters.</div>
+            </div>
+
+            <div class="pwField">
+              <label class="pwLabel" for="pwConfirm">Confirm New Password</label>
+              <div class="pwInputWrap">
+                <input
+                  id="pwConfirm"
+                  class="pwInput"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  class="pwToggleBtn"
+                  data-target="pwConfirm"
+                  aria-label="Show confirm password"
+                >
+                  <img src="images/show.png" alt="" />
+                </button>
+              </div>
+              <div id="pwConfirmHint" class="pwHint"></div>
+            </div>
+
+            <p id="pwModalErr" class="pwModalErr" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div class="pwModalFoot">
+          <button id="pwCancelBtn" class="pwModalBtn ghost" type="button">
+            Cancel
+          </button>
           <button
-            id="menuBtn"
-            class="menuBtn"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
+            id="pwSaveBtn"
+            class="pwModalBtn primary"
+            type="submit"
+            form="pwChangeForm"
           >
-            ☰
+            Update Password
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="promoModal" class="hpVoucherModal" aria-hidden="true">
+      <div class="hpVoucherBackdrop" data-close></div>
+
+      <div
+        class="hpVoucherCard"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="promoModalTitle"
+      >
+        <div class="hpVoucherHeader">
+          <h3 id="promoModalTitle" style="margin: 0">My Promotions</h3>
+          <button id="closePromoModal" class="btn small" type="button">
+            Close
           </button>
         </div>
 
-        <div id="navBackdrop" class="navBackdrop"></div>
-        <nav id="navMobile" class="navMobile" aria-label="Mobile navigation">
-          <a class="mLink" href="home.html">Home</a>
-          <a class="mLink" href="promotions.html">Promotions</a>
-          <a class="mLink" href="orders.html">Orders</a>
-          <a class="mLink" href="feedback.html">Feedback</a>
-          <a class="mLink" href="hygiene.html">Hygiene</a>
-          <a class="mLink" href="cart.html">
-            Cart <span id="cartCountMobile" class="cartBadge isZero">0</span>
-          </a>
-
-          <a class="mLink active" href="account.html">
-            Account <span class="mNotif" id="mNotifCount" hidden></span>
-          </a>
-        </nav>
-      </header>
-
-      <main class="page accountPage">
-        <section class="accHead">
-          <h1>Account Settings</h1>
-          <p>Manage your account</p>
-        </section>
-
-        <!-- Profile Information -->
-        <section class="accCard">
-          <div class="accCardTitle">Profile Information</div>
-
-          <div class="profileGrid">
-            <img
-              id="accAvatar"
-              class="accAvatar"
-              src="images/defaultprofile.png"
-              alt="Profile photo"
-            />
-
-            <div class="profileInfo">
-              <div id="accName" class="accName">—</div>
-
-              <div class="accMeta">
-                <div>
-                  <span class="k">Role:</span> <span id="accRole">—</span>
-                </div>
-                <div>
-                  <span class="k">Email:</span> <span id="accEmail">—</span>
-                </div>
-                <div>
-                  <span class="k">Phone:</span> <span id="accPhone">—</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="profileBtns">
-              <button id="editProfileBtn" class="btn small">Edit Profile</button>
-              <button id="changePwBtn" class="btn small ghost">
-                Change Password
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Promotions Summary -->
-        <section class="accCard">
-          <div class="accCardTitle">Promotions</div>
-
-          <div class="summaryGrid" style="align-items: center">
-            <div>
-              <b>Redeemed Promotions:</b>
-              <span id="redeemedPromoCount">0</span>
-            </div>
-
-            <button id="viewPromoBtn" class="btn small primary">
-              View My Promotions
-            </button>
-          </div>
-        </section>
-
-        <!-- Order History Summary (dynamic later) -->
-        <section class="accCard">
-          <div class="accCardTitle">Order History Summary</div>
-
-          <div class="summaryGrid">
-            <div><b>Total Orders:</b> <span id="sumTotal">0</span></div>
-            <div><b>Last Ordered:</b> <span id="sumLast">—</span></div>
-            <div><b>Most Ordered Stall:</b> <span id="sumFav">—</span></div>
-          </div>
-
-          <button id="viewOrdersBtn" class="btn small">View Order History</button>
-        </section>
-
-        <!-- Saved Details (dynamic later) -->
-        <section class="accCard">
-          <div class="accCardTitle">Saved Payment Methods</div>
-
-          <div class="summaryGrid">
-            <div><b>Saved Menu Items:</b> <span id="savedItems">0</span></div>
-            <div><b>Saved Store:</b> <span id="savedStores">0</span></div>
-            <div><b>Saved Payment Method:</b> <span id="savedPay">0</span></div>
-          </div>
-        </section>
-
-        <!-- Account Actions -->
-        <section class="accCard accDanger">
-          <div class="accCardTitle">Account Actions</div>
-
-          <div class="actionsRow">
-            <button id="logoutBtn" class="btn small">Logout</button>
-            <button id="deactivateBtn" class="btn small dangerBtn">
-              Deactivate Account
-            </button>
-          </div>
-        </section>
-        <p id="accStatus" class="status" aria-live="polite"></p>
-      </main>
-      
-      <!-- Change Password Modal -->
-      <div id="pwModalOverlay" class="pwModalOverlay" hidden aria-hidden="true">
-        <div class="pwModalCard" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle">
-          <div class="pwModalHead">
-            <div id="pwModalTitle" class="pwModalTitle">Change Password</div>
-            <button id="pwModalClose" class="pwModalClose" type="button" aria-label="Close">✕</button>
-          </div>
-
-          <div class="pwModalBody">
-            <form id="pwChangeForm" novalidate>
-              <div class="pwField">
-                <label class="pwLabel" for="pwCurrent">Current Password</label>
-                <div class="pwInputWrap">
-                  <input
-                    id="pwCurrent"
-                    class="pwInput"
-                    type="password"
-                    autocomplete="current-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    class="pwToggleBtn"
-                    data-target="pwCurrent"
-                    aria-label="Show current password"
-                  >
-                    <img src="images/show.png" alt="" />
-                  </button>
-                </div>
-              </div>
-
-              <div class="pwField">
-                <label class="pwLabel" for="pwNew">New Password</label>
-                <div class="pwInputWrap">
-                  <input
-                    id="pwNew"
-                    class="pwInput"
-                    type="password"
-                    autocomplete="new-password"
-                    minlength="8"
-                    required
-                  />
-                  <button
-                    type="button"
-                    class="pwToggleBtn"
-                    data-target="pwNew"
-                    aria-label="Show new password"
-                  >
-                    <img src="images/show.png" alt="" />
-                  </button>
-                </div>
-                <div id="pwNewHint" class="pwHint">At least 8 characters.</div>
-              </div>
-
-              <div class="pwField">
-                <label class="pwLabel" for="pwConfirm">Confirm New Password</label>
-                <div class="pwInputWrap">
-                  <input
-                    id="pwConfirm"
-                    class="pwInput"
-                    type="password"
-                    autocomplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    class="pwToggleBtn"
-                    data-target="pwConfirm"
-                    aria-label="Show confirm password"
-                  >
-                    <img src="images/show.png" alt="" />
-                  </button>
-                </div>
-                <div id="pwConfirmHint" class="pwHint"></div>
-              </div>
-
-              <p id="pwModalErr" class="pwModalErr" aria-live="polite"></p>
-            </form>
-          </div>
-
-          <div class="pwModalFoot">
-            <button id="pwCancelBtn" class="pwModalBtn ghost" type="button">
-              Cancel
-            </button>
-            <button
-              id="pwSaveBtn"
-              class="pwModalBtn primary"
-              type="submit"
-              form="pwChangeForm"
-            >
-              Update Password
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- Promotions Popup
-           NOTE: class names (hpVoucherModal, hpVoucherBackdrop, hpVoucherCard,
-           hpVoucherHeader) are unchanged - they're shared with styles.css,
-           which wasn't part of this rename. Only IDs and visible text below
-           were renamed to "promo"/"Promotions". -->
-      <div id="promoModal" class="hpVoucherModal" aria-hidden="true">
-        <div class="hpVoucherBackdrop" data-close></div>
-
-        <div
-          class="hpVoucherCard"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="promoModalTitle"
+        <p
+          id="promoModalSub"
+          style="margin: 10px 0 0; font-weight: 800; opacity: 0.75"
         >
-          <div class="hpVoucherHeader">
-            <h3 id="promoModalTitle" style="margin: 0">My Promotions</h3>
-            <button id="closePromoModal" class="btn small" type="button">
-              Close
-            </button>
+          Loading…
+        </p>
+        <div id="promoModalList" style="margin-top: 12px"></div>
+      </div>
+    </div>
+
+    <br />
+
+    <footer class="hc-footer">
+      <div class="hc-footer-inner">
+        <div class="hc-footer-brand">
+          <h3>HawkerPoint</h3>
+          <p>Empowering Hawkers. Serving Communities.</p>
+        </div>
+
+        <div class="hc-footer-links">
+          <div>
+            <h4>Platform</h4>
+            <a href="about.html">About Us</a>
+            <a href="how-it-works.html">How It Works</a>
+            <a href="centres.html">Centres</a>
           </div>
 
-          <p
-            id="promoModalSub"
-            style="margin: 10px 0 0; font-weight: 800; opacity: 0.75"
-          >
-            Loading…
-          </p>
-          <div id="promoModalList" style="margin-top: 12px"></div>
+          <div>
+            <h4>For Stallholders</h4>
+            <a href="signup.html">Register Stall</a>
+            
+            <a href="pricing.html">Pricing</a>
+          </div>
+
+          <div>
+            <h4>Support</h4>
+            <a href="help.html">Help Centre</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="feedback.html">Feedback</a>
+          </div>
+
+          <div>
+            <h4>Legal</h4>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms-of-service.html">Terms of Service</a>
+            <a href="credits.html">Credits</a>
+          </div>
+        </div>
+
+        <div class="hc-footer-bottom">
+          <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
         </div>
       </div>
+    </footer>
 
-      <br />
-
-      <footer class="hc-footer">
-        <div class="hc-footer-inner">
-          <div class="hc-footer-brand">
-            <h3>HawkerPoint</h3>
-            <p>Empowering Hawkers. Serving Communities.</p>
-          </div>
-
-          <div class="hc-footer-links">
-            <div>
-              <h4>Platform</h4>
-              <a href="about.html">About Us</a>
-              <a href="how-it-works.html">How It Works</a>
-              <a href="centres.html">Centres</a>
-            </div>
-
-            <div>
-              <h4>For Stallholders</h4>
-              <a href="signup.html">Register Stall</a>
-              
-              <a href="pricing.html">Pricing</a>
-            </div>
-
-            <div>
-              <h4>Support</h4>
-              <a href="help.html">Help Centre</a>
-              <a href="contact.html">Contact Us</a>
-              <a href="feedback.html">Feedback</a>
-            </div>
-
-            <div>
-              <h4>Legal</h4>
-              <a href="privacy.html">Privacy Policy</a>
-              <a href="terms-of-service.html">Terms of Service</a>
-              <a href="credits.html">Credits</a>
-            </div>
-          </div>
-
-          <div class="hc-footer-bottom">
-            <p>&copy; 2026 HawkerPoint. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      <script type="module" src="js/cart.js"></script>
-      <script src="js/authClient.js"></script>
-      <script type="module" src="js/account.js"></script>
-      <script type="module" src="js/menu.js"></script>
-      
-    </body>
-  </html>
+    <script type="module" src="js/cart.js"></script>
+    <script src="js/authClient.js"></script>
+    <script type="module" src="js/account.js"></script>
+    <script type="module" src="js/menu.js"></script>
+    
+  </body>
+</html>

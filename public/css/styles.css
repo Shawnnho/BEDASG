@@ -7207,30 +7207,60 @@ body.storePage #stallGrade.gradeD {
   }
 }
 
-.cardFieldTop {
+.savedCardsWrap {
+  padding: 14px 16px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.savedCardRow {
+  display: flex;
   align-items: center;
-  margin-bottom: 6px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  background: #fff;
+  gap: 10px;
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-/* Stops the label from breaking onto a new line */
-.cardFieldTop span {
-  margin-bottom: 0 !important; 
-  display: inline-block !important;
+/* Highlight the active card */
+.savedCardRow.activeCard {
+  border-color: rgba(232, 148, 76, 0.6);
+  background: rgba(232, 148, 76, 0.05);
 }
 
-/* Stylish pill button */
-.useNewCardBtn {
-  background: rgba(234, 88, 12, 0.1); /* Light orange background */
-  border: 1px solid rgba(234, 88, 12, 0.3);
-  color: #ea580c; /* Hawker orange text */
+.savedCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.savedCardBrand {
+  font-weight: 900;
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 999px; /* Fully rounded pill */
-  transition: all 0.15s ease;
-  line-height: 1;
+  text-transform: uppercase;
 }
 
+.inUseBadge {
+  background: #1b6a2a;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.savedCardActions {
+  display: flex;
+  gap: 8px;
+}
