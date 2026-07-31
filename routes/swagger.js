@@ -70,6 +70,25 @@ const doc = {
       name: "Manage Payments",
       description: "Operator bill summary and payments",
     },
+        // ----- Auth / NEA (Jovan) -----
+    {
+      name: "Authentication",
+      description:
+        "Signup, login, token/cookie session management, and auth checks",
+    },
+    {
+      name: "Hygiene Grade",
+      description:
+        "View hygiene grades — customer, stall-holder, and NEA inspector perspectives",
+    },
+    {
+      name: "Hygiene Inspections",
+      description: "Schedule, complete, and cancel NEA hygiene inspections",
+    },
+    {
+      name: "Manage Complaints",
+      description: "NEA officer review and status updates on complaints",
+    },
   ],
 };
 
