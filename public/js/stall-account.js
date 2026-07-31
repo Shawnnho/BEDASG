@@ -321,6 +321,7 @@ $("editStallBtn")?.addEventListener("click", () => {
         <input id="mStallName" class="hpModalInput" value="${esc(s.stallName)}" />
       </div>
 
+
       <div class="hpModalRow">
         <label class="hpModalLabel">Cuisine</label>
         <input id="mCuisine" class="hpModalInput" value="${esc(s.cuisine)}" placeholder="Beverages / Western / Chinese" />
@@ -334,6 +335,11 @@ $("editStallBtn")?.addEventListener("click", () => {
       <div class="hpModalRow">
         <label class="hpModalLabel">Unit No</label>
         <input id="mUnit" class="hpModalInput" value="${esc(s.unitNo)}" placeholder="01-04" />
+      </div>
+
+      <div class="hpModalRow">
+        <label class="hpModalLabel">Stall Contact Number</label>
+        <input id="mStallPhone" class="hpModalInput" value="${esc(s.phone)}" placeholder="91234567" />
       </div>
 
       <div class="hpModalRow">
@@ -409,6 +415,7 @@ $("editStallBtn")?.addEventListener("click", () => {
             cuisine: overlay.querySelector("#mCuisine").value.trim(),
             desc: overlay.querySelector("#mDesc").value.trim(),
             unitNo: overlay.querySelector("#mUnit").value.trim(),
+            phone: overlay.querySelector("#mStallPhone").value.trim(),
             prepMin: overlay.querySelector("#mPrepMin").value || null,
             prepMax: overlay.querySelector("#mPrepMax").value || null,
             imageUrl,
