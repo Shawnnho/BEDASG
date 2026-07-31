@@ -18,8 +18,10 @@ function money(n) {
 function prettyPayMethod(m) {
   const x = String(m || "").toLowerCase();
   if (x.includes("cash")) return "Cash";
-  if (x.includes("paynow") || x.includes("nets") || x === "qr") return "PayNow / NETS QR";
-  if (x.includes("card") || x.includes("credit") || x.includes("debit")) return "Card";
+  if (x.includes("paynow") || x.includes("nets") || x === "qr")
+    return "PayNow / NETS QR";
+  if (x.includes("card") || x.includes("credit") || x.includes("debit"))
+    return "Card";
   return m || "—";
 }
 
@@ -29,13 +31,18 @@ function getQueryParam(name) {
 }
 
 function makeDisplayId(prefix, id) {
-  const short = String(id || "").slice(-6).toUpperCase();
+  const short = String(id || "")
+    .slice(-6)
+    .toUpperCase();
   return `#${prefix}${short}`;
 }
 
-async function loadOrdersForOwner(checkoutIdFilter) {
-  const qs = checkoutIdFilter ? `?checkoutId=${encodeURIComponent(checkoutIdFilter)}` : "";
-  const res = await fetch(`/api/orders${qs}`);
+async function loadOrdersForOwner(checkoutIdFilter, isGuest = false) {
+  const base = isGuest ? "/api/orders/guest" : "/api/orders";
+  const qs = checkoutIdFilter
+    ? `?checkoutId=${encodeURIComponent(checkoutIdFilter)}`
+    : "";
+  const res = await fetch(`${base}${qs}`);
   if (!res.ok) throw new Error("Failed to load orders");
   const data = await res.json();
   return Array.isArray(data.orders) ? data.orders : [];
@@ -77,7 +84,9 @@ function wireTabs() {
   if (!tabBtns.length || !wrapPending || !wrapCompleted) return;
 
   function setTab(name) {
-    tabBtns.forEach((b) => b.classList.toggle("isActive", b.dataset.tab === name));
+    tabBtns.forEach((b) =>
+      b.classList.toggle("isActive", b.dataset.tab === name),
+    );
     wrapPending.hidden = name !== "pending";
     wrapCompleted.hidden = name !== "completed";
   }
@@ -132,7 +141,9 @@ function combineOrdersByCheckout(orders) {
       continue;
     }
 
-    const stallNames = Array.from(new Set(list.map((o) => o.stallName).filter(Boolean)));
+    const stallNames = Array.from(
+      new Set(list.map((o) => o.stallName).filter(Boolean)),
+    );
     const stallNameDisplay =
       stallNames.length > 2
         ? `${stallNames.slice(0, 2).join(", ")} +${stallNames.length - 2} more`
@@ -243,7 +254,10 @@ window.reorderOrder = async function (orderId) {
       } catch {
         cart = [];
       }
-      localStorage.setItem(CART_KEY, JSON.stringify(mergeCartItems(cart, items)));
+      localStorage.setItem(
+        CART_KEY,
+        JSON.stringify(mergeCartItems(cart, items)),
+      );
     } else {
       const existingRes = await fetch(`/api/cart/${user.uid}`);
       let existing = [];
@@ -302,7 +316,9 @@ function renderOrders(orders, checkoutIdFilter) {
   }
 
   if (payFilter !== "all") {
-    filtered = filtered.filter((o) => normPayKey(o.payment?.method) === payFilter);
+    filtered = filtered.filter(
+      (o) => normPayKey(o.payment?.method) === payFilter,
+    );
   }
 
   let pending = filtered.filter((o) => isPendingStatus(o.status));
@@ -354,10 +370,14 @@ function renderOrders(orders, checkoutIdFilter) {
           </div>
         </div>
 
-        <div class="orderActions">
-          <button type="button" class="orderBtn" onclick="reorderOrder('${o.id}')">Reorder</button>
+       <div class="orderActions">
+          ${
+            window.__IS_GUEST
+              ? ""
+              : `<button type="button" class="orderBtn" onclick="reorderOrder('${o.id}')">Reorder</button>
           <button type="button" class="orderBtn rateBtn" onclick="openRateModal('${o.id}')">Rate Item</button>
-          <button type="button" class="orderBtn deleteBtn" onclick="deleteOrder('${o.id}', '${o.checkoutId || ""}')">Delete</button>
+          <button type="button" class="orderBtn deleteBtn" onclick="deleteOrder('${o.id}', '${o.checkoutId || ""}')">Delete</button>`
+          }
           <a class="orderBtn" href="${href}">View</a>
         </div>
       </div>
@@ -376,100 +396,106 @@ function wireFilters(latestOrdersRef) {
   ids.forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener("input", () => renderOrders(latestOrdersRef.orders, latestOrdersRef.checkoutId));
-    el.addEventListener("change", () => renderOrders(latestOrdersRef.orders, latestOrdersRef.checkoutId));
+    el.addEventListener("input", () =>
+      renderOrders(latestOrdersRef.orders, latestOrdersRef.checkoutId),
+    );
+    el.addEventListener("change", () =>
+      renderOrders(latestOrdersRef.orders, latestOrdersRef.checkoutId),
+    );
   });
 }
 
 function showToast(message, isSuccess = true) {
-  const toast = document.getElementById('toastNotification');
+  const toast = document.getElementById("toastNotification");
   toast.textContent = message;
-  toast.className = 'toast';
-  toast.classList.add('show');
-  toast.classList.add(isSuccess ? 'success' : 'error');
-  
+  toast.className = "toast";
+  toast.classList.add("show");
+  toast.classList.add(isSuccess ? "success" : "error");
+
   setTimeout(() => {
-    toast.classList.remove('show');
+    toast.classList.remove("show");
   }, 3000);
 }
 
 let currentRating = 0;
 let currentOrderItems = [];
 
-window.openRateModal = function(orderId) {
-  const order = (window.__ALL_ORDERS || []).find(o => String(o.id) === String(orderId));
+window.openRateModal = function (orderId) {
+  const order = (window.__ALL_ORDERS || []).find(
+    (o) => String(o.id) === String(orderId),
+  );
   if (!order || !order.items || order.items.length === 0) {
     showToast("No items found to rate.", false);
     return;
   }
 
   currentOrderItems = order.items;
-  
-  document.getElementById('rateModal').hidden = false;
-  document.getElementById('reviewTextInput').value = '';
-  
-  const selectEl = document.getElementById('rateItemSelect');
-  selectEl.innerHTML = currentOrderItems.map((item, index) => 
-    `<option value="${index}">${item.name}</option>`
-  ).join('');
 
-  selectEl.onchange = function() {
+  document.getElementById("rateModal").hidden = false;
+  document.getElementById("reviewTextInput").value = "";
+
+  const selectEl = document.getElementById("rateItemSelect");
+  selectEl.innerHTML = currentOrderItems
+    .map((item, index) => `<option value="${index}">${item.name}</option>`)
+    .join("");
+
+  selectEl.onchange = function () {
     const selectedItem = currentOrderItems[this.value];
-    document.getElementById('rateStallId').value = selectedItem.stallId;
-    document.getElementById('rateItemId').value = selectedItem.itemId;
-    
-    const imgEl = document.getElementById('rateItemImg');
+    document.getElementById("rateStallId").value = selectedItem.stallId;
+    document.getElementById("rateItemId").value = selectedItem.itemId;
+
+    const imgEl = document.getElementById("rateItemImg");
     if (selectedItem.img) {
       imgEl.src = selectedItem.img;
       imgEl.hidden = false;
     } else {
-      imgEl.src = '';
+      imgEl.src = "";
       imgEl.hidden = true;
     }
     setRating(0);
   };
 
   selectEl.value = "0";
-  selectEl.dispatchEvent(new Event('change'));
-}
+  selectEl.dispatchEvent(new Event("change"));
+};
 
-window.closeRateModal = function() {
-  document.getElementById('rateModal').hidden = true;
-}
+window.closeRateModal = function () {
+  document.getElementById("rateModal").hidden = true;
+};
 
-document.querySelectorAll('.star').forEach(star => {
-  star.addEventListener('click', function() {
-    setRating(parseInt(this.getAttribute('data-val')));
+document.querySelectorAll(".star").forEach((star) => {
+  star.addEventListener("click", function () {
+    setRating(parseInt(this.getAttribute("data-val")));
   });
 });
 
 function setRating(rating) {
   currentRating = rating;
-  const stars = document.querySelectorAll('.star');
-  stars.forEach(star => {
-    const val = parseInt(star.getAttribute('data-val'));
-    star.style.color = val <= rating ? '#FFD700' : '#dee2e6'; 
+  const stars = document.querySelectorAll(".star");
+  stars.forEach((star) => {
+    const val = parseInt(star.getAttribute("data-val"));
+    star.style.color = val <= rating ? "#FFD700" : "#dee2e6";
   });
 }
 
-window.submitReview = async function() {
+window.submitReview = async function () {
   if (currentRating === 0) {
     showToast("Please select a star rating.", false);
     return;
   }
 
   const payload = {
-    stallId: document.getElementById('rateStallId').value,
-    itemId: document.getElementById('rateItemId').value,
+    stallId: document.getElementById("rateStallId").value,
+    itemId: document.getElementById("rateItemId").value,
     rating: currentRating,
-    reviewText: document.getElementById('reviewTextInput').value
+    reviewText: document.getElementById("reviewTextInput").value,
   };
 
   try {
-    const res = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
@@ -486,16 +512,26 @@ window.submitReview = async function() {
 
 (async () => {
   const user = await checkLogin();
-  if (!user) {
-    window.location.href = "account.html";
-    return;
+  const isGuest = !user;
+
+  // Guests aren't redirected away — they get a read-only history scoped to
+  // their current session (GET /api/orders/guest). When the browser session
+  // ends the guest cookie is gone, so this list is naturally empty next time.
+  if (isGuest) {
+    document.body.classList.add("guestOrders");
+    const sub = document.querySelector(".ordersSubtitle");
+    if (sub) {
+      sub.textContent =
+        "Orders from your current guest session. Sign up to keep your history.";
+    }
   }
 
   const checkoutIdFilter = getQueryParam("checkoutId");
   window.__CHECKOUT_FILTER = checkoutIdFilter;
+  window.__IS_GUEST = isGuest;
 
   try {
-    const orders = await loadOrdersForOwner(checkoutIdFilter);
+    const orders = await loadOrdersForOwner(checkoutIdFilter, isGuest);
     const merged = combineOrdersByCheckout(orders);
     window.__ALL_ORDERS = merged;
     const state = { orders: merged, checkoutId: checkoutIdFilter };

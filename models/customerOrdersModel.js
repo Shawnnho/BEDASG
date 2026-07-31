@@ -18,6 +18,31 @@ async function getOrdersForCustomer(userId, checkoutIdFilter) {
   return result.recordset;
 }
 
+// Guest order history: scoped to the current guest session id (from the
+// guest cookie), never to a CustomerId. When the browser session ends the
+// cookie is gone, a new session id is minted, and these rows stop matching —
+// so the history naturally "disappears" without anything being deleted.
+async function getOrdersForGuest(guestSessionId, checkoutIdFilter) {
+  if (!guestSessionId) return [];
+  const pool = await poolPromise;
+  const request = pool
+    .request()
+    .input("GuestSessionId", sql.NVarChar(100), guestSessionId);
+
+  let where = "WHERE GuestSessionId = @GuestSessionId";
+  if (checkoutIdFilter) {
+    request.input("CheckoutId", sql.NVarChar(255), checkoutIdFilter);
+    where += " AND CheckoutId = @CheckoutId";
+  }
+
+  const result = await request.query(`
+    SELECT * FROM dbo.Orders
+    ${where}
+    ORDER BY CreatedAt DESC
+  `);
+  return result.recordset;
+}
+
 async function getItemsForOrderIds(orderIds) {
   if (!orderIds.length) return [];
   const pool = await poolPromise;
@@ -163,4 +188,4 @@ async function cancelOrder(userId, id) {
   return result.rowsAffected[0];
 }
 
-module.exports = { getOrdersForCustomer, getItemsForOrderIds, deleteOrdersForCustomer, cancelOrder };
+module.exports = { getOrdersForCustomer, getOrdersForGuest, getItemsForOrderIds, deleteOrdersForCustomer, cancelOrder };

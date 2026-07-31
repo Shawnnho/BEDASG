@@ -55,6 +55,7 @@ const createCheckout = async (req, res) => {
     const result = await checkoutCardModel.createCheckoutOrder({
       ...req.body,
       userId,
+      guestSessionId: req.guestSessionId || null,
     });
     res.status(201).json({
       success: true,

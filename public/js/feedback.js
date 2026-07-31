@@ -12,7 +12,9 @@ const AuthClient = (function () {
     let res = await apiFetch("/api/auth/me");
 
     if (res.status === 401 || res.status === 403) {
-      const refreshRes = await apiFetch("/api/auth/refresh", { method: "POST" });
+      const refreshRes = await apiFetch("/api/auth/refresh", {
+        method: "POST",
+      });
       if (refreshRes.ok) {
         res = await apiFetch("/api/auth/me");
       }
@@ -30,16 +32,92 @@ const AuthClient = (function () {
   return { apiFetch, getCurrentUser, logout };
 })();
 
+async function isGuest() {
+  const user = await AuthClient.getCurrentUser();
+  return !user;
+}
 
-window.writeReview = function () {
+// Self-contained login modal (no HTML/CSS changes needed).
+function showLoginModal({
+  title = "Login required",
+  message = "Please log in or sign up free to do that.",
+} = {}) {
+  if (!document.getElementById("hpFbModalStyles")) {
+    const style = document.createElement("style");
+    style.id = "hpFbModalStyles";
+    style.textContent = `
+      .hpModalBackdrop{position:fixed;inset:0;background:rgba(40,25,15,.55);
+        display:flex;align-items:center;justify-content:center;z-index:9999;animation:hpFade .15s ease}
+      @keyframes hpFade{from{opacity:0}to{opacity:1}}
+      .hpModalCard{background:#fffdf8;max-width:400px;width:calc(100% - 48px);box-sizing:border-box;margin:0 auto;
+        border-radius:18px;padding:28px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+        font-family:inherit;text-align:center;animation:hpPop .18s ease}
+      @keyframes hpPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+      .hpModalIcon{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;
+        background:#fbe4d6;display:flex;align-items:center;justify-content:center;font-size:26px}
+      .hpModalTitle{font-size:19px;font-weight:700;color:#7a3e1d;margin:0 0 8px}
+      .hpModalMsg{font-size:15px;line-height:1.5;color:#4a3a2c;margin:0 0 20px}
+      .hpModalActions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+      .hpModalBtn{border:none;border-radius:12px;padding:11px 22px;font-size:15px;font-weight:600;
+        cursor:pointer;font-family:inherit;transition:background .15s;display:inline-flex;
+        align-items:center;justify-content:center;line-height:1;text-align:center;flex:0 0 auto;min-width:110px}
+      .hpModalBtn.primary{background:#df8f3b;color:#fff}
+      .hpModalBtn.primary:hover{background:#c97c2c}
+      .hpModalBtn.ghost{background:#f0e6da;color:#7a3e1d}
+      .hpModalBtn.ghost:hover{background:#e6d8c6}
+    `;
+    document.head.appendChild(style);
+  }
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "hpModalBackdrop";
+  backdrop.innerHTML = `
+    <div class="hpModalCard" role="dialog" aria-modal="true">
+      <div class="hpModalIcon">&#128274;</div>
+      <h3 class="hpModalTitle">${title}</h3>
+      <p class="hpModalMsg">${message}</p>
+      <div class="hpModalActions">
+        <button class="hpModalBtn ghost" data-close>Not now</button>
+        <button class="hpModalBtn primary" data-login>Log in</button>
+      </div>
+    </div>`;
+
+  const close = () => backdrop.remove();
+  backdrop.addEventListener("click", (ev) => {
+    if (ev.target === backdrop || ev.target.hasAttribute("data-close")) close();
+    if (ev.target.hasAttribute("data-login"))
+      window.location.href = "signin.html";
+  });
+  document.body.appendChild(backdrop);
+}
+
+window.writeReview = async function () {
+  if (await isGuest()) {
+    return showLoginModal({
+      title: "Login to write a review",
+      message: "Sign in or sign up free to share your experience.",
+    });
+  }
   window.location.href = "review.html";
 };
 
-window.fileComplaint = function () {
+window.fileComplaint = async function () {
+  if (await isGuest()) {
+    return showLoginModal({
+      title: "Login to file a complaint",
+      message: "Sign in or sign up free to file a complaint.",
+    });
+  }
   window.location.href = "complaint.html";
 };
 
-window.viewHistory = function () {
+window.viewHistory = async function () {
+  if (await isGuest()) {
+    return showLoginModal({
+      title: "Login to view history",
+      message: "Sign in or sign up free to see your feedback history.",
+    });
+  }
   window.location.href = "feedback_history.html";
 };
 
@@ -75,7 +153,8 @@ function renderStars(rating = 0) {
   if (half) html += `<span class="star half">★</span>`;
 
   const emptyCount = 5 - full - (half ? 1 : 0);
-  for (let i = 0; i < emptyCount; i++) html += `<span class="star empty">★</span>`;
+  for (let i = 0; i < emptyCount; i++)
+    html += `<span class="star empty">★</span>`;
 
   return html;
 }

@@ -32,6 +32,70 @@ function esc(s = "") {
     .replaceAll("'", "&#039;");
 }
 
+// Modal shown when a guest tries to claim/redeem a promo. Self-contained —
+// injects its own styles + DOM, no HTML/CSS changes needed.
+function showLoginModal({
+  title = "Login to claim",
+  message = "Promo codes are for members. Log in or sign up free to claim this deal.",
+} = {}) {
+  if (!document.getElementById("hpPromoModalStyles")) {
+    const style = document.createElement("style");
+    style.id = "hpPromoModalStyles";
+    style.textContent = `
+      .hpModalBackdrop{position:fixed;inset:0;background:rgba(40,25,15,.55);
+        display:flex;align-items:center;justify-content:center;z-index:9999;
+        animation:hpFade .15s ease}
+      @keyframes hpFade{from{opacity:0}to{opacity:1}}
+      .hpModalCard{background:#fffdf8;max-width:400px;width:calc(100% - 48px);
+        border-radius:18px;padding:28px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+        font-family:inherit;text-align:center;animation:hpPop .18s ease}
+      @keyframes hpPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+      .hpModalIcon{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;
+        background:#fbe4d6;display:flex;align-items:center;justify-content:center;font-size:26px}
+      .hpModalTitle{font-size:19px;font-weight:700;color:#7a3e1d;margin:0 0 8px}
+      .hpModalMsg{font-size:15px;line-height:1.5;color:#4a3a2c;margin:0 0 20px}
+      .hpModalActions{display:flex;gap:10px;justify-content:center}
+  .hpModalBtn{border:none;border-radius:12px;padding:11px 22px;font-size:15px;
+        font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;
+        display:inline-flex;align-items:center;justify-content:center;
+        line-height:1;text-align:center}
+      .hpModalBtn.primary{background:#df8f3b;color:#fff}
+      .hpModalBtn.primary:hover{background:#c97c2c}
+      .hpModalBtn.ghost{background:#f0e6da;color:#7a3e1d}
+      .hpModalBtn.ghost:hover{background:#e6d8c6}
+    `;
+    document.head.appendChild(style);
+  }
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "hpModalBackdrop";
+  backdrop.innerHTML = `
+    <div class="hpModalCard" role="dialog" aria-modal="true">
+      <div class="hpModalIcon">&#128274;</div>
+   <h3 class="hpModalTitle">${title}</h3>
+        <p class="hpModalMsg">${message}</p>
+      <div class="hpModalActions">
+        <button class="hpModalBtn ghost" data-close>Not now</button>
+        <button class="hpModalBtn primary" data-login>Log in</button>
+      </div>
+    </div>`;
+
+  const close = () => backdrop.remove();
+  backdrop.addEventListener("click", (ev) => {
+    if (ev.target === backdrop || ev.target.hasAttribute("data-close")) close();
+    if (ev.target.hasAttribute("data-login"))
+      window.location.href = "signin.html";
+  });
+  document.addEventListener("keydown", function onKey(ev) {
+    if (ev.key === "Escape") {
+      close();
+      document.removeEventListener("keydown", onKey);
+    }
+  });
+
+  document.body.appendChild(backdrop);
+}
+
 function showDToast(msg) {
   const el = document.getElementById("dToast");
   if (!el) return;
@@ -237,7 +301,6 @@ async function loadDiscoverPromos() {
       .sort((a, b) => (b.IsPopular === true) - (a.IsPopular === true))
       .slice(0, 6);
 
-
     renderPromoStrip(validPromos);
   } catch (err) {
     console.error("Error loading promotions:", err);
@@ -277,7 +340,10 @@ async function loadFavourites() {
 
 async function toggleFavourite(stallId) {
   if (!currentUid) {
-    showDToast("Please sign in to save favourites.");
+    showLoginModal({
+      title: "Login to save favourites",
+      message: "Sign in or sign up free to save your favourite stalls.",
+    });
     return;
   }
 
@@ -356,6 +422,12 @@ document.addEventListener("click", async (e) => {
 
   const code = btn.dataset.code;
   if (!code) return;
+
+  // Guests can view promos but not claim them.
+  if (!currentUid) {
+    showLoginModal();
+    return;
+  }
 
   // Claiming a promo code is a client-side action app-wide (see promotions.js
   // claimVoucher) — there's no backend claim endpoint, codes are just applied

@@ -213,7 +213,9 @@ function renderItem() {
   itemImg.src = ITEM.img;
   itemImg.alt = ITEM.name;
   updateItemNameDisplay();
-  itemBasePrice.textContent = ITEM.priceFrom ? `from ${money(ITEM.price)}` : money(ITEM.price);
+  itemBasePrice.textContent = ITEM.priceFrom
+    ? `from ${money(ITEM.price)}`
+    : money(ITEM.price);
   itemDesc.textContent = ITEM.desc || "";
   updateTotal();
 }
@@ -227,7 +229,9 @@ function renderVariants() {
   if (!variantsList) return;
   variantsList.innerHTML = "";
 
-  const sorted = [...VARIANTS].sort((a, b) => Number(a.price) - Number(b.price));
+  const sorted = [...VARIANTS].sort(
+    (a, b) => Number(a.price) - Number(b.price),
+  );
 
   sorted.forEach((v, index) => {
     const row = document.createElement("label");
@@ -322,7 +326,9 @@ function addonsTotal() {
  * the base price). If there are no variants, fall back to ITEM.price.
  */
 function unitPrice() {
-  const base = selectedVariant ? Number(selectedVariant.price) : (ITEM?.price || 0);
+  const base = selectedVariant
+    ? Number(selectedVariant.price)
+    : ITEM?.price || 0;
   return base + addonsTotal();
 }
 
@@ -353,13 +359,6 @@ qtyPlus?.addEventListener("click", () => {
    append the new item, then send the whole array back.
 ========================= */
 addToCartBtn.addEventListener("click", async () => {
-  if (!currentUid) {
-    console.warn("Must be logged in to add to cart.");
-    // GUESS: adjust to your actual login page/flow if different.
-    window.location.href = "login.html";
-    return;
-  }
-
   if (VARIANTS.length > 0 && !selectedVariant) {
     console.warn("Please select an option before adding to cart.");
     return;
@@ -383,14 +382,49 @@ addToCartBtn.addEventListener("click", async () => {
     totalPrice: unitPrice() * qty,
   };
 
-try {
-    const postRes = await AuthClient.apiFetch(`/api/cart/${encodeURIComponent(currentUid)}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newItem),
-    });
+  // Guests have no account to key a DB cart, so they use the localStorage
+  // cart ("hp_cart") — the same store the rest of the app already reads for
+  // logged-out users. Logged-in users still go through the DB cart API.
+  if (!currentUid) {
+    const CART_KEY = "hp_cart";
+    let cart = [];
+    try {
+      cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      if (!Array.isArray(cart)) cart = [];
+    } catch {
+      cart = [];
+    }
 
-    if (!postRes.ok) throw new Error(`Request failed with status ${postRes.status}`);
+    // Merge with an identical existing line (same stall/item/variant) so
+    // adding the same thing twice bumps qty instead of duplicating a row.
+    const keyOf = (it) =>
+      `${it.stallId ?? ""}|${it.itemId ?? ""}|${it.variantKey ?? ""}`;
+    const idx = cart.findIndex((it) => keyOf(it) === keyOf(newItem));
+    if (idx >= 0) {
+      const newQty = (Number(cart[idx].qty) || 0) + qty;
+      cart[idx].qty = newQty;
+      cart[idx].totalPrice = newQty * newItem.unitPrice;
+    } else {
+      cart.push(newItem);
+    }
+
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.location.href = `menu.html?stallId=${encodeURIComponent(stallId)}`;
+    return;
+  }
+
+  try {
+    const postRes = await AuthClient.apiFetch(
+      `/api/cart/${encodeURIComponent(currentUid)}/items`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newItem),
+      },
+    );
+
+    if (!postRes.ok)
+      throw new Error(`Request failed with status ${postRes.status}`);
 
     window.location.href = `menu.html?stallId=${encodeURIComponent(stallId)}`;
   } catch (err) {
@@ -398,7 +432,6 @@ try {
     addToCartBtn.disabled = false;
   }
 });
-
 
 /* =========================
    NAV
