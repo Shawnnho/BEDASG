@@ -14,7 +14,7 @@ async function getCentreById(centreId) {
     .request()
     .input("centreId", sql.NVarChar, centreId)
     .query(
-      "SELECT CentreId, Name, ImagePath FROM Centres WHERE CentreId = @centreId",
+      "SELECT CentreId, Name, ImagePath, Location FROM Centres WHERE CentreId = @centreId",
     );
   return result.recordset[0];
 }

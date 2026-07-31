@@ -28,6 +28,7 @@ const cuisineEl = document.getElementById("stallCuisine");
 const gradeEl = document.getElementById("stallGrade");
 const descEl = document.getElementById("stallDesc");
 const metaEl = document.getElementById("stallMeta");
+const contactEl = document.getElementById("stallContact");
 const locationEl = document.getElementById("stallLocation");
 
 const menuLink = document.getElementById("menuLink");
@@ -169,10 +170,11 @@ async function loadCentreName() {
   }
   const centre = await res.json();
   const centreName = resolveCentreName(centre);
+  const centreLocation = centre.Location
 
   if (locationEl) locationEl.textContent = centreName ? ` ${centreName}` : "";
   if (dirBtn) {
-    dirBtn.href =
+    dirBtn.href = centreLocation ? centreLocation :
       "https://www.google.com/maps?q=" +
       encodeURIComponent(centreName || stall.name);
   }
@@ -193,6 +195,7 @@ function fillUI() {
 
   descEl.textContent = stall.desc;
   metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit #${stall.unit}`;
+  contactEl.textContent =`Contact Stall: ${stall.phone ? formatPhoneNo(stall.phone) : "-"}`
 
   const hasRatings = stall.ratingCount > 0;
   if (avgText)
@@ -218,6 +221,11 @@ function fillUI() {
   if (hygBtn) {
     hygBtn.href = `hygiene.html?id=${encodeURIComponent(stallId)}&centreId=${encodeURIComponent(centreId)}`;
   }
+}
+
+function formatPhoneNo(phone){
+  const formatted = phone.slice(0,4) + "-" + phone.slice(4);
+  return formatted;
 }
 
 // =========================
