@@ -5,6 +5,7 @@ const savedCardController = require('../controllers/savedCardController');
 
 router.get('/:uid', verifyToken, savedCardController.getSavedCards);
 router.post('/:uid', verifyToken, savedCardController.saveCard);
+router.patch('/:uid/:savedCardId/active', verifyToken, savedCardController.setActiveCard); // New Route
 router.delete('/:uid/:savedCardId', verifyToken, savedCardController.deleteSavedCard);
 
 module.exports = router;

@@ -68,6 +68,9 @@ const viewOrdersBtn = document.getElementById("viewOrdersBtn");
 const savedStoresEl = document.getElementById("savedStores");
 const savedItemsEl = document.getElementById("savedItems");
 
+// Saved Cards DOM
+const savedCardsContainer = document.getElementById("savedCardsContainer");
+
 /* =========================
    API endpoints
 ========================= */
@@ -91,6 +94,11 @@ const FAV_ITEMS_GET_URL = "/api/favitems/get";
 // GUESS - follows the "/api/favstalls/{get,add,delete}" convention referenced
 // in menu.js/home.js comments, but not confirmed to exist yet.
 const FAV_STALLS_GET_URL = "/api/favstalls/get";
+
+// NEW - Saved Cards Endpoints
+const SAVED_CARDS_GET_URL = (uid) => `/api/savedcards/${encodeURIComponent(uid)}`;
+const SAVED_CARDS_ACTIVE_URL = (uid, cardId) => `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}/active`;
+const SAVED_CARDS_DELETE_URL = (uid, cardId) => `/api/savedcards/${encodeURIComponent(uid)}/${encodeURIComponent(cardId)}`;
 
 let currentUid = null;
 
@@ -376,8 +384,6 @@ async function loadProfile(uid) {
 
 /* =========================
    Favourites counts
-   Items endpoint is confirmed. Stalls endpoint is a GUESS - wrapped so a
-   missing/404 route just shows "-" instead of breaking the page.
 ========================= */
 async function loadFavouriteCounts(uid) {
   if (savedItemsEl) {
@@ -417,8 +423,6 @@ async function loadFavouriteCounts(uid) {
 
 /* =========================
    Order history summary
-   GUESS endpoint - build /api/orders/summary/:uid returning
-   { total, lastOrderAt, favouriteStall } and this will pick it up as-is.
 ========================= */
 async function loadOrderHistorySummary(uid) {
   if (sumTotal) sumTotal.textContent = "0";
@@ -471,8 +475,6 @@ function getMostOrderedStall(orders) {
 
 /* =========================
    Promotions
-   GUESS endpoints - build a Promotions table/API and this will pick it up.
-   Left as a graceful "not available yet" state rather than fake data.
 ========================= */
 async function updateRedeemedCount(uid) {
   if (!redeemedPromoCount) return;
@@ -490,8 +492,6 @@ async function updateRedeemedCount(uid) {
     redeemedPromoCount.textContent = "0";
   }
 }
-
-
 
 function openPromoModal() {
   if (!promoModal) return;
@@ -566,12 +566,86 @@ function renderPromoModal(promos) {
 }
 
 async function markPromoUsed(uid, promoId) {
-  // GUESS endpoint
   await AuthClient.apiFetch(
     `${PROMOS_LIST_URL(uid)}/${encodeURIComponent(promoId)}/use`,
     { method: "POST" },
   );
 }
+
+/* =========================
+   Saved Payment Methods
+========================= */
+async function fetchAndRenderSavedCards(uid) {
+  if (!savedCardsContainer) return;
+  savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#666;">Loading payment methods...</p>';
+  
+  try {
+    const res = await AuthClient.apiFetch(SAVED_CARDS_GET_URL(uid));
+    if (!res.ok) throw new Error('Failed to load cards');
+    const cards = await res.json();
+    
+    if (!cards || cards.length === 0) {
+        savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#666;">No saved payment methods.</p>';
+        return;
+    }
+
+    savedCardsContainer.innerHTML = cards.map(card => {
+       const inUse = card.InUse === 1 || card.InUse === true;
+       return `
+         <div class="savedCardRow ${inUse ? 'activeCard' : ''}">
+            <div class="savedCardInfo">
+                <span class="savedCardBrand">${card.CardBrand}</span>
+                <span class="cardNum">•••• ${card.Last4}</span>
+                <span class="cardExp">Exp: ${String(card.ExpMonth).padStart(2, '0')}/${String(card.ExpYear).slice(-2)}</span>
+                ${inUse ? '<span class="inUseBadge">In Use</span>' : ''}
+            </div>
+            <div class="savedCardActions">
+                ${!inUse ? `<button class="btn small primary useCardBtn" data-id="${card.SavedCardId}">Use</button>` : ''}
+                <button class="btn small dangerBtn deleteCardBtn" data-id="${card.SavedCardId}">Delete</button>
+            </div>
+         </div>
+       `;
+    }).join('');
+  } catch (err) {
+    console.error("Error loading saved cards:", err);
+    savedCardsContainer.innerHTML = '<p style="margin:0; font-size:14px; color:#b00020;">Failed to load cards.</p>';
+  }
+}
+
+// Event listener for the dynamically created Use and Delete buttons
+savedCardsContainer?.addEventListener("click", async (e) => {
+  const useBtn = e.target.closest(".useCardBtn");
+  const delBtn = e.target.closest(".deleteCardBtn");
+
+  if (useBtn) {
+      const cardId = useBtn.dataset.id;
+      useBtn.disabled = true;
+      try {
+          const res = await AuthClient.apiFetch(SAVED_CARDS_ACTIVE_URL(currentUid, cardId), { method: "PATCH" });
+          if (!res.ok) throw new Error("Failed to set active card");
+          await fetchAndRenderSavedCards(currentUid); // Refresh the list
+          setStatus("✅ Card set as active payment method.");
+      } catch(err) {
+          setStatus("❌ Failed to update card.", false);
+          useBtn.disabled = false;
+      }
+  }
+
+  if (delBtn) {
+      if (!confirm("Are you sure you want to delete this card?")) return;
+      const cardId = delBtn.dataset.id;
+      delBtn.disabled = true;
+      try {
+          const res = await AuthClient.apiFetch(SAVED_CARDS_DELETE_URL(currentUid, cardId), { method: "DELETE" });
+          if (!res.ok) throw new Error("Failed to delete card");
+          await fetchAndRenderSavedCards(currentUid); // Refresh the list
+          setStatus("✅ Card deleted.");
+      } catch(err) {
+          setStatus("❌ Failed to delete card.", false);
+          delBtn.disabled = false;
+      }
+  }
+});
 
 /* =========================
    Auth gate + wiring
@@ -628,6 +702,7 @@ async function markPromoUsed(uid, promoId) {
     await loadOrderHistorySummary(currentUid);
     await loadFavouriteCounts(currentUid);
     await updateRedeemedCount(currentUid);
+    await fetchAndRenderSavedCards(currentUid);
 
     viewPromoBtn?.addEventListener("click", async () => {
       openPromoModal();

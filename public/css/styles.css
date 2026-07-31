@@ -7206,3 +7206,61 @@ body.storePage #stallGrade.gradeD {
     width: 100%;
   }
 }
+
+.savedCardsWrap {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.savedCardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  background: #fff;
+  gap: 10px;
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Highlight the active card */
+.savedCardRow.activeCard {
+  border-color: rgba(232, 148, 76, 0.6);
+  background: rgba(232, 148, 76, 0.05);
+}
+
+.savedCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.savedCardBrand {
+  font-weight: 900;
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.inUseBadge {
+  background: #1b6a2a;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.savedCardActions {
+  display: flex;
+  gap: 8px;
+}
