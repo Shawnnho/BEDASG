@@ -6694,3 +6694,27 @@ body.storePage #stallGrade.gradeD {
   gap: 8px;
 }
 
+.cardFieldTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.useNewCardBtn {
+  background-color: transparent;
+  border: 1px solid #e78a8a;
+  color: #e78a8a;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 16px;
+  transition: all 0.2s ease-in-out;
+}
+
+.useNewCardBtn:hover {
+  background-color: #e78a8a;
+  color: #ffffff;
+}
