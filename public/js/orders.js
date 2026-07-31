@@ -137,6 +137,11 @@ function combineOrdersByCheckout(orders) {
   const merged = [];
   for (const list of groups.values()) {
     if (list.length === 1) {
+      let singleItems = list[0].items;
+      if (typeof singleItems === "string") {
+        try { singleItems = JSON.parse(singleItems); } catch { singleItems = []; }
+      }
+      list[0].items = Array.isArray(singleItems) ? singleItems : [];
       merged.push(list[0]);
       continue;
     }
@@ -150,7 +155,15 @@ function combineOrdersByCheckout(orders) {
         : stallNames.join(", ");
 
     const orderNos = list.map((o) => o.orderNo).filter(Boolean);
-    const allItems = list.flatMap((o) => o.items || []);
+
+    const allItems = list.flatMap((o) => {
+      let parsed = o.items;
+      if (typeof parsed === "string") {
+        try { parsed = JSON.parse(parsed); } catch { parsed = []; }
+      }
+      return Array.isArray(parsed) ? parsed : [];
+    });
+
     const total = list.reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
     const allCompleted = list.every((o) => isCompletedStatus(o.status));
 
@@ -222,7 +235,6 @@ window.deleteOrder = async function (orderId, checkoutId) {
 
     renderOrders(window.__ALL_ORDERS, window.__CHECKOUT_FILTER || null);
   } catch (err) {
-    console.error(err);
     alert("Could not delete this order. Please try again.");
   }
 };
@@ -275,7 +287,6 @@ window.reorderOrder = async function (orderId) {
 
     window.location.href = "cart.html";
   } catch (err) {
-    console.error(err);
     alert("Could not reorder. Please try again.");
   }
 };
@@ -422,8 +433,9 @@ let currentOrderItems = [];
 
 window.openRateModal = function (orderId) {
   const order = (window.__ALL_ORDERS || []).find(
-    (o) => String(o.id) === String(orderId),
+    (o) => String(o.id).toLowerCase() === String(orderId).toLowerCase(),
   );
+
   if (!order || !order.items || order.items.length === 0) {
     showToast("No items found to rate.", false);
     return;
@@ -431,23 +443,35 @@ window.openRateModal = function (orderId) {
 
   currentOrderItems = order.items;
 
-  document.getElementById("rateModal").hidden = false;
+  const modalEl = document.getElementById("rateModal");
+  modalEl.hidden = false;
+  modalEl.removeAttribute("hidden");
+
   document.getElementById("reviewTextInput").value = "";
 
   const selectEl = document.getElementById("rateItemSelect");
   selectEl.innerHTML = currentOrderItems
-    .map((item, index) => `<option value="${index}">${item.name}</option>`)
+    .map((item, index) => {
+      const itemName = item.name || item.Name || `Item ${index + 1}`;
+      return `<option value="${index}">${itemName}</option>`;
+    })
     .join("");
 
   selectEl.onchange = function () {
     const selectedItem = currentOrderItems[this.value];
-    document.getElementById("rateStallId").value = selectedItem.stallId;
-    document.getElementById("rateItemId").value = selectedItem.itemId;
+    if (!selectedItem) return;
+
+    document.getElementById("rateStallId").value =
+      selectedItem.stallId || selectedItem.StallId || "";
+    document.getElementById("rateItemId").value =
+      selectedItem.itemId || selectedItem.ItemId || "";
 
     const imgEl = document.getElementById("rateItemImg");
-    if (selectedItem.img) {
-      imgEl.src = selectedItem.img;
+    const imgSrc = selectedItem.img || selectedItem.Img;
+    if (imgSrc) {
+      imgEl.src = imgSrc;
       imgEl.hidden = false;
+      imgEl.removeAttribute("hidden");
     } else {
       imgEl.src = "";
       imgEl.hidden = true;
@@ -505,7 +529,6 @@ window.submitReview = async function () {
       showToast("Failed to submit review.", false);
     }
   } catch (err) {
-    console.error(err);
     showToast("An error occurred.", false);
   }
 };
@@ -539,7 +562,6 @@ window.submitReview = async function () {
     wireTabs();
     renderOrders(state.orders, state.checkoutId);
   } catch (err) {
-    console.error(err);
     window.__ALL_ORDERS = [];
     const state = { orders: [], checkoutId: checkoutIdFilter };
     wireFilters(state);

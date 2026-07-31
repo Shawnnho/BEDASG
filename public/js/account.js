@@ -200,19 +200,20 @@ function closePwModal() {
 /** Show/hide toggle buttons - swaps input type (icon swap is a nice-to-have,
  * left as a single icon for now since only one icon path was confirmed). */
 pwToggleBtns.forEach((btn) => {
+  const icon = btn.querySelector("img");
+
   btn.addEventListener("click", () => {
     const targetId = btn.dataset.target;
     const input = document.getElementById(targetId);
     if (!input) return;
 
     input.type = input.type === "password" ? "text" : "password";
-    btn.setAttribute(
-      "aria-label",
-      input.type === "password" ? `Show ${targetId}` : `Hide ${targetId}`,
-    );
+
+    const isVisible = input.type === "text";
+    icon.setAttribute("src", isVisible ? "images/hide.png" : "images/show.png");
+    btn.setAttribute("aria-label", isVisible ? `Hide ${targetId}` : `Show ${targetId}`);
   });
 });
-
 /** Live hint: new password length */
 pwNew?.addEventListener("input", () => {
   if (!pwNewHint) return;
