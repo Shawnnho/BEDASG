@@ -2,6 +2,7 @@
 // State
 // =========================
 let stalls = [];
+let centres = [];
 let currentUid = null;
 let favSet = new Set();
 
@@ -88,6 +89,29 @@ function populateCuisineOptions(data) {
   }
 }
 
+function populateCentreOptions(data) {
+  if (!locationEl) return;
+
+  const current = locationEl.value;
+
+  locationEl.innerHTML =
+    `<option value="">All Centres</option>` +
+    data
+      .map(
+        (c) =>
+          `<option value="${esc(c.centreId)}">${esc(c.name)}</option>`,
+      )
+      .join("");
+
+  // Preserve selection: URL param takes priority on first load,
+  // otherwise keep whatever the user had already picked
+  if (centreIdFilter && data.some((c) => String(c.centreId) === centreIdFilter)) {
+    locationEl.value = centreIdFilter;
+  } else if (current && data.some((c) => String(c.centreId) === current)) {
+    locationEl.value = current;
+  }
+}
+
 // =========================
 // Render
 // =========================
@@ -149,14 +173,10 @@ function renderList(data) {
 function getFilteredStalls() {
   let out = stalls.slice();
 
-  if (centreIdFilter) {
-    out = out.filter((s) => String(s.centreId) === centreIdFilter);
-  }
-
   const q = (qEl?.value || "").trim().toLowerCase();
   const cuisine = (cuisineEl?.value || "").toLowerCase();
   const grade = gradeEl?.value || "";
-  const loc = (locationEl?.value || "").trim().toLowerCase();
+  const centreId = locationEl?.value || "";
 
   if (q) {
     out = out.filter((s) =>
@@ -172,10 +192,8 @@ function getFilteredStalls() {
     out = out.filter((s) => s.grade === grade);
   }
 
-  if (loc) {
-    out = out.filter((s) =>
-      (s.location || s.address || "").toLowerCase().includes(loc),
-    );
+  if (centreId) {
+    out = out.filter((s) => String(s.centreId) === centreId);
   }
 
   const sortVal = sortEl?.value || "popular";
@@ -223,6 +241,19 @@ async function loadStalls() {
   } catch (err) {
     console.error("Failed to load stalls:", err);
     listEl.innerHTML = `<p style="text-align:center;font-weight:800;opacity:.7;">Could not load stalls. Please try again later.</p>`;
+  }
+}
+
+async function loadCentres() {
+  try {
+    const res = await fetch("/api/centres");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    centres = await res.json();
+
+    populateCentreOptions(centres);
+    applyFilters();
+  } catch (err) {
+    console.error("Failed to load centres:", err);
   }
 }
 
@@ -275,7 +306,7 @@ qEl?.addEventListener("input", applyFilters);
 cuisineEl?.addEventListener("change", applyFilters);
 gradeEl?.addEventListener("change", applyFilters);
 sortEl?.addEventListener("change", applyFilters);
-locationEl?.addEventListener("input", applyFilters);
+locationEl?.addEventListener("change", applyFilters);
 
 listEl?.addEventListener("click", (e) => {
   // Favourite button: toggle favourite only, never navigate
@@ -318,3 +349,4 @@ async function checkAuthStatus() {
 
 checkAuthStatus();
 loadStalls();
+loadCentres();
