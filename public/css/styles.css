@@ -6718,3 +6718,187 @@ body.storePage #stallGrade.gradeD {
   background-color: #e78a8a;
   color: #ffffff;
 }
+
+.rateModalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.rateModalBackdrop[hidden] {
+  display: none;
+}
+
+.rateModalCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.rateItemPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.rateItemImg {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.rateItemSelect {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.starContainer {
+  display: flex;
+  gap: 8px;
+  font-size: 32px;
+  justify-content: center;
+  margin: 12px 0 4px;
+}
+
+.star {
+  cursor: pointer;
+  color: #dee2e6;
+  transition: color 0.15s ease;
+}
+
+.starHint {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 14px;
+}
+
+.reviewInputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.reviewInputContainer textarea {
+  min-height: 80px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.rateModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.rateModalActions .pill {
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.rateModalActions .cancelRateBtn {
+  background: #f1f1f1;
+  color: #555;
+}
+
+.rateModalActions .cancelRateBtn:hover {
+  background: #e4e4e4;
+}
+
+.rateModalActions .submitRateBtn {
+  background: #ff8c00;
+  color: #fff;
+}
+
+.rateModalActions .submitRateBtn:hover {
+  background: #e67e00;
+}
+
+.rateModalActions .pill:active {
+  transform: scale(0.97);
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #333;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 2000;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.success {
+  background: #1f9d55;
+}
+
+.toast.error {
+  background: #cc2b2b;
+}
+
+.pr-btn-danger {
+  background-color: #ffe0e0;
+  color: #cc2b2b;
+}
+
+.pr-btn-danger:hover {
+  background-color: #ffcccc;
+}
+
+#btnCancel.pr-btn {
+  width: 100%;
+  height: 56px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 1000;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.pr-btn-danger {
+  box-shadow: 0 10px 22px rgba(204, 43, 43, 0.25);
+}

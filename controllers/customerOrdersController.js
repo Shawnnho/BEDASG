@@ -22,7 +22,7 @@ function shapeOrder(row, items) {
     fulfillment: { type: row.FulfillmentType || "pickup" },
     createdAt: row.CreatedAt,
     items: items
-      .filter((it) => it.OrderId === row.OrderId)
+      .filter((it) => String(it.OrderId).toLowerCase() === String(row.OrderId).toLowerCase())
       .map((it) => ({
         stallId: it.StallId,
         itemId: it.ItemId,
@@ -57,7 +57,6 @@ const getMyOrders = async (req, res) => {
     const orders = rows.map((r) => shapeOrder(r, items));
     res.json({ orders });
   } catch (err) {
-    console.error("getMyOrders error:", err);
     res.status(500).json({ error: "Failed to load orders" });
   }
 };
@@ -79,7 +78,6 @@ const deleteMyOrder = async (req, res) => {
 
     res.json({ success: true, deletedCount });
   } catch (err) {
-    console.error("deleteMyOrder error:", err);
     res.status(500).json({ error: "Failed to delete order" });
   }
 };
@@ -100,7 +98,6 @@ const cancelMyOrder = async (req, res) => {
 
     res.json({ success: true, cancelledCount: affected });
   } catch (err) {
-    console.error("cancelMyOrder error:", err);
     res.status(500).json({ error: "Failed to cancel order" });
   }
 };
