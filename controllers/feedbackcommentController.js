@@ -1,7 +1,7 @@
 const feedbackCommentModel = require("../models/feedbackcommentModel");
 
 // POST /api/comments
-
+// Creates a Comment on a review that the user has selected
 async function createComment(req, res) {
   // #swagger.tags = ['Comments']
   try {
@@ -24,6 +24,7 @@ async function createComment(req, res) {
 }
 
 // GET /api/comments/:reviewId
+// Retrieve comments from the selected review
 async function getComments(req, res) {
   // #swagger.tags = ['Comments']
   try {
@@ -36,4 +37,6 @@ async function getComments(req, res) {
   }
 }
 
-module.exports = { createComment, getComments };
+module.exports = {
+  createComment, getComments 
+};

@@ -3,12 +3,12 @@ const { validateBase64Image } = require("../middlewares/imageStorage");
 const stallOwnerLookupModel = require("../models/stallOwnerLookupModel");
 const { sendComplaintAlert } = require("../services/notificationEmails");
 
-// POST /api/complaints  (application/json — image sent as a base64 data URL)
-
+// POST /api/complaints  
+// Creates a Complaint to a stall that the user has selected
 async function createComplaint(req, res) {
   // #swagger.tags = ['Complaints']
   try {
-    const uid = req.user.userId; // set by verifyToken from the accessToken cookie
+    const uid = req.user.userId; 
     const { stall, stallName, firstName, lastName, email, message, image } = req.body;
 
     let imageUrl = null;
@@ -55,6 +55,7 @@ async function createComplaint(req, res) {
 }
 
 // GET /api/complaints/mine
+// Retrieves the user's complaints
 async function getMyComplaints(req, res) {
   // #swagger.tags = ['Complaints']
   try {
@@ -67,7 +68,7 @@ async function getMyComplaints(req, res) {
 }
 
 // PUT /api/complaints/:complaintId
-
+// Updates a user's complaint that the user has selected
 async function updateComplaint(req, res) {
   // #swagger.tags = ['Complaints']
   try {
@@ -83,7 +84,7 @@ async function updateComplaint(req, res) {
 }
 
 // DELETE /api/complaints/:complaintId
-
+// Deletes a complaint that the user has
 async function deleteComplaint(req, res) {
   // #swagger.tags = ['Complaints']
   try {

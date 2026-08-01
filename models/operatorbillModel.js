@@ -11,7 +11,7 @@ function computeDueDate(billMonth, dueDay = 15) {
   const clampedDay = Math.min(dueDay, daysInDueMonth);
   return new Date(yy, mm, clampedDay);
 }
-
+// Retrievs the bills that the operator has made
 async function getBill(stallId, billMonth) {
   const pool = await poolPromise;
   const result = await pool
@@ -25,7 +25,7 @@ async function getBill(stallId, billMonth) {
     `);
   return result.recordset[0] || null;
 }
-
+// Retrieves latest bill operator made
 async function getLatestBillForStall(stallId) {
   const pool = await poolPromise;
   const result = await pool
@@ -39,7 +39,7 @@ async function getLatestBillForStall(stallId) {
     `);
   return result.recordset[0] || null;
 }
-
+// Creates a rental agreement 
 async function ensureBill(stallId, centreId, billMonth, defaultRent, dueDay = 15) {
   const existing = await getBill(stallId, billMonth);
   if (existing) return existing;
@@ -85,7 +85,7 @@ async function ensureBill(stallId, centreId, billMonth, defaultRent, dueDay = 15
   return getBill(stallId, billMonth);
 }
 
-
+// Updates a rental agreement (provided the stall holder has yet to pay)
 async function updateBill(stallId, billMonth, centreId, { rent, utilities, cleaningFee, penalty, other }, dueDay = 15) {
   const pool = await poolPromise;
   const billId = computeBillId(stallId, billMonth);
@@ -146,7 +146,7 @@ async function updateBill(stallId, billMonth, centreId, { rent, utilities, clean
   return getBill(stallId, billMonth);
 }
 
-
+// Deletes a rental agreement
 async function deleteBill(stallId, billMonth) {
   const pool = await poolPromise;
   await pool
@@ -159,4 +159,6 @@ async function deleteBill(stallId, billMonth) {
     `);
 }
 
-module.exports = { getBill, getLatestBillForStall, ensureBill, updateBill, deleteBill, computeBillId };
+module.exports = { 
+  getBill, getLatestBillForStall, ensureBill, updateBill, deleteBill, computeBillId 
+};
