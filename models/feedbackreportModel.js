@@ -1,7 +1,7 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
-
+// Checks if the user has reported
 async function hasUserReported(reviewId, reporterUserId) {
   const pool = await poolPromise;
   const result = await pool
@@ -14,7 +14,7 @@ async function hasUserReported(reviewId, reporterUserId) {
     `);
   return result.recordset.length > 0;
 }
-
+// Creates a report to a review that the user has selected
 async function createReport({ reviewId, reporterUserId, reason, details }) {
   const pool = await poolPromise;
   const reportId = crypto.randomUUID();
@@ -34,6 +34,7 @@ async function createReport({ reviewId, reporterUserId, reason, details }) {
   return { reportId };
 }
 
+// Retrieve all reports on reviews 
 async function getReportsForCentres(centreIds) {
   if (!centreIds || centreIds.length === 0) return [];
 
@@ -71,7 +72,7 @@ async function getReportById(reportId) {
     .query("SELECT * FROM dbo.FeedbackReports WHERE ReportId = @reportId");
   return result.recordset[0] || null;
 }
-
+//  Dismisses the Report 
 async function dismissReport(reportId) {
   const pool = await poolPromise;
   const result = await pool
@@ -80,7 +81,7 @@ async function dismissReport(reportId) {
     .query("DELETE FROM dbo.FeedbackReports WHERE ReportId = @reportId");
   return result.rowsAffected[0] > 0;
 }
-
+// Deletes the review  that the operator has selected 
 async function deleteReportsByReviewId(reviewId) {
   const pool = await poolPromise;
   await pool

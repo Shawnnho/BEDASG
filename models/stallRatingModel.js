@@ -1,5 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 
+// Retrieves the average rating of a stall (based on reviews)
 async function getAverageRatingsByStallIds(stallIds) {
   if (!stallIds || stallIds.length === 0) return {};
 

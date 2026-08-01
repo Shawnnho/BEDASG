@@ -16,7 +16,7 @@ function getCurrentMonthKey() {
 }
 
 // GET /api/operator/centres
-
+// Retrieves all centres that the operator owns
 async function getMyCentres(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -39,6 +39,7 @@ async function getMyCentres(req, res) {
 }
 
 // GET /api/operator/overview
+// Retrieves the number of centres owned, the total stalls, the total rental agreements and the total revenue as a number
 async function getOverview(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -73,7 +74,7 @@ async function getOverview(req, res) {
 }
 
 // GET /api/operator/centres/:centreId/stalls
-
+// Retrieves the stalls owned by the operator for a specific centre
 async function getStallsForCentre(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -99,7 +100,7 @@ async function getStallsForCentre(req, res) {
 }
 
 // GET /api/operator/centres/:centreId/rentals
-
+// Retrieves the Rental Agreements that the operator has given for a specific stall
 async function getRentalsForCentre(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -129,6 +130,7 @@ async function getRentalsForCentre(req, res) {
 }
 
 // GET /api/operator/stalls
+// Retrieves all stalls for operator
 async function getAllStallsForOperator(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -163,6 +165,7 @@ async function getAllStallsForOperator(req, res) {
 }
 
 // GET /api/operator/rentals
+// Retrives all rental agreement for operator
 async function getAllRentalsForOperator(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -188,7 +191,7 @@ async function getAllRentalsForOperator(req, res) {
 }
 
 // POST /api/operator/rentals
-
+// Creates a Rental Agreement for a stall that the operator has selected
 async function createRental(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -269,7 +272,7 @@ async function createRental(req, res) {
 }
 
 // DELETE /api/operator/rentals/:agreementId
-
+// Deletes a rental agreement that the user has selected
 async function deleteRental(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -290,7 +293,7 @@ async function deleteRental(req, res) {
 }
 
 // PUT /api/operator/bills/:stallId/:billMonth
-
+// Updates a rental agreement (provided the stall holder has yet to pay)
 async function saveBill(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -337,7 +340,7 @@ async function saveBill(req, res) {
 }
 
 // GET /api/operator/stalls/:stallId/complaints
-
+// Retrieve all complaints from a stall that the operator owns
 async function getStallComplaints(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -351,6 +354,7 @@ async function getStallComplaints(req, res) {
 }
 
 // GET /api/operator/reports
+// Retrieve all reports on reviews 
 async function getReportedReviews(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -367,7 +371,7 @@ async function getReportedReviews(req, res) {
 }
 
 // POST /api/operator/reports/:reportId/dismiss
-
+//  Dismisses the Report 
 async function dismissReport(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -390,7 +394,7 @@ async function dismissReport(req, res) {
 }
 
 // DELETE /api/operator/reports/:reportId/review
-
+// Deletes the review  that the operator has selected 
 async function deleteReportedReview(req, res) {
   // #swagger.tags = ['Operator']
   try {

@@ -1,17 +1,9 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
+// Creates a Complaint to a stall that the user has selected
 async function createComplaint({
-  uid,
-  firstName,
-  lastName,
-  userName,
-  email,
-  stall,
-  stallName,
-  message,
-  imagePath,
-  imageUrl,
+  uid, firstName, lastName, userName, email, stall, stallName, message, imagePath, imageUrl,
 }) {
   const pool = await poolPromise;
   const complaintId = crypto.randomUUID();
@@ -41,6 +33,7 @@ async function createComplaint({
   return { complaintId };
 }
 
+// Retrieves the user's complaints
 async function getComplaintsByUser(uid) {
   const pool = await poolPromise;
   const result = await pool
@@ -67,7 +60,7 @@ async function getComplaintById(complaintId) {
 }
 
 // Edit a complaint that a customer already submitted (SA2PG-102).
-
+// Updates a user's complaint that the user has selected
 async function updateComplaint(complaintId, { message }) {
   const pool = await poolPromise;
   await pool
@@ -82,6 +75,7 @@ async function updateComplaint(complaintId, { message }) {
 }
 
 // Delete a complaint that a customer already submitted 
+// Deletes a complaint that the user has
 async function deleteComplaint(complaintId) {
   const pool = await poolPromise;
   const result = await pool

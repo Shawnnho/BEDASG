@@ -16,7 +16,7 @@ async function getCompletedRevenueByCentre(centreId) {
   return Number(result.recordset[0].Revenue || 0);
 }
 
-// Revenue for several centres at once, grouped — avoids one query per centre
+// Revenue for several centres at once, grouped 
 
 async function getCompletedRevenueByCentreIds(centreIds) {
   if (!centreIds || centreIds.length === 0) return {};
@@ -46,6 +46,7 @@ async function getCompletedRevenueByCentreIds(centreIds) {
   return revenueByCentre;
 }
 
+// Get the Totla Revenue for a stall
 async function getCompletedRevenueByStallIds(stallIds) {
   if (!stallIds || stallIds.length === 0) return {};
 

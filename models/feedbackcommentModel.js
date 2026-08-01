@@ -1,7 +1,7 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
-
+// Creates a Comment on a review that the user has selected
 async function createComment({ reviewId, userId, userName, commentText }) {
   const pool = await poolPromise;
   const commentId = crypto.randomUUID();
@@ -21,6 +21,7 @@ async function createComment({ reviewId, userId, userName, commentText }) {
   return { commentId };
 }
 
+// Retrieve comments from the selected review
 async function getCommentsByReview(reviewId) {
   const pool = await poolPromise;
   const result = await pool
