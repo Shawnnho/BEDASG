@@ -1,5 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 
+// Retrieves the Stall Owner's Email for email notifications
 async function getStallOwnerEmail(stallId) {
   const pool = await poolPromise;
   const result = await pool

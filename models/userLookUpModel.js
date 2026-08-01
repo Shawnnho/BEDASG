@@ -1,5 +1,6 @@
 const { sql, poolPromise } = require("../dbConfig");
 
+// Retrieves the user's Email for email notifications
 async function getUserEmail(userId) {
   const pool = await poolPromise;
   const result = await pool
