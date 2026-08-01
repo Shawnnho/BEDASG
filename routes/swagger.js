@@ -10,7 +10,7 @@ const doc = {
   },
   host: "localhost:3000",
   tags: [
-    // ----- Feedback / Operator (teammates) -----
+    // ----- Feedback / Operator (Matthew) -----
     {
       name: "Complaints",
       description: "Submit, view, edit, and delete complaints against a stall",
