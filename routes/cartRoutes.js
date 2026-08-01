@@ -7,11 +7,26 @@ const { verifyToken } = require('../middlewares/auth');
 // (enforced in the controller) so one account can't read/edit another's cart.
 router.use(verifyToken);
 
-router.get('/:uid', cartController.getCart);
-router.post('/:uid', cartController.updateCart);
+router.get('/:uid', cartController.getCart
+    // #swagger.tags = ['Cart (Customer)']
+    // #swagger.summary = 'Get a user\'s cart'
+);
+router.post('/:uid', cartController.updateCart
+    // #swagger.tags = ['Cart (Customer)']
+    // #swagger.summary = 'Update a user\'s cart'
+);
 
-router.post('/:uid/items', cartController.addItem);
-router.put('/:uid/items/:cartItemId', cartController.updateItemQty);
-router.delete('/:uid/items/:cartItemId', cartController.deleteItem);
+router.post('/:uid/items', cartController.addItem
+    // #swagger.tags = ['Cart (Customer)']
+    // #swagger.summary = 'Add an item to a user\'s cart'
+);
+router.put('/:uid/items/:cartItemId', cartController.updateItemQty
+    // #swagger.tags = ['Cart (Customer)']
+    // #swagger.summary = 'Update the quantity of an item in a user\'s cart'
+);
+router.delete('/:uid/items/:cartItemId', cartController.deleteItem
+    // #swagger.tags = ['Cart (Customer)']
+    // #swagger.summary = 'Remove an item from a user\'s cart'
+);
 
 module.exports = router;
