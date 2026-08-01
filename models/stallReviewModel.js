@@ -1,6 +1,7 @@
 const { sql, poolPromise } = require("../dbConfig");
 const crypto = require("crypto");
 
+// Creates a review for the user
 async function createReview({
   stallId,
   userId,
@@ -56,6 +57,7 @@ async function createReview({
   return { reviewId };
 }
 
+// Retreives latest reviews from the database
 async function getLatestReviews(limitCount = 20) {
   const pool = await poolPromise;
   const result = await pool.request().input("limitCount", sql.Int, limitCount)
@@ -71,6 +73,7 @@ async function getLatestReviews(limitCount = 20) {
   return result.recordset;
 }
 
+// Retrieves all reviews that were made by the user
 async function getReviewsByUser(userId) {
   const pool = await poolPromise;
   const result = await pool.request().input("userId", sql.NVarChar, userId)
@@ -86,7 +89,7 @@ async function getReviewsByUser(userId) {
     `);
   return result.recordset;
 }
-
+// Updates the Review the user selected to update
 async function updateReview(
   reviewId,
   { rating, reviewText, isAnonymous, tags },
@@ -109,7 +112,7 @@ async function updateReview(
       WHERE ReviewId = @reviewId;
     `);
 }
-
+// Deletes the user's review that was selected
 async function deleteReview(reviewId) {
   const pool = await poolPromise;
   const result = await pool
@@ -119,11 +122,10 @@ async function deleteReview(reviewId) {
   return result.rowsAffected[0] > 0;
 }
 
+// Retrieves the amount of reviews the stall has, and what their average rating is
 async function getStallRatingSummary(stallId) {
   const pool = await poolPromise;
-  // Only STALL reviews count toward the stall's rating. Item ratings
-  // (ItemId IS NOT NULL) live in the same table but must be excluded, or
-  // COUNT(*) inflates the review count and the average is skewed.
+
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
     .query(`
       SELECT
@@ -136,7 +138,7 @@ async function getStallRatingSummary(stallId) {
   const row = result.recordset[0];
   return { reviewCount: row.ReviewCount, averageRating: row.AverageRating };
 }
-
+// Retrievs a single review from a user
 async function getReviewById(reviewId) {
   const pool = await poolPromise;
   const result = await pool.request().input("reviewId", sql.NVarChar, reviewId)
@@ -152,6 +154,7 @@ async function getReviewById(reviewId) {
   return result.recordset[0] || null;
 }
 
+// Retrieves reviews based on the user input
 async function searchReviews({ stallName, rating, limitCount = 50 }) {
   const pool = await poolPromise;
   const request = pool.request().input("limitCount", sql.Int, limitCount);
@@ -184,7 +187,7 @@ async function searchReviews({ stallName, rating, limitCount = 50 }) {
   `);
   return result.recordset;
 }
-
+// Retrieves the stalls reviews for the stall holder
 async function getStallByOwnerUid(ownerUid) {
   const pool = await poolPromise;
   const result = await pool.request().input("ownerUid", sql.NVarChar, ownerUid)
@@ -200,8 +203,7 @@ async function getStallByOwnerUid(ownerUid) {
   return result.recordset[0] || null;
 }
 
-// STALL-LEVEL reviews only (ItemId IS NULL). These are the cards your review
-// page has always shown: UserName, Rating, ReviewText, TagsJson.
+// Retrieves all feedback from a stall
 async function getReviewsByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
@@ -219,9 +221,7 @@ async function getReviewsByStall(stallId) {
   return result.recordset;
 }
 
-// Individual per-review item ratings (ItemId IS NOT NULL). One row per rating,
-// reading ItemStar / ItemReview. Joined to StallMenus so each row carries the
-// readable item name (ItemId equals StallMenus.MenuId).
+
 async function getItemReviewsByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
@@ -239,8 +239,7 @@ async function getItemReviewsByStall(stallId) {
   return result.recordset;
 }
 
-// Per-item aggregate: average stars + count, grouped by ItemId, with the
-// item name joined in from StallMenus. Powers the "breakdown by item" cards.
+
 async function getItemRatingSummaryByStall(stallId) {
   const pool = await poolPromise;
   const result = await pool.request().input("stallId", sql.NVarChar, stallId)
@@ -271,8 +270,7 @@ async function getReviewCountSince(stallId, sinceIso) {
     timeCondition = "AND CreatedAt > @since";
   }
 
-  // Only new STALL reviews should trigger the "new review" badge/popup.
-  // A new item rating is a different event and shouldn't inflate this count.
+
   const result = await request.query(`
     SELECT COUNT(*) AS NewCount
     FROM dbo.StallReviews

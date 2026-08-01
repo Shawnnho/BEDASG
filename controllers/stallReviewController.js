@@ -1,7 +1,8 @@
 const stallReviewModel = require("../models/stallReviewModel");
 const { validateBase64Image } = require("../middlewares/imageStorage");
 
-// POST /api/reviews  (application/json — image sent as a base64 data URL)
+// POST /api/reviews 
+// Creates a review for the user
 async function createReview(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -28,7 +29,7 @@ async function createReview(req, res) {
       reviewText: reviewText || "",
       isAnonymous: isAnonymous === true || isAnonymous === "true",
       imageUrl,
-      tags: tags.filter(Boolean).slice(0, 3), // matches "Select up to 3" in the UI
+      tags: tags.filter(Boolean).slice(0, 3), // makes sure optional choosing can be chosen up to 3
     });
 
     res.status(201).json({ reviewId });
@@ -38,7 +39,8 @@ async function createReview(req, res) {
   }
 }
 
-// GET /api/reviews/latest?limit=20 — public, no auth required (feeds the carousel)
+// GET /api/reviews/latest?limit=20 
+// Retreives latest reviews from the database
 async function getLatestReviews(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -52,6 +54,7 @@ async function getLatestReviews(req, res) {
 }
 
 // GET /api/reviews/mine
+// Retrieves all reviews that were made by the user
 async function getMyReviews(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -63,7 +66,8 @@ async function getMyReviews(req, res) {
   }
 }
 
-// GET /api/reviews/summary/:stallId — public, e.g. for a stall page's ★ badge
+// GET /api/reviews/summary/:stallId 
+// Retrieves the amount of reviews the stall has, and what their average rating is
 async function getStallRating(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -77,6 +81,7 @@ async function getStallRating(req, res) {
 }
 
 // GET /api/reviews/search?stallName=...&rating=...
+// Retrieves reviews based on the user input
 async function searchReviews(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -89,7 +94,8 @@ async function searchReviews(req, res) {
   }
 }
 
-// GET /api/reviews/:reviewId — public, used by report.html to show what's being reported
+// GET /api/reviews/:reviewId
+// Retrievs a single review from a user
 async function getReview(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -103,7 +109,8 @@ async function getReview(req, res) {
   }
 }
 
-// GET /api/reviews/stall/:stallId — unchanged, out of scope for this refactor
+// GET /api/reviews/stall/:stallId 
+// Retrieves all feedback from a stall
 async function getReviewsByStall(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -116,7 +123,8 @@ async function getReviewsByStall(req, res) {
   }
 }
 
-// GET /api/reviews/my-stall — unchanged, out of scope for this refactor
+// GET /api/reviews/my-stall
+// Retrieves the stalls reviews for the stall holder
 async function getMyStallReviews(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -142,7 +150,7 @@ async function getMyStallReviews(req, res) {
   }
 }
 
-// GET /api/reviews/my-stall/count?since=<iso> — unchanged, out of scope for this refactor
+// GET /api/reviews/my-stall/count?since=<iso>
 async function getMyStallReviewCount(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -162,6 +170,7 @@ async function getMyStallReviewCount(req, res) {
 }
 
 // PUT /api/reviews/:reviewId
+// Updates the Review the user selected to update
 async function updateReview(req, res) {
   // #swagger.tags = ['Reviews']
   try {
@@ -183,6 +192,7 @@ async function updateReview(req, res) {
 }
 
 // DELETE /api/reviews/:reviewId
+// Deletes the user's review that was selected
 async function deleteReview(req, res) {
   // #swagger.tags = ['Reviews']
   try {
