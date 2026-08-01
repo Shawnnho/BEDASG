@@ -394,7 +394,11 @@ document.addEventListener("input", (e) => {
   }
 });
 
+let renderToken = 0;
+
 async function render() {
+  const myRenderToken = ++renderToken;
+
   const list = document.getElementById("cartList");
   const empty = document.getElementById("cartEmpty");
   const summary = document.getElementById("cartSummary");
@@ -412,6 +416,11 @@ async function render() {
   } catch (err) {
     cart = [];
   }
+
+  // A newer render() call has already started (and possibly finished) while
+  // we were waiting on readCart() — abandon this stale run so it can't
+  // overwrite state (like an applied promo) with outdated cart data.
+  if (myRenderToken !== renderToken) return;
 
   const count = calcCount(cart);
   updateBadges(count);
@@ -492,6 +501,8 @@ async function render() {
       </article>
     `;
   });
+
+  if (myRenderToken !== renderToken) return;
 
   if (appliedPromo) {
     const check = validatePromoLocally(appliedPromo, cart, subtotal);
