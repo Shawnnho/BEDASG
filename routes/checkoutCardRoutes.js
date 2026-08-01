@@ -8,9 +8,21 @@ const { optionalAuth, guestSession } = require("../middlewares/auth");
 // against req.user so one account can't view/pay another's order.
 router.use(optionalAuth);
 
-router.post("/create", guestSession, checkoutCardController.createCheckout);
-router.get("/:checkoutId", checkoutCardController.getCheckout);
-router.get("/:checkoutId/qr", checkoutCardController.getCheckoutQr);
-router.post("/:checkoutId/pay", checkoutCardController.payCheckout);
+router.post("/create", guestSession, checkoutCardController.createCheckout
+    // #swagger.tags = ['Checkout (Customer)']
+    // #swagger.summary = 'Create a new checkout session'
+);
+router.get("/:checkoutId", checkoutCardController.getCheckout
+    // #swagger.tags = ['Checkout (Customer)']
+    // #swagger.summary = 'Get checkout details by id'
+);
+router.get("/:checkoutId/qr", checkoutCardController.getCheckoutQr
+    // #swagger.tags = ['Checkout (Customer)']
+    // #swagger.summary = 'Get a QR code for the checkout'
+);
+router.post("/:checkoutId/pay", checkoutCardController.payCheckout
+    // #swagger.tags = ['Checkout (Customer)']
+    // #swagger.summary = 'Pay for a checkout'
+);
 
 module.exports = router;

@@ -73,6 +73,7 @@ const createCheckout = async (req, res) => {
 };
 
 const getCheckout = async (req, res) => {
+  //#swagger.tags = ['your tag']
   try {
     const id = req.params.checkoutId;
     const summary = await checkoutCardModel.getCheckoutSummary(id);

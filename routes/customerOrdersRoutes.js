@@ -15,14 +15,30 @@ router.get(
   optionalAuth,
   guestSession,
   customerOrdersController.getGuestOrders,
+  // #swagger.tags = ['Order History (Customer)']
+  // #swagger.summary = 'Get guest order history via session id'
 );
 
-router.get("/", verifyToken, customerOrdersController.getMyOrders);
-router.delete("/:id", verifyToken, customerOrdersController.deleteMyOrder);
+router.get(
+  "/",
+  verifyToken,
+  customerOrdersController.getMyOrders,
+  // #swagger.tags = ['Order History (Customer)']
+  // #swagger.summary = "Get the logged-in customer's order history"
+);
+router.delete(
+  "/:id",
+  verifyToken,
+  customerOrdersController.deleteMyOrder,
+  // #swagger.tags = ['Order History (Customer)']
+  // #swagger.summary = "Delete one of the logged-in customer's orders"
+);
 router.patch(
   "/:id/cancel",
   verifyToken,
   customerOrdersController.cancelMyOrder,
+  // #swagger.tags = ['Order History (Customer)']
+  // #swagger.summary = "Cancel one of the logged-in customer's orders"
 );
 
 module.exports = router;
