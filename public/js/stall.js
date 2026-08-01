@@ -16,8 +16,19 @@ if (!centreId || !stallId) {
 }
 
 let stall = null;
+let stallHours = []; // [{ dayOfWeek, isClosed, openTime, closeTime }, ...]
 let isFav = false;
 let isLoggedIn = false;
+
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // =========================
 // DOM
@@ -44,6 +55,12 @@ const starFill = document.getElementById("starFill");
 
 const seeReviewLink = document.getElementById("seeReviewLink");
 const hygBtn = document.getElementById("hygBtn");
+
+// Hours widget
+const hoursToggle = document.getElementById("hoursToggle");
+const hoursTodayLabel = document.getElementById("hoursTodayLabel");
+const hoursTodayTime = document.getElementById("hoursTodayTime");
+const hoursList = document.getElementById("hoursList");
 
 const HEART_OUTLINE = "images/like.png";
 const HEART_FILLED = "images/heart.png";
@@ -72,6 +89,7 @@ function parseTimeParts(value) {
 
   return null;
 }
+
 function formatTime12(value) {
   const parts = parseTimeParts(value);
   if (!parts) return null;
@@ -92,31 +110,6 @@ function buildHours12(open, close) {
 
   if (!openFmt || !closeFmt) return "—";
   return `${openFmt} – ${closeFmt}`;
-}
-// OperatingHours may come back as a JSON string (per-day open/close) or null.
-// Falls back to the flat OpenTime/CloseTime columns if not present.
-function resolveTodayHours(stall) {
-  const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
-    new Date().getDay()
-  ];
-
-  let raw = stall.operatingHours;
-  if (raw && typeof raw === "string") {
-    try {
-      raw = JSON.parse(raw);
-    } catch {
-      raw = null;
-    }
-  }
-
-  if (raw && typeof raw === "object" && raw[dayKey]) {
-    return {
-      open: raw[dayKey].open || "",
-      close: raw[dayKey].close || "",
-    };
-  }
-
-  return { open: stall.openTime || "", close: stall.closeTime || "" };
 }
 
 // centreModel's shape isn't known here, so check the common field names.
@@ -140,7 +133,6 @@ async function loadStall() {
   }
 
   const d = await res.json();
-  const { open, close } = resolveTodayHours(d);
 
   stall = {
     id: d.id ?? stallId,
@@ -154,10 +146,8 @@ async function loadStall() {
     phone: d.phone || "",
     ratingCount: d.ratingCount,
     ratingTotal: d.ratingTotal,
-    openTime: open,
-    closeTime: close,
   };
-  
+
   fillUI();
   loadCentreName().catch(console.error);
 }
@@ -170,13 +160,14 @@ async function loadCentreName() {
   }
   const centre = await res.json();
   const centreName = resolveCentreName(centre);
-  const centreLocation = centre.Location
+  const centreLocation = centre.Location;
 
   if (locationEl) locationEl.textContent = centreName ? ` ${centreName}` : "";
   if (dirBtn) {
-    dirBtn.href = centreLocation ? centreLocation :
-      "https://www.google.com/maps?q=" +
-      encodeURIComponent(centreName || stall.name);
+    dirBtn.href = centreLocation
+      ? centreLocation
+      : "https://www.google.com/maps?q=" +
+        encodeURIComponent(centreName || stall.name);
   }
 }
 
@@ -194,8 +185,8 @@ function fillUI() {
   }
 
   descEl.textContent = stall.desc;
-  metaEl.textContent = `Opening Hours: ${buildHours12(stall.openTime, stall.closeTime)} • Unit #${stall.unit}`;
-  contactEl.textContent =`Contact Stall: ${stall.phone ? formatPhoneNo(stall.phone) : "-"}`
+  metaEl.textContent = `Unit #${stall.unit}`;
+  contactEl.textContent = `Contact Stall: ${stall.phone ? formatPhoneNo(stall.phone) : "-"}`;
 
   const hasRatings = stall.ratingCount > 0;
   if (avgText)
@@ -223,9 +214,115 @@ function fillUI() {
   }
 }
 
-function formatPhoneNo(phone){
-  const formatted = phone.slice(0,4) + "-" + phone.slice(4);
+function formatPhoneNo(phone) {
+  const formatted = phone.slice(0, 4) + "-" + phone.slice(4);
   return formatted;
+}
+
+// =========================
+// Operating hours (StallHours table)
+// =========================
+async function loadStallHours() {
+  try {
+    const res = await fetch(`/api/stalls/${encodeURIComponent(stallId)}/hours`);
+    if (!res.ok) {
+      console.error("Failed to load stall hours:", res.status);
+      return;
+    }
+    const data = await res.json();
+    stallHours = Array.isArray(data.hours) ? data.hours : [];
+    renderHoursWidget();
+  } catch (e) {
+    console.error("Failed to load stall hours:", e);
+  }
+}
+
+function dayRowText(row) {
+  if (!row) return "—";
+  if (row.isClosed) return "Closed";
+  return buildHours12(row.openTime, row.closeTime);
+}
+
+// Converts a TIME value (either "HH:MM[:SS]" or an ISO/UTC-serialized date
+// string) into minutes-since-midnight, reusing parseTimeParts so this stays
+// consistent with how the display labels are formatted.
+function timeToMinutes(value) {
+  const parts = parseTimeParts(value);
+  if (!parts) return null;
+  return parts.h * 60 + parts.m;
+}
+
+// Compares the current wall-clock time against a given day's OpenTime/CloseTime.
+// Handles the normal same-day case (open < close) and overnight hours that
+// cross midnight (close <= open, e.g. 18:00-02:00).
+function isRowOpenNow(row) {
+  if (!row || row.isClosed) return false;
+
+  const openMin = timeToMinutes(row.openTime);
+  const closeMin = timeToMinutes(row.closeTime);
+  if (openMin === null || closeMin === null) return false;
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  if (closeMin > openMin) {
+    // Normal same-day window, e.g. 08:00-19:00
+    return nowMin >= openMin && nowMin < closeMin;
+  }
+  // Overnight window, e.g. 18:00-02:00
+  return nowMin >= openMin || nowMin < closeMin;
+}
+
+function renderHoursWidget() {
+  if (!hoursToggle || !hoursList || stallHours.length === 0) return;
+
+  const todayIdx = new Date().getDay();
+  const byDay = new Map(stallHours.map((r) => [r.dayOfWeek, r]));
+  const todayRow = byDay.get(todayIdx);
+  const openNow = isRowOpenNow(todayRow);
+
+  // Summary row (collapsed state) — shows LIVE open/closed status based on
+  // the current time, not just today's configured hours. A stall can still
+  // read "Closed" today if we're before opening or after closing.
+  hoursTodayLabel.textContent = DAY_NAMES[todayIdx];
+  hoursTodayTime.textContent = openNow ? "Stall Open" : "Stall Closed";
+  hoursTodayTime.classList.remove("isOpenColor", "isClosedColor");
+  hoursTodayTime.classList.add(openNow ? "isOpenColor" : "isClosedColor");
+
+  // Expanded list, starting at today and wrapping through the week.
+  // Each row still shows that day's configured hours (not live status),
+  // colored by whether the stall is scheduled closed that day.
+  hoursList.innerHTML = "";
+  for (let i = 0; i < 7; i++) {
+    const dayIdx = (todayIdx + i) % 7;
+    const row = byDay.get(dayIdx);
+
+    const line = document.createElement("div");
+    line.className = "hoursListRow";
+    if (dayIdx === todayIdx) line.classList.add("isToday");
+
+    const dayEl = document.createElement("span");
+    dayEl.className = "hoursDay";
+    dayEl.textContent = DAY_NAMES[dayIdx];
+
+    const timeEl = document.createElement("span");
+    timeEl.className = `hoursTime ${row?.isClosed ? "isClosedColor" : "isOpenColor"}`;
+    timeEl.textContent = dayRowText(row);
+
+    line.appendChild(dayEl);
+    line.appendChild(timeEl);
+    hoursList.appendChild(line);
+  }
+}
+
+function setupHoursToggle() {
+  if (!hoursToggle || !hoursList) return;
+
+  hoursToggle.addEventListener("click", () => {
+    const expanded = hoursToggle.getAttribute("aria-expanded") === "true";
+    hoursToggle.setAttribute("aria-expanded", String(!expanded));
+    hoursList.hidden = expanded;
+  });
 }
 
 // =========================
@@ -313,7 +410,9 @@ function setupFavButton() {
 // Init
 // =========================
 (async function init() {
+  setupHoursToggle();
   await loadStall();
+  await loadStallHours();
   await loadFavStatus();
   setupFavButton();
 })();

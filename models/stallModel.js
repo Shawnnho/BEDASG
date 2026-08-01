@@ -149,5 +149,21 @@ async function getStallsByCentre(centreId) {
   return result.recordset;
 }
 
+// Returns all 7 rows (DayOfWeek 0=Sun...6=Sat) for a stall, ordered by day.
+async function getStallHours(stallId) {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("stallId", sql.NVarChar, stallId)
+    .query(`
+      SELECT DayOfWeek, IsClosed, OpenTime, CloseTime
+      FROM dbo.StallHours
+      WHERE StallId = @stallId
+      ORDER BY DayOfWeek
+    `);
+  return result.recordset;
+}
 
-module.exports = { getAllStalls, createStall, getStallById, getStallCentreId, getStallsByCentre};
+
+
+module.exports = { getAllStalls, createStall, getStallById, getStallCentreId, getStallsByCentre, getStallHours };

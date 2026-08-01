@@ -5,5 +5,6 @@ const stallController = require("../controllers/stallController");
 // GET /api/stalls  -> list all active stalls
 router.get("/", stallController.getAllStalls);
 router.get("/:id", stallController.getStallById);
+router.get("/:id/hours",stallController.getStallHours);
 
 module.exports = router;
