@@ -62,6 +62,7 @@ async function getPromotionsByUserId(req, res) {
       id: r.PromoId,
       code: r.PromoCode,
       expiresAt: r.ExpiresAt || null,
+      claimedAt: r.ClaimedAt || null,
     }));
  
     res.json(promotions);

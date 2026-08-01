@@ -107,7 +107,12 @@ async function getPromotionsByUserId(userId) {
   const result = await pool
   .request()
   .input("UserId", sql.NVarChar(255), userId)
-  .query(`SELECT * FROM UserPromoClaims pc INNER JOIN Promotions p ON pc.PromoId = p.PromotionId WHERE UserId = @UserId`)
+  .query(`
+    SELECT pc.ClaimId, pc.UserId, pc.PromoId, pc.PromoCode, pc.ClaimedAt, p.ExpiresAt
+    FROM UserPromoClaims pc
+    INNER JOIN Promotions p ON pc.PromoId = p.PromotionId
+    WHERE pc.UserId = @UserId
+  `)
   return result.recordset;
 }
 

@@ -1,16 +1,17 @@
 document.addEventListener("DOMContentLoaded", () => {
-  let claimedCodes = new Set(
-    JSON.parse(localStorage.getItem("hp_claimedCodes") || "[]"),
-  );
-  let claimedDailyIds = new Set(
-    JSON.parse(localStorage.getItem("hp_claimedDailyIds") || "[]"),
-  );
+  // Claimed-state is fetched fresh from the server per logged-in user —
+  // NOT from localStorage, since localStorage is shared across every
+  // account that logs into this browser and would otherwise show one
+  // account's claims as already-claimed on a completely different account.
+  let claimedCodes = new Set();
+  let claimedDailyIds = new Set();
+  let currentUid = null;
 
   function todayKey() {
     const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
   }
 
@@ -20,9 +21,47 @@ document.addEventListener("DOMContentLoaded", () => {
   async function isGuestCheckLoggedIn() {
     try {
       const res = await fetch("/api/auth/me");
-      return res.ok;
+      if (!res.ok) return false;
+      const data = await res.json();
+      currentUid = data?.user?.id || null;
+      return true;
     } catch {
       return false;
+    }
+  }
+
+  // Rebuilds claimedCodes/claimedDailyIds from the real UserPromoClaims
+  // data for whoever is currently logged in. Called on load and again
+  // after every successful claim/redeem so the UI stays in sync with
+  // the database instead of a locally-cached guess.
+  async function loadUserClaims() {
+    claimedCodes = new Set();
+    claimedDailyIds = new Set();
+
+    if (!currentUid) return;
+
+    try {
+      const res = await fetch(`/api/promotions/${encodeURIComponent(currentUid)}`);
+      if (!res.ok) return;
+      const claims = await res.json();
+
+      for (const c of claims) {
+        const code = String(c.code || "").toUpperCase();
+        if (!code) continue;
+
+        claimedCodes.add(code);
+
+        if (c.claimedAt) {
+          const claimedDate = new Date(c.claimedAt);
+          const yyyy = claimedDate.getUTCFullYear();
+          const mm = String(claimedDate.getUTCMonth() + 1).padStart(2, "0");
+          const dd = String(claimedDate.getUTCDate()).padStart(2, "0");
+          claimedDailyIds.add(`${code}_${yyyy}-${mm}-${dd}`);
+        }
+      }
+    } catch {
+      // Leave both sets empty on failure — safer to show "Claim" than to
+      // incorrectly show something as claimed.
     }
   }
 
@@ -39,6 +78,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadPromos() {
     try {
+      await isGuestCheckLoggedIn();
+      await loadUserClaims();
+
       const response = await fetch("/api/promotions");
       const data = await response.json();
 
@@ -258,29 +300,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (response.status === 409) {
           showToast("You've already claimed this promo.");
+          await loadPromos(); // sync the button state with reality
           return;
         }
         showToast(data.error || "Could not claim this code.");
         return;
       }
 
-      const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
-      if (promo.claimOnce === false) {
-        claimedDailyIds.add(dailyIdUpper);
-        localStorage.setItem(
-          "hp_claimedDailyIds",
-          JSON.stringify([...claimedDailyIds]),
-        );
-      } else {
-        claimedCodes.add(code);
-        localStorage.setItem(
-          "hp_claimedCodes",
-          JSON.stringify([...claimedCodes]),
-        );
-      }
-
       showToast(`Claimed: ${code}`);
-      await loadPromos(); // re-fetch so RedemptionsLeft reflects the real DB value
+      await loadPromos(); // re-fetches claims + RedemptionsLeft from the real DB
     } catch (err) {
       showToast("An error occurred while claiming.");
     }
@@ -437,6 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.status === 409) {
           redeemMsg.textContent = "You've already claimed this promo code.";
           showToast("Already claimed");
+          await loadPromos(); // sync the button state with reality
           return;
         }
         redeemMsg.textContent = data.error || "Could not redeem this code.";
@@ -447,21 +476,6 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("hawkerpoint_applied_promo", code);
       redeemMsg.textContent = `Applied: ${code} (saved for checkout)`;
       showToast(`Applied: ${code}`);
-
-      const dailyIdUpper = `${code}_${todayKey()}`.toUpperCase();
-      if (promo.claimOnce === false) {
-        claimedDailyIds.add(dailyIdUpper);
-        localStorage.setItem(
-          "hp_claimedDailyIds",
-          JSON.stringify([...claimedDailyIds]),
-        );
-      } else {
-        claimedCodes.add(code);
-        localStorage.setItem(
-          "hp_claimedCodes",
-          JSON.stringify([...claimedCodes]),
-        );
-      }
 
       loadPromos();
     } catch (error) {

@@ -215,13 +215,19 @@ async function initCard() {
   if (payBtn) payBtn.textContent = `Pay $${money(total)}`;
 
   const cards = await loadSavedCards(user.uid);
-  if (cards && cards.length > 0) {
-      selectedSavedCard = cards[0];
+  const activeCard = (cards || []).find(
+    (c) => c.InUse === 1 || c.InUse === true,
+  );
+
+  if (activeCard) {
+      selectedSavedCard = activeCard;
       if (cardNoEl) cardNoEl.value = "•••• •••• •••• " + selectedSavedCard.Last4;
       if (expEl) expEl.value = String(selectedSavedCard.ExpMonth).padStart(2, '0') + "/" + String(selectedSavedCard.ExpYear).slice(-2);
       if (saveCardChk) saveCardChk.checked = true; 
       if (useNewCardBtn) useNewCardBtn.hidden = false;
   }
+  // No card marked InUse (none set as active, or the active one was
+  // deleted) — leave the form blank instead of guessing.
 
   if (useNewCardBtn) {
       useNewCardBtn.addEventListener("click", () => {
