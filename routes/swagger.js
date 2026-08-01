@@ -89,6 +89,31 @@ const doc = {
       name: "Manage Complaints",
       description: "NEA officer review and status updates on complaints",
     },
+    // ----- Customer (Matthew Tan) -----
+    {
+      name: "Cart (Customer)",
+      description: "Customer shopping cart — view, update, add/remove items",
+    },
+    {
+      name: "Checkout (Customer)",
+      description: "Guest or logged-in checkout — create session, view details, get QR, and pay",
+    },
+    {
+      name: "Order History (Customer)",
+      description: "Guest and logged-in customer order history — view, cancel, delete",
+    },
+    {
+      name: "Favourite Order (Customer)",
+      description: "Save, view, and delete the customer's favourite order",
+    },
+    {
+      name: "Promotions (Customer)",
+      description: "List all promotions, redeem a promo code, and view claimed promotions",
+    },
+    {
+      name: "Saved Cards (Customer)",
+      description: "View, save, update, and delete the user's saved cards",
+    }
   ],
 };
 
