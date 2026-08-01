@@ -84,4 +84,24 @@ async function getStallById(req, res) {
   }
 }
 
-module.exports = { getAllStalls, getStallById };
+// GET /api/stalls/:id/hours
+async function getStallHours(req, res) {
+  try {
+    const stallId = req.params.id;
+    const rows = await stallModel.getStallHours(stallId);
+ 
+    const hours = rows.map((r) => ({
+      dayOfWeek: r.DayOfWeek,               // 0=Sun ... 6=Sat, matches JS Date.getDay()
+      isClosed: r.IsClosed === true || r.IsClosed === 1,
+      openTime: r.OpenTime || "",
+      closeTime: r.CloseTime || "",
+    }));
+ 
+    res.json({ stallId, hours });
+  } catch (err) {
+    console.error("getStallHours error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve stall hours." });
+  }
+}
+
+module.exports = { getAllStalls, getStallById, getStallHours };

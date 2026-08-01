@@ -2314,6 +2314,7 @@ select,
 .page.stallPage {
   max-width: 1920px;
   margin-left: 70px;
+  margin-right: 70px;
   padding: 18px 22px 80px;
   background: #fbf2e3;
   position: relative;
@@ -2481,7 +2482,7 @@ select,
   margin-bottom: 28px;
 
   max-width: 880px;
-  width: 96%;
+  width: 100%;
   margin-left: 0;
   margin-right: auto;
 }
@@ -6901,4 +6902,106 @@ body.storePage #stallGrade.gradeD {
 
 .pr-btn-danger {
   box-shadow: 0 10px 22px rgba(204, 43, 43, 0.25);
+}
+
+.hoursWidget {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 12px 0 20px;
+  border: 1px solid #e5decf;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.hoursRow {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.hoursRowToday {
+  font-weight: 700;
+}
+
+.hoursClockIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #eef0ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hoursClockImg {
+  width: 18px;
+  height: 18px;
+}
+
+.hoursDay {
+  flex: 1;
+}
+
+.hoursTime {
+  color: #444;
+}
+
+
+
+.hoursChevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+  transform: rotate(90deg); /* right-arrow.png → pointing down (collapsed) */
+}
+
+.hoursToggle[aria-expanded="true"] .hoursChevron,
+.hoursRow[aria-expanded="true"] .hoursChevron {
+  transform: rotate(-90deg); /* pointing up (expanded) */
+}
+
+.hoursList {
+  border-top: 1px solid #eee;
+}
+
+.hoursListRow {
+  display: flex;
+  padding: 10px 16px 10px 62px;
+  color: #666;
+}
+
+.hoursListRow.isToday {
+  color: #111;
+  font-weight: 600;
+}
+
+.hoursListRow .hoursDay {
+  flex: 1;
+}
+
+.hoursListRow.isClosed .hoursTime {
+  color: #b33;
+}
+
+.hoursTime.isOpenColor {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.hoursTime.isClosedColor {
+  color: #c9302c;
+  font-weight: 600;
 }

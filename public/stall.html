@@ -118,6 +118,32 @@
       <div id="stallMeta" class="metaLine"></div>
       <div id="stallContact" class="metaLine"></div>
 
+      <div id="hoursWidget" class="hoursWidget">
+        <button
+          id="hoursToggle"
+          class="hoursRow hoursRowToday"
+          type="button"
+          aria-expanded="false"
+          aria-controls="hoursList"
+        >
+          <span class="hoursClockIcon" aria-hidden="true">
+            <img src="images/clock.png" alt="" class="hoursClockImg" />
+          </span>
+          <span id="hoursTodayLabel" class="hoursDay"></span>
+          <span id="hoursTodayTime" class="hoursTime"></span>
+          <img
+            id="hoursChevron"
+            class="hoursChevron"
+            src="images/right-arrow-black.png"
+            alt=""
+            aria-hidden="true"
+          />
+        </button>
+      
+        <div id="hoursList" class="hoursList" hidden></div>
+      </div>
+ 
+
       <div class="descBox">
         <p id="stallDesc"></p>
       </div>
