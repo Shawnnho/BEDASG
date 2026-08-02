@@ -16,7 +16,7 @@ function getCurrentMonthKey() {
 }
 
 // GET /api/operator/centres
-// Retrieves all centres that the operator owns
+// Retrieve all centres that the operator owns
 async function getMyCentres(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -39,7 +39,7 @@ async function getMyCentres(req, res) {
 }
 
 // GET /api/operator/overview
-// Retrieves the number of centres owned, the total stalls, the total rental agreements and the total revenue as a number
+
 async function getOverview(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -74,7 +74,7 @@ async function getOverview(req, res) {
 }
 
 // GET /api/operator/centres/:centreId/stalls
-// Retrieves the stalls owned by the operator for a specific centre
+// Retrieves all stalls from a centre that the opeator owns
 async function getStallsForCentre(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -100,7 +100,7 @@ async function getStallsForCentre(req, res) {
 }
 
 // GET /api/operator/centres/:centreId/rentals
-// Retrieves the Rental Agreements that the operator has given for a specific stall
+// Retrieves all rental agreements that an operator has for a centre
 async function getRentalsForCentre(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -110,14 +110,7 @@ async function getRentalsForCentre(req, res) {
 
     const withBills = await Promise.all(
       agreements.map(async (ra) => {
-        const dueDay = ra.StartDate ? new Date(ra.StartDate).getDate() : 15;
-        const bill = await operatorBillModel.ensureBill(
-          ra.StallId,
-          centreId,
-          monthKey,
-          ra.MonthlyRent,
-          dueDay,
-        );
+        const bill = await operatorBillModel.getBill(ra.StallId, monthKey);
         return { ...ra, bill };
       }),
     );
@@ -130,7 +123,7 @@ async function getRentalsForCentre(req, res) {
 }
 
 // GET /api/operator/stalls
-// Retrieves all stalls for operator
+// Retrieve all stalls that the operator owns
 async function getAllStallsForOperator(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -165,7 +158,7 @@ async function getAllStallsForOperator(req, res) {
 }
 
 // GET /api/operator/rentals
-// Retrives all rental agreement for operator
+// Retrieves all rental agreement for a operator
 async function getAllRentalsForOperator(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -177,8 +170,8 @@ async function getAllRentalsForOperator(req, res) {
     for (const c of centres) {
       const agreements = await rentalAgreementModel.getRentalAgreementsByCentre(c.CentreId);
       for (const ra of agreements) {
-        const dueDay = ra.StartDate ? new Date(ra.StartDate).getDate() : 15;
-        const bill = await operatorBillModel.ensureBill(ra.StallId, c.CentreId, monthKey, ra.MonthlyRent, dueDay);
+        // Read-only — same fix as getRentalsForCentre above.
+        const bill = await operatorBillModel.getBill(ra.StallId, monthKey);
         allAgreements.push({ ...ra, CentreName: c.Name, bill });
       }
     }
@@ -191,7 +184,7 @@ async function getAllRentalsForOperator(req, res) {
 }
 
 // POST /api/operator/rentals
-// Creates a Rental Agreement for a stall that the operator has selected
+// Creates a Rental Agreement
 async function createRental(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -207,6 +200,7 @@ async function createRental(req, res) {
       other,
     } = req.body;
     const stall = req.stall;
+
 
     const latestBill = await operatorBillModel.getLatestBillForStall(stall.StallId);
     if (latestBill) {
@@ -272,12 +266,11 @@ async function createRental(req, res) {
 }
 
 // DELETE /api/operator/rentals/:agreementId
-// Deletes a rental agreement that the user has selected
+// Delets a rental agreement
 async function deleteRental(req, res) {
   // #swagger.tags = ['Operator']
   try {
     const agreement = req.agreement;
-
     const latestBill = await operatorBillModel.getLatestBillForStall(agreement.StallId);
     const isUnpaid = latestBill && latestBill.IsPaid !== true && latestBill.IsPaid !== 1;
     if (isUnpaid) {
@@ -293,7 +286,7 @@ async function deleteRental(req, res) {
 }
 
 // PUT /api/operator/bills/:stallId/:billMonth
-// Updates a rental agreement (provided the stall holder has yet to pay)
+// Updates the monthly rental agreement
 async function saveBill(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -340,7 +333,7 @@ async function saveBill(req, res) {
 }
 
 // GET /api/operator/stalls/:stallId/complaints
-// Retrieve all complaints from a stall that the operator owns
+// Retrieve all complaints from a stall
 async function getStallComplaints(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -354,7 +347,7 @@ async function getStallComplaints(req, res) {
 }
 
 // GET /api/operator/reports
-// Retrieve all reports on reviews 
+// Retrieves the reports made by different customers
 async function getReportedReviews(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -371,7 +364,7 @@ async function getReportedReviews(req, res) {
 }
 
 // POST /api/operator/reports/:reportId/dismiss
-//  Dismisses the Report 
+// Dismisses a report made by a customer
 async function dismissReport(req, res) {
   // #swagger.tags = ['Operator']
   try {
@@ -394,11 +387,10 @@ async function dismissReport(req, res) {
 }
 
 // DELETE /api/operator/reports/:reportId/review
-// Deletes the review  that the operator has selected 
+// Deletes a review
 async function deleteReportedReview(req, res) {
   // #swagger.tags = ['Operator']
   try {
-
     await feedbackReportModel.deleteReportsByReviewId(req.review.ReviewId);
     await stallReviewModel.deleteReview(req.review.ReviewId);
 
