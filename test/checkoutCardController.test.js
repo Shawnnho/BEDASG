@@ -55,6 +55,7 @@ describe("Checkout Card Controller", () => {
       expect(checkoutCardModel.createCheckoutOrder).toHaveBeenCalledWith({
         fulfillment: "pickup",
         userId: "user1",
+        guestSessionId: null,
       });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
