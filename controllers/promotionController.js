@@ -103,25 +103,16 @@ async function getPromotionCountByUserId(req, res) {
 // Mirrors the resolveStall helper used across the stall dashboard.
 async function resolveStall(req, res) {
   const userId = req.user?.UserId || req.user?.userId;
-  console.log(
-    "resolveStall: req.user =",
-    JSON.stringify(req.user),
-    "| userId =",
-    userId,
-  );
   if (!userId) {
-    console.log("resolveStall: NO userId -> 401");
     res.status(401).json({ error: "Not authenticated" });
     return null;
   }
   const user = await orderModel.getUserInfo(userId);
-  console.log("resolveStall: getUserInfo returned =", JSON.stringify(user));
   if (!user?.StallId) {
-    console.log("resolveStall: NO StallId -> 404");
     res.status(404).json({ error: "No stall linked to this user" });
     return null;
   }
-  return user;
+  return user; // { StallId, Name }
 }
 
 // Validation for create/update.
@@ -177,12 +168,6 @@ const getMyPromotions = async (req, res) => {
     if (!stall) return;
 
     const promos = await promoModel.getPromotionsByStall(stall.StallId);
-    console.log(
-      "MINE stallId:",
-      JSON.stringify(stall.StallId),
-      "count:",
-      promos.length,
-    );
     res.status(200).json(promos);
   } catch (error) {
     console.error("getMyPromotions error:", error.message);

@@ -33,17 +33,7 @@ async function getAllStalls(req, res) {
 async function getStallById(req, res) {
   try {
     const stallId = req.params.id;
-    console.log("=== getStallById ===");
-    console.log("received:", JSON.stringify(stallId));
-    console.log("length:", stallId.length);
-    console.log(
-      "char codes:",
-      [...stallId].map((c) => c.charCodeAt(0)).join(","),
-    );
-
     const row = await stallModel.getStallById(stallId);
-    console.log("row found:", !!row);
-
     if (!row) {
       return res.status(404).json({ error: "Stall not found." });
     }
@@ -89,14 +79,14 @@ async function getStallHours(req, res) {
   try {
     const stallId = req.params.id;
     const rows = await stallModel.getStallHours(stallId);
- 
+
     const hours = rows.map((r) => ({
-      dayOfWeek: r.DayOfWeek,               // 0=Sun ... 6=Sat, matches JS Date.getDay()
+      dayOfWeek: r.DayOfWeek, // 0=Sun ... 6=Sat, matches JS Date.getDay()
       isClosed: r.IsClosed === true || r.IsClosed === 1,
       openTime: r.OpenTime || "",
       closeTime: r.CloseTime || "",
     }));
- 
+
     res.json({ stallId, hours });
   } catch (err) {
     console.error("getStallHours error:", err.message);
