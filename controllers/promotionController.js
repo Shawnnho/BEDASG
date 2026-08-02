@@ -20,7 +20,9 @@ const redeemPromotion = async (req, res) => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
-      return res.status(401).json({ error: "You must be logged in to redeem a promo code" });
+      return res
+        .status(401)
+        .json({ error: "You must be logged in to redeem a promo code" });
     }
 
     const { code } = req.body;
@@ -31,16 +33,22 @@ const redeemPromotion = async (req, res) => {
     const result = await promoModel.redeemPromotion(code, userId);
 
     if (result.success) {
-      return res.status(200).json({ message: "Promotion redeemed successfully" });
+      return res
+        .status(200)
+        .json({ message: "Promotion redeemed successfully" });
     }
 
-    if (result.reason === 'already_claimed') {
-      return res.status(409).json({ error: "You've already claimed this promo code" });
+    if (result.reason === "already_claimed") {
+      return res
+        .status(409)
+        .json({ error: "You've already claimed this promo code" });
     }
-    if (result.reason === 'exhausted') {
-      return res.status(400).json({ error: "This promo code has no redemptions left" });
+    if (result.reason === "exhausted") {
+      return res
+        .status(400)
+        .json({ error: "This promo code has no redemptions left" });
     }
-    if (result.reason === 'expired') {
+    if (result.reason === "expired") {
       return res.status(400).json({ error: "This promo code has expired" });
     }
     return res.status(400).json({ error: "Invalid promo code" });
@@ -56,7 +64,7 @@ async function getPromotionsByUserId(req, res) {
     if (!userId) {
       return res.status(400).json({ error: "Invalid user ID" });
     }
- 
+
     const rows = await promoModel.getPromotionsByUserId(userId);
     const promotions = rows.map((r) => ({
       id: r.PromoId,
@@ -64,7 +72,7 @@ async function getPromotionsByUserId(req, res) {
       expiresAt: r.ExpiresAt || null,
       claimedAt: r.ClaimedAt || null,
     }));
- 
+
     res.json(promotions);
   } catch (error) {
     console.error("Error fetching promotions:", error);
@@ -72,13 +80,13 @@ async function getPromotionsByUserId(req, res) {
   }
 }
 
-async function getPromotionCountByUserId(req,res) {
-    try {
+async function getPromotionCountByUserId(req, res) {
+  try {
     const userId = req.params.userId;
     if (!userId) {
       return res.status(400).json({ error: "Invalid user ID" });
     }
- 
+
     const count = await promoModel.getPromotionCountByUserId(userId);
     res.json({ count });
   } catch (error) {
@@ -95,16 +103,25 @@ async function getPromotionCountByUserId(req,res) {
 // Mirrors the resolveStall helper used across the stall dashboard.
 async function resolveStall(req, res) {
   const userId = req.user?.UserId || req.user?.userId;
+  console.log(
+    "resolveStall: req.user =",
+    JSON.stringify(req.user),
+    "| userId =",
+    userId,
+  );
   if (!userId) {
+    console.log("resolveStall: NO userId -> 401");
     res.status(401).json({ error: "Not authenticated" });
     return null;
   }
   const user = await orderModel.getUserInfo(userId);
+  console.log("resolveStall: getUserInfo returned =", JSON.stringify(user));
   if (!user?.StallId) {
+    console.log("resolveStall: NO StallId -> 404");
     res.status(404).json({ error: "No stall linked to this user" });
     return null;
   }
-  return user; // { StallId, Name }
+  return user;
 }
 
 // Validation for create/update.
@@ -160,6 +177,12 @@ const getMyPromotions = async (req, res) => {
     if (!stall) return;
 
     const promos = await promoModel.getPromotionsByStall(stall.StallId);
+    console.log(
+      "MINE stallId:",
+      JSON.stringify(stall.StallId),
+      "count:",
+      promos.length,
+    );
     res.status(200).json(promos);
   } catch (error) {
     console.error("getMyPromotions error:", error.message);
