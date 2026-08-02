@@ -264,7 +264,7 @@ function isQrAlreadyRevealed(id) {
   return getRevealedQrIds().includes(id);
 }
 
-function setupInlineQr(id, orderNo) {
+function setupInlineQr(id, orderNo, isCancelledOrRefunded) {
   const container = document.getElementById("inlineQrContainer");
   const img = document.getElementById("inlineQrImg");
   const orderEl = document.getElementById("inlineQrOrderNo");
@@ -273,11 +273,21 @@ function setupInlineQr(id, orderNo) {
 
   if (container._qrTimer) clearTimeout(container._qrTimer);
 
+  // A cancelled/refunded order should never show a pickup QR, even if it
+  // was mid-countdown or already revealed on a past visit.
+  if (isCancelledOrRefunded) {
+    container.hidden = true;
+    return;
+  }
+
   const reveal = () => {
     if (orderEl) orderEl.textContent = orderNo || "—";
     img.src = `/api/checkoutCard/${encodeURIComponent(id)}/qr?ts=${Date.now()}`;
     container.hidden = false;
     markQrRevealed(id);
+    // The QR is now visible — cancelling from here would strand a code the
+    // customer's already been shown, so pull the cancel option.
+    hideCancelButton();
   };
 
   if (isQrAlreadyRevealed(id)) {
@@ -294,6 +304,13 @@ function hideInlineQr() {
   if (!container) return;
   if (container._qrTimer) clearTimeout(container._qrTimer);
   container.hidden = true;
+}
+
+// Shared so setupInlineQr can hide the button the moment the QR reveals,
+// without needing to know about the button's other visibility rules.
+function hideCancelButton() {
+  const btn = document.getElementById("btnCancel");
+  if (btn) btn.hidden = true;
 }
 
 async function setupCancelButton(id, orders) {
@@ -317,6 +334,15 @@ async function setupCancelButton(id, orders) {
   );
 
   if (isRefunded || isCancelled || isCompleted) {
+    btn.hidden = true;
+    return;
+  }
+
+  // Once the QR has been revealed (this visit or a past one, per
+  // localStorage), the order is considered "in collection" — cancelling at
+  // that point would leave a QR code the customer already has, so hide the
+  // cancel option instead.
+  if (isQrAlreadyRevealed(id)) {
     btn.hidden = true;
     return;
   }
@@ -410,10 +436,16 @@ async function loadSummary(id) {
     btnStatus.href = `orders.html?${checkout ? "checkoutId" : "orderId"}=${encodeURIComponent(id)}`;
   }
 
+  const isCancelledOrRefunded = orders.some(
+    (o) =>
+      !!o.CancelledAt ||
+      String(o.RefundStatus || "").toLowerCase() === "refunded",
+  );
+
   renderItems(orders, items || []);
   applyRefundState(orders);
   setupCancelButton(id, orders);
-  setupInlineQr(id, primaryOrderNo);
+  setupInlineQr(id, primaryOrderNo, isCancelledOrRefunded);
 
   const loading = document.getElementById("prLoading");
   const errBox = document.getElementById("prError");
