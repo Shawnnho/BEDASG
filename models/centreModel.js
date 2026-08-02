@@ -30,10 +30,7 @@ async function getCentresByOperator(operatorId) {
   return result.recordset;
 }
 
-// Returns the centre only if it's owned by this operator — used to check
-// ownership before letting an operator act on a centreId taken from a URL
-// or request body. Returns undefined if the centre doesn't exist or belongs
-// to someone else.
+// Returns the centre only if it's owned by this operator
 async function getCentreForOperator(centreId, operatorId) {
   const pool = await poolPromise;
   const result = await pool
