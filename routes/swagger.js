@@ -1,7 +1,39 @@
 const swaggerAutogen = require("swagger-autogen")();
 
-const outputFile = "./swagger-output.json"; // Output file for the spec
-const routes = ["./app.js"]; // Path to your API route files
+const outputFile = "./swagger-output.json";
+const routes = [
+  "./routes/stallRoutes.js",
+  "./routes/centreRoutes.js",
+  "./routes/faqRoutes.js",
+  "./routes/contactRoutes.js",
+  "./routes/promotionRoutes.js",
+  "./routes/authRoutes.js",
+  "./routes/favStallRoutes.js",
+  "./routes/hygieneRoutes.js",
+  "./routes/cartRoutes.js",
+  "./routes/orderRoutes.js",
+  "./routes/menuRoutes.js",
+  "./routes/stallMenuRoutes.js",
+  "./routes/stallAccountRoutes.js",
+  "./routes/neaRoutes.js",
+  "./routes/complaintRoutes.js",
+  "./routes/reviewRoutes.js",
+  "./routes/checkoutCardRoutes.js",
+  "./routes/operatorRoutes.js",
+  "./routes/customerOrdersRoutes.js",
+  "./routes/addonRoutes.js",
+  "./routes/stallAnalyticsRoutes.js",
+  "./routes/reportRoutes.js",
+  "./routes/commentRoutes.js",
+  "./routes/rentalRoutes.js",
+  "./routes/paymentRoutes.js",
+  "./routes/favItemRoutes.js",
+  "./routes/favouriteOrderRoutes.js",
+  "./routes/menuPricesRoutes.js",
+  "./routes/stallClosureRoutes.js",
+  "./routes/custAccountRoutes.js",
+  "./routes/savedCardRoutes.js",
+];
 
 const doc = {
   info: {
@@ -9,8 +41,16 @@ const doc = {
     description: "Description of your API",
   },
   host: "localhost:3000",
+  securityDefinitions: {
+    bearerAuth: {
+      type: "apiKey",
+      name: "Authorization",
+      in: "header",
+      description: "Enter: Bearer <your JWT>",
+    },
+  },
+  security: [{ bearerAuth: [] }],
   tags: [
-    // ----- Feedback / Operator (Matthew) -----
     {
       name: "Complaints",
       description: "Submit, view, edit, and delete complaints against a stall",
@@ -29,7 +69,6 @@ const doc = {
       description:
         "Centre/stall management, rental agreements, billing, and report moderation",
     },
-    // ----- Stall-holder (Shawn) -----
     {
       name: "Stall Dashboard",
       description: "Stall owner dashboard summary (orders, sales, rating)",
@@ -70,7 +109,6 @@ const doc = {
       name: "Manage Payments",
       description: "Operator bill summary and payments",
     },
-        // ----- Auth / NEA (Jovan) -----
     {
       name: "Authentication",
       description:
@@ -89,18 +127,19 @@ const doc = {
       name: "Manage Complaints",
       description: "NEA officer review and status updates on complaints",
     },
-    // ----- Customer (Matthew Tan) -----
     {
       name: "Cart (Customer)",
       description: "Customer shopping cart — view, update, add/remove items",
     },
     {
       name: "Checkout (Customer)",
-      description: "Guest or logged-in checkout — create session, view details, get QR, and pay",
+      description:
+        "Guest or logged-in checkout — create session, view details, get QR, and pay",
     },
     {
       name: "Order History (Customer)",
-      description: "Guest and logged-in customer order history — view, cancel, delete",
+      description:
+        "Guest and logged-in customer order history — view, cancel, delete",
     },
     {
       name: "Favourite Order (Customer)",
@@ -108,12 +147,13 @@ const doc = {
     },
     {
       name: "Promotions (Customer)",
-      description: "List all promotions, redeem a promo code, and view claimed promotions",
+      description:
+        "List all promotions, redeem a promo code, and view claimed promotions",
     },
     {
       name: "Saved Cards (Customer)",
       description: "View, save, update, and delete the user's saved cards",
-    }
+    },
   ],
 };
 
